@@ -1,8 +1,11 @@
+import sys
+sys.path.append("../..")
 import torch
 import numpy as np
 from utils.misc import to_torch
 import utils.rotation_conversions as geometry
 import random
+
 
 class Dataset(torch.utils.data.Dataset):
     def __init__(self, num_frames=1, sampling="conseq", sampling_step=1, split="train", pose_rep="rot6d", translation=False, glob=True, max_len=-1, min_len=-1, num_seq_max=-1, **kwargs):
