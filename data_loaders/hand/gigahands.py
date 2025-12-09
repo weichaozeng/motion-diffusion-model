@@ -40,8 +40,11 @@ class GigaHands(Dataset):
         is_left_hand = (ind % 2 == 0)
         if is_left_hand:
             full_poses = torch.tensor(mano_data["left"]["poses"], dtype=torch.float32) 
+            Rh = torch.tensor(mano_data["left"]["Rh"], dtype=torch.float32)
         else:
             full_poses = torch.tensor(mano_data["right"]["poses"], dtype=torch.float32)
+            Rh = torch.tensor(mano_data["right"]["Rh"], dtype=torch.float32)
+        full_poses = torch.cat([Rh, full_poses[:, 3:]], dim=1) # (num_frames, 16*3)
         poses = full_poses[frame_ix].reshape(-1, 16, 3)  # (num_frames, 16, 3)
         if is_left_hand and flip_left:
             poses[:, :, 1] *= -1
@@ -72,6 +75,9 @@ if __name__ == "__main__":
     data = sample['inp']
     import utils.rotation_conversions as geometry
     pose = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(data.permute(2, 0, 1)))
+
+
+
     
     
     
