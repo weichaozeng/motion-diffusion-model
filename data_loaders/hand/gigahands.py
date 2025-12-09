@@ -10,7 +10,7 @@ class GigaHands(Dataset):
         super().__init__(**kwargs)
         self.datapath = datapath
 
-        self.scenes = sorted(os.listdir(self.datapath))
+        self.scenes = sorted(os.listdir(self.datapath))[:2]
         self.seqs_kp3d = []
         self.seqs_mano = []
         self._num_frames_in_video = []
