@@ -1,5 +1,8 @@
 import sys
-sys.path.append("/home/zvc/Project/motion-diffusion-model/")
+from pathlib import Path
+current_file = Path(__file__).resolve()
+root_dir = current_file.parent.parent.parent
+sys.path.append(str(root_dir))
 import torch
 import numpy as np
 from utils.misc import to_torch
