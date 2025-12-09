@@ -65,7 +65,7 @@ class GigaHands(Dataset):
 
 
 if __name__ == "__main__":
-    dataset = GigaHands(split="train", num_frames=128, sampling="conseq", pose_rep="rot6d")
+    dataset = GigaHands(datapath="/home/zvc/Project/motion-diffusion-model/dataset/gigahands", split="train", num_frames=128, sampling="conseq", pose_rep="rot6d")
     print(len(dataset))
     sample = dataset[0]
     print("debug")
