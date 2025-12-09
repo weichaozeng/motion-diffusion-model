@@ -1,5 +1,5 @@
 import sys
-sys.path.append("../..")
+sys.path.append("/home/zvc/Project/motion-diffusion-model/")
 import torch
 import numpy as np
 from utils.misc import to_torch
