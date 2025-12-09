@@ -72,3 +72,7 @@ if __name__ == "__main__":
     data = sample['inp']
     import utils.rotation_conversions as geometry
     pose = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(data.permute(2, 0, 1)))
+    
+    
+    
+    print("debug")
