@@ -68,4 +68,7 @@ if __name__ == "__main__":
     dataset = GigaHands(datapath="/home/zvc/Project/motion-diffusion-model/dataset/gigahands", split="train", num_frames=128, sampling="conseq", pose_rep="rot6d")
     print(len(dataset))
     sample = dataset[0]
-    print("debug")
+    
+    data = sample['inp']
+    import utils.rotation_conversions as geometry
+    pose = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(data.permute(2, 0, 1)))
