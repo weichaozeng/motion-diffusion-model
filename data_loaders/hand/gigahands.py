@@ -15,7 +15,7 @@ class GigaHands(Dataset):
         self.seqs_mano = []
         self._num_frames_in_video = []
         for scene in self.scenes:
-            dir_kp3d = os.path.join(self.datapath, scene, "keypoints3d_mano_align")
+            dir_kp3d = os.path.join(self.datapath, scene, "keypoints_3d_mano_align")
             dir_mano = os.path.join(self.datapath, scene, "params")
             for seq in sorted(os.listdir(dir_kp3d)):
                 with open(os.path.join(dir_mano, seq), 'r') as f:
