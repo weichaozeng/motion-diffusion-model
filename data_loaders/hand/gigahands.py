@@ -91,8 +91,8 @@ class GigaHands(Dataset):
             video_path = os.path.join(rgb_root, scene, cam_id, vid_id)
             mano_path = rgb_seq_data[video_path]['mano_param_path']
             kp3d_path = rgb_seq_data[video_path]['kp_3d_path']
-            for track in os.listdir(os.path.join(self.datapath, out, 'results/track_500.0')):
-                self.seqs_y.append(os.path.join(self.datapath, out, 'results/track_500.0', track))
+            for track in os.listdir(os.path.join(self.datapath, out, 'results', 'track_500.0')):
+                self.seqs_y.append(os.path.join(self.datapath, out, 'results', 'track_500.0', track))
                 self.seqs_kp3d.append(kp3d_path)
                 self.seqs_mano.append(mano_path)
     
