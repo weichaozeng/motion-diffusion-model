@@ -145,7 +145,7 @@ class Dataset(torch.utils.data.Dataset):
     def _get_item_data_index(self, data_index):
         # nframes = self._num_frames_in_video[data_index]
         seq_y = self.seqs_y[data_index]
-        with open(seq_y, 'r') as f:
+        with open(seq_y, 'rb') as f:
             data = pickle.load(f)
         nframes = data['frame_indices'][-1] - data['frame_indices'][0] + 1
         is_right = data["handedness"][0]
