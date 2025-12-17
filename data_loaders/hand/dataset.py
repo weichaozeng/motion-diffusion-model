@@ -204,7 +204,7 @@ class Dataset(torch.utils.data.Dataset):
 
         x0, x0_beta, y, inpaint_mask = self.get_pose_data(data_index, frame_ix, is_right, data)
 
-        output = {'inp': x0, 'beta': x0_beta, 'ref_motion': y, 'inpaint_mask': inpaint_mask, 'mask': mask}
+        output = {'inp': x0, 'beta': x0_beta, 'ref_motion': y, 'inpaint_mask': inpaint_mask, 'mask': mask, 'is_right': torch.from_numpy(is_right)}
         return output
     
     def __len__(self):
