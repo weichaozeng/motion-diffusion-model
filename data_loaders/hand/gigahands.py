@@ -82,7 +82,7 @@ class GigaHands(Dataset):
         rgb_root = "/home/zvc/Data/GigaHands/multiview_rgb_vids"
         with open(rgb_seq_json, 'r') as f:
             rgb_seq_data = json.load(f)        
-        outs = sorted(os.listdir(self.datapath))[-200:]
+        outs = sorted(os.listdir(self.datapath))[:200]
 
         for out in outs:
             scene = out.split('_')[0]
