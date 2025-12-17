@@ -138,6 +138,7 @@ class Dataset(torch.utils.data.Dataset):
         
         ret = ret.permute(1, 2, 0).contiguous()  # J, 6, T
         ret_y = ret_y.permute(1, 2, 0).contiguous() # J, 6, T
+        inpaint_mask = torch.from_numpy(inpaint_mask)
 
         return ret.float(), beta.float(), ret_y.float(), inpaint_mask.float()
     
