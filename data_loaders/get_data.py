@@ -3,9 +3,12 @@ from data_loaders.tensors import collate as all_collate
 from data_loaders.tensors import t2m_collate, t2m_prefix_collate
 
 def get_dataset_class(name):
-    if name == "amass":
-        from .amass import AMASS
-        return AMASS
+    if name == "gigahands":
+        from .hand.gigahands import GigaHands
+        return GigaHands
+    # elif name == "amass":
+    #     from .amass import AMASS
+    #     return AMASS
     elif name == "uestc":
         from .a2m.uestc import UESTC
         return UESTC

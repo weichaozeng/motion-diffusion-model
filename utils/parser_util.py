@@ -96,12 +96,12 @@ def add_model_options(parser):
     group.add_argument("--arch", default='trans_enc',
                        choices=['trans_enc', 'trans_dec', 'gru'], type=str,
                        help="Architecture types as reported in the paper.")
-    group.add_argument("--text_encoder_type", default='clip',
-                       choices=['clip', 'bert'], type=str, help="Text encoder type.")
+    # group.add_argument("--text_encoder_type", default='clip',
+    #                    choices=['clip', 'bert'], type=str, help="Text encoder type.")
     group.add_argument("--emb_trans_dec", action='store_true',
                        help="For trans_dec architecture only, if true, will inject condition as a class token"
                             " (in addition to cross-attention).")
-    group.add_argument("--layers", default=8, type=int,
+    group.add_argument("--layers", default=6, type=int,
                        help="Number of layers.")
     group.add_argument("--latent_dim", default=512, type=int,
                        help="Transformer/GRU width.")
@@ -111,7 +111,7 @@ def add_model_options(parser):
     group.add_argument("--mask_frames", action='store_true', help="If true, will fix Rotem's bug and mask invalid frames.")
     group.add_argument("--lambda_rcxyz", default=0.0, type=float, help="Joint positions loss.")
     group.add_argument("--lambda_vel", default=0.0, type=float, help="Joint velocity loss.")
-    group.add_argument("--lambda_fc", default=0.0, type=float, help="Foot contact loss.")
+    # group.add_argument("--lambda_fc", default=0.0, type=float, help="Foot contact loss.")
     group.add_argument("--lambda_target_loc", default=0.0, type=float, help="For HumanML only, when . L2 with target location.")
     group.add_argument("--unconstrained", action='store_true',
                        help="Model is trained unconditionally. That is, it is constrained by neither text nor action. "
@@ -136,9 +136,9 @@ def add_model_options(parser):
 
 def add_data_options(parser):
     group = parser.add_argument_group('dataset')
-    group.add_argument("--dataset", default='humanml', choices=['humanml', 'kit', 'humanact12', 'uestc'], type=str,
+    group.add_argument("--dataset", default='gigahands', choices=['gigahands', 'humanml', 'kit', 'humanact12', 'uestc'], type=str,
                        help="Dataset name (choose from list).")
-    group.add_argument("--data_dir", default="", type=str,
+    group.add_argument("--data_dir", default="/home/zvc/Project/motion-diffusion-model/dataset/gigahands", type=str,
                        help="If empty, will use defaults according to the specified dataset.")
 
 
@@ -168,7 +168,7 @@ def add_training_options(parser):
                        help="Save checkpoints and run evaluation each N steps")
     group.add_argument("--num_steps", default=600_000, type=int,
                        help="Training will stop after the specified number of steps.")
-    group.add_argument("--num_frames", default=60, type=int,
+    group.add_argument("--num_frames", default=120, type=int,
                        help="Limit for the maximal number of frames. In HumanML3D and KIT this field is ignored.")
     group.add_argument("--resume_checkpoint", default="", type=str,
                        help="If not empty, will start from the specified checkpoint (path to model###.pt file).")
