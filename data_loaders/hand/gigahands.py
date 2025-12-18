@@ -371,7 +371,7 @@ if __name__ == "__main__":
         device = torch.device('cuda')
     else:
         device = torch.device('cpu')
-    dataset = GigaHands(split="train", num_frames=128, sampling="conseq", pose_rep="rot6d", translation=True).to(device)
+    dataset = GigaHands(split="train", num_frames=128, sampling="conseq", pose_rep="rot6d", translation=True)
     print(len(dataset))
     sample = dataset[0]
     
@@ -435,7 +435,7 @@ if __name__ == "__main__":
             "Rh": x0[idx, 0, :].unsqueeze(0),
             "Th": x0_trans[idx].unsqueeze(0),
             "shapes": beta,
-        }
+        }.to(device)
         vertices_gt = hand_model(return_verts=True, return_tensor=False, **hand_param_gt)[0]
         faces = hand_model.faces
         image_gt = np.zeros((720, 1280, 3))
@@ -452,7 +452,7 @@ if __name__ == "__main__":
             "Rh": y[idx, 0, :].unsqueeze(0),
             "Th": y_trans[idx].unsqueeze(0),
             "shapes": beta,
-        }
+        }.to(device)
         vertices_ref = hand_model(return_verts=True, return_tensor=False, **hand_param_ref)[0]
         faces = hand_model.faces
         image_ref = np.zeros((720, 1280, 3))
