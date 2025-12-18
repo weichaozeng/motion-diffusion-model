@@ -160,7 +160,7 @@ class Dataset(torch.utils.data.Dataset):
             mano_data = json.load(f)
         with open(seq_y, 'rb') as f:
             data = pickle.load(f)
-        max_nframe = min(data['frame_indices'][-1], len(mano_data)["right"]["Th"])
+        max_nframe = min(data['frame_indices'][-1], len(mano_data["right"]["Th"]))
         min_nframe = max(0, data['frame_indices'][0])
         nframes = max_nframe - min_nframe + 1
         is_right = data["handedness"][0]
