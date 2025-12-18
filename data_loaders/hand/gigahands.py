@@ -374,113 +374,112 @@ if __name__ == "__main__":
         device = torch.device('cpu')
     dataset = GigaHands(split="train", num_frames=128, sampling="conseq", pose_rep="rot6d", translation=True, align_pose_frontview=True)
     print(len(dataset))
-    sample = dataset[0]
-    
-
-    import utils.rotation_conversions as geometry
-    # pose = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(data.permute(2, 0, 1)))
-    if dataset.translation:
-        x0_trans = sample['inp'].permute(2, 0, 1)[:, -1, :3]
-        x0 = sample['inp'].permute(2, 0, 1)[:, :-1, :]
-        x0 = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(x0))
-        x0_root = sample['inp_root']
-        x0_trans += x0_root
-        y_trans = sample['ref_motion'].permute(2, 0, 1)[:, -1, :3]
-        y = sample['ref_motion'].permute(2, 0, 1)[:, :-1, :]
-        y = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(y))
-        y_root = sample['ref_motion_root']
-        y_trans += y_root
-    else:
-        x0_trans = torch.zeros_like(sample['inp'].permute(2, 0, 1)[:, -1, :3])
-        x0 = sample['inp'].permute(2, 0, 1)
-        x0 = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(x0))
+    for sample_idx in range(10):
+        sample = dataset[sample_idx]
+        import utils.rotation_conversions as geometry
+        # pose = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(data.permute(2, 0, 1)))
+        if dataset.translation:
+            x0_trans = sample['inp'].permute(2, 0, 1)[:, -1, :3]
+            x0 = sample['inp'].permute(2, 0, 1)[:, :-1, :]
+            x0 = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(x0))
+            x0_root = sample['inp_root']
+            x0_trans += x0_root
+            y_trans = sample['ref_motion'].permute(2, 0, 1)[:, -1, :3]
+            y = sample['ref_motion'].permute(2, 0, 1)[:, :-1, :]
+            y = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(y))
+            y_root = sample['ref_motion_root']
+            y_trans += y_root
+        else:
+            x0_trans = torch.zeros_like(sample['inp'].permute(2, 0, 1)[:, -1, :3])
+            x0 = sample['inp'].permute(2, 0, 1)
+            x0 = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(x0))
+            
+            y_trans = torch.zeros_like(sample['ref_motion'].permute(2, 0, 1)[:, -1, :3])
+            y = sample['ref_motion'].permute(2, 0, 1)
+            y = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(y))
         
-        y_trans = torch.zeros_like(sample['ref_motion'].permute(2, 0, 1)[:, -1, :3])
-        y = sample['ref_motion'].permute(2, 0, 1)
-        y = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(y))
-    
-    inpaint_mask = sample['inpaint_mask']
-    mask = sample['mask']
-    beta = sample['beta']
-    is_right = sample['is_right']
-    cam = sample['cam']
+        inpaint_mask = sample['inpaint_mask']
+        mask = sample['mask']
+        beta = sample['beta']
+        is_right = sample['is_right']
+        cam = sample['cam']
 
-    # temporal mask
-    valid_indices = torch.nonzero(mask).squeeze()
-    if valid_indices.numel() > 0:
-        start_idx = valid_indices[0].item()
-        end_idx = valid_indices[-1].item()
+        # temporal mask
+        valid_indices = torch.nonzero(mask).squeeze()
+        if valid_indices.numel() > 0:
+            start_idx = valid_indices[0].item()
+            end_idx = valid_indices[-1].item()
 
-    # model
-    from data_loaders.hand.vis import load_model, Renderer
-    render = Renderer(height=720, width=1280, faces=None, extra_mesh=[])
-    model_path = '/home/zvc/Project/motion-diffusion-model/body_models'
-    if is_right:
-        hand_model = load_model(
-        gender='neutral', model_type='manor', model_path=model_path,
-        num_pca_comps=6, use_pose_blending=True, use_shape_blending=True,
-        use_pca=False, use_flat_mean=False)
-    else:
-        hand_model = load_model(
-        gender='neutral', model_type='manol', model_path=model_path,
-        num_pca_comps=6, use_pose_blending=True, use_shape_blending=True,
-        use_pca=False, use_flat_mean=False)
-        x0_trans[:, 0] *= -1
-        y_trans[:, 0] *= -1
-        x0[:, :, 1] *= -1
-        x0[:, :, 2] *= -1
-        y[:, :, 1] *= -1
-        y[:, :, 2] *= -1
+        # model
+        from data_loaders.hand.vis import load_model, Renderer
+        render = Renderer(height=720, width=1280, faces=None, extra_mesh=[])
+        model_path = '/home/zvc/Project/motion-diffusion-model/body_models'
+        if is_right:
+            hand_model = load_model(
+            gender='neutral', model_type='manor', model_path=model_path,
+            num_pca_comps=6, use_pose_blending=True, use_shape_blending=True,
+            use_pca=False, use_flat_mean=False)
+        else:
+            hand_model = load_model(
+            gender='neutral', model_type='manol', model_path=model_path,
+            num_pca_comps=6, use_pose_blending=True, use_shape_blending=True,
+            use_pca=False, use_flat_mean=False)
+            x0_trans[:, 0] *= -1
+            y_trans[:, 0] *= -1
+            x0[:, :, 1] *= -1
+            x0[:, :, 2] *= -1
+            y[:, :, 1] *= -1
+            y[:, :, 2] *= -1
 
-    # param
-    frames_gt = []
-    frames_ref = []
-    for idx in tqdm(range(start_idx, end_idx+1)):
-        # gt
-        hand_param_gt = {
-            "poses": torch.cat([torch.zeros_like(x0[idx, 0, :]).unsqueeze(0), x0[idx, 1:, :]], dim=0).unsqueeze(0).reshape(1, -1).to(device), 
-            "Rh": x0[idx, 0, :].unsqueeze(0).to(device),
-            "Th": x0_trans[idx].unsqueeze(0).to(device),
-            "shapes": beta.to(device),
-        }
-        vertices_gt = hand_model(return_verts=True, return_tensor=False, **hand_param_gt)[0]
-        faces = hand_model.faces
-        image_gt = np.zeros((720, 1280, 3))
-        render_data_gt = {
-            0: {'vertices': vertices_gt, 'faces': faces, 'vid': 1, 'name': f'gt_{idx}'},
-        }
-        render_results_gt = render.render(render_data_gt, cam, [image_gt], add_back=False)
-        image_vis_gt = render_results_gt[0][:, :, [2, 1, 0, 3]]
-        frames_gt.append(image_vis_gt.astype(np.uint8))
+        # param
+        frames_gt = []
+        frames_ref = []
+        for idx in tqdm(range(start_idx, end_idx+1)):
+            # gt
+            hand_param_gt = {
+                "poses": torch.cat([torch.zeros_like(x0[idx, 0, :]).unsqueeze(0), x0[idx, 1:, :]], dim=0).unsqueeze(0).reshape(1, -1).to(device), 
+                "Rh": x0[idx, 0, :].unsqueeze(0).to(device),
+                "Th": x0_trans[idx].unsqueeze(0).to(device),
+                "shapes": beta.to(device),
+            }
+            vertices_gt = hand_model(return_verts=True, return_tensor=False, **hand_param_gt)[0]
+            faces = hand_model.faces
+            image_gt = np.zeros((720, 1280, 3))
+            render_data_gt = {
+                0: {'vertices': vertices_gt, 'faces': faces, 'vid': 1, 'name': f'gt_{idx}'},
+            }
+            render_results_gt = render.render(render_data_gt, cam, [image_gt], add_back=False)
+            image_vis_gt = render_results_gt[0][:, :, [2, 1, 0, 3]]
+            frames_gt.append(image_vis_gt.astype(np.uint8))
 
-        # ref
-        hand_param_ref = {
-            "poses": torch.cat([torch.zeros_like(y[idx, 0, :]).unsqueeze(0), y[idx, 1:, :]], dim=0).unsqueeze(0).reshape(1, -1).to(device), 
-            "Rh": y[idx, 0, :].unsqueeze(0).to(device),
-            "Th": y_trans[idx].unsqueeze(0).to(device),
-            "shapes": beta.to(device),
-        }
-        vertices_ref = hand_model(return_verts=True, return_tensor=False, **hand_param_ref)[0]
-        faces = hand_model.faces
-        image_ref = np.zeros((720, 1280, 3))
-        render_data_ref = {
-            0: {'vertices': vertices_ref, 'faces': faces, 'vid': 1, 'name': f'ref_{idx}'},
-        }
-        render_results_ref = render.render(render_data_ref, cam, [image_ref], add_back=False)
-        image_vis_ref = render_results_ref[0][:, :, [2, 1, 0, 3]]
-        frames_ref.append(image_vis_ref.astype(np.uint8))
+            # ref
+            hand_param_ref = {
+                "poses": torch.cat([torch.zeros_like(y[idx, 0, :]).unsqueeze(0), y[idx, 1:, :]], dim=0).unsqueeze(0).reshape(1, -1).to(device), 
+                "Rh": y[idx, 0, :].unsqueeze(0).to(device),
+                "Th": y_trans[idx].unsqueeze(0).to(device),
+                "shapes": beta.to(device),
+            }
+            vertices_ref = hand_model(return_verts=True, return_tensor=False, **hand_param_ref)[0]
+            faces = hand_model.faces
+            image_ref = np.zeros((720, 1280, 3))
+            render_data_ref = {
+                0: {'vertices': vertices_ref, 'faces': faces, 'vid': 1, 'name': f'ref_{idx}'},
+            }
+            render_results_ref = render.render(render_data_ref, cam, [image_ref], add_back=False)
+            image_vis_ref = render_results_ref[0][:, :, [2, 1, 0, 3]]
+            frames_ref.append(image_vis_ref.astype(np.uint8))
 
-    # Save video
-    import imageio
-    save_path = '/home/zvc/Project/motion-diffusion-model/_vis'
-    os.makedirs(save_path, exist_ok=True)
+        # Save video
+        import imageio
+        save_path = '/home/zvc/Project/motion-diffusion-model/_vis'
+        os.makedirs(save_path, exist_ok=True)
 
-    output_video_gt = os.path.join(save_path, 'output_gt.mp4')
-    imageio.mimsave(str(output_video_gt), frames_gt, fps=30)
-    print(f"Saved output video to {output_video_gt}")
+        output_video_gt = os.path.join(save_path, f'output_gt_{sample_idx}.mp4')
+        imageio.mimsave(str(output_video_gt), frames_gt, fps=30)
+        print(f"Saved output video to {output_video_gt}")
 
-    output_video_ref = os.path.join(save_path, 'output_ref.mp4')
-    imageio.mimsave(str(output_video_ref), frames_ref, fps=30)
-    print(f"Saved output video to {output_video_ref}")
+        output_video_ref = os.path.join(save_path, f'output_ref_{sample_idx}.mp4')
+        imageio.mimsave(str(output_video_ref), frames_ref, fps=30)
+        print(f"Saved output video to {output_video_ref}")
 
     
