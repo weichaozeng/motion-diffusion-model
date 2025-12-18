@@ -61,7 +61,7 @@ class Dataset(torch.utils.data.Dataset):
                 if getattr(self, "_load_translation") is None:
                     raise ValueError("Can't extract translations.")
                 ret_tr = self._load_translation(ind, frame_ix, is_right)
-                orig_root = to_torch(ret_tr[0].clone())
+                orig_root = to_torch(ret_tr[0]).clone()
                 ret_tr = to_torch(ret_tr - ret_tr[0])
             # y
             if getattr(self, "_load_joints3D_y", None) is not None:
@@ -76,7 +76,7 @@ class Dataset(torch.utils.data.Dataset):
                 if getattr(self, "_load_translation_y") is None:
                     raise ValueError("Can't extract translations.")
                 ret_tr_y, inpaint_mask = self._load_translation_y(ind, frame_ix, y_data)
-                orig_root_y = to_torch(ret_tr_y[0].clone())
+                orig_root_y = to_torch(ret_tr_y[0]).clone()
                 ret_tr_y = to_torch(ret_tr_y - ret_tr_y[0])
                 
         
