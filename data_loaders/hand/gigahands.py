@@ -367,7 +367,11 @@ def visualize_batch(dataset_item):
 
 
 if __name__ == "__main__":
-    dataset = GigaHands(split="train", num_frames=128, sampling="conseq", pose_rep="rot6d", translation=True)
+    if torch.cuda.is_available():
+        device = torch.device('cuda')
+    else:
+        device = torch.device('cpu')
+    dataset = GigaHands(split="train", num_frames=128, sampling="conseq", pose_rep="rot6d", translation=True).to(device)
     print(len(dataset))
     sample = dataset[0]
     
