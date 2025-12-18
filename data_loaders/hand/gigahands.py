@@ -427,9 +427,9 @@ if __name__ == "__main__":
     for idx in range(start_idx, end_idx+1):
         # gt
         hand_param_gt = {
-            "poses": torch.cat([torch.zeros_like(x0[idx, 0, :]).unsqueeze(0), x0[idx, 1:, :]], dim=0), 
-            "Rh": x0[idx, 0, :],
-            "Th": x0_trans[idx],
+            "poses": torch.cat([torch.zeros_like(x0[idx, 0, :]).unsqueeze(0), x0[idx, 1:, :]], dim=0).unsqueeze(0), 
+            "Rh": x0[idx, 0, :].unsqueeze(0),
+            "Th": x0_trans[idx].unsqueeze(0),
             "shapes": beta,
         }
         vertices_gt = hand_model(return_verts=True, return_tensor=False, **hand_param_gt)[0]
@@ -444,9 +444,9 @@ if __name__ == "__main__":
 
         # ref
         hand_param_ref = {
-            "poses": torch.cat([torch.zeros_like(y[idx, 0, :]).unsqueeze(0), y[idx, 1:, :]], dim=0), 
-            "Rh": y[idx, 0, :],
-            "Th": y_trans[idx],
+            "poses": torch.cat([torch.zeros_like(y[idx, 0, :]).unsqueeze(0), y[idx, 1:, :]], dim=0).unsqueeze(0), 
+            "Rh": y[idx, 0, :].unsqueeze(0),
+            "Th": y_trans[idx].unsqueeze(0),
             "shapes": beta,
         }
         vertices_ref = hand_model(return_verts=True, return_tensor=False, **hand_param_ref)[0]
