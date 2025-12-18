@@ -136,15 +136,18 @@ class Dataset(torch.utils.data.Dataset):
             padded_tr_y[:, :3] = ret_tr_y
             ret_y = torch.cat((ret_y, padded_tr_y[:, None]), 1)
         
-        ret = ret.permute(1, 2, 0).contiguous()  # J, 6, T
-        ret_y = ret_y.permute(1, 2, 0).contiguous() # J, 6, T
+        ret = ret.permute(1, 2, 0).contiguous()  # J or J + 1, 6, T
+        ret_y = ret_y.permute(1, 2, 0).contiguous() # J or J + 1, 6, T
         inpaint_mask = torch.from_numpy(inpaint_mask)
 
         return ret.float(), beta.float(), ret_y.float(), inpaint_mask.float()
     
 
     def _get_item_data_index(self, data_index):
-        # nframes = self._num_frames_in_video[data_index]
+        if getattr(self, "_load_cam", None) is None:
+            raise ValueError("No cam params.")
+        else:
+            cam = self._load_cam(data_index)
         seq_y = self.seqs_y[data_index]
         with open(seq_y, 'rb') as f:
             data = pickle.load(f)
@@ -204,8 +207,9 @@ class Dataset(torch.utils.data.Dataset):
 
         x0, x0_beta, y, inpaint_mask = self.get_pose_data(data_index, frame_ix, is_right, data)
         is_right = torch.from_numpy(np.asarray(is_right))
+        
 
-        output = {'inp': x0, 'beta': x0_beta, 'ref_motion': y, 'inpaint_mask': inpaint_mask, 'mask': mask, 'is_right': is_right}
+        output = {'inp': x0, 'beta': x0_beta, 'ref_motion': y, 'inpaint_mask': inpaint_mask, 'mask': mask, 'is_right': is_right, 'cam': cam}
         return output
     
     def __len__(self):

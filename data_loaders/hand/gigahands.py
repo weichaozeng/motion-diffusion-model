@@ -4,7 +4,8 @@ import os
 import json
 import numpy as np
 import pickle
-from scipy.spatial.transform import Rotation as R
+from scipy.spatial.transform import Rotation as Rf
+import vis.camparam_utils as param_utils
 # class GigaHands(Dataset):
 #     dataname = "gigahands"
 
@@ -68,6 +69,59 @@ from scipy.spatial.transform import Rotation as R
 #             joints3D[:, 0] *= -1
 #         return joints3D
 
+
+def read_params(params_path):
+    """Reads camera intrinsics and extrinsics from a formatted txt file."""
+    params = np.loadtxt(
+        params_path,
+        dtype=[
+            ("cam_id", int),
+            ("width", int),
+            ("height", int),
+            ("fx", float),
+            ("fy", float),
+            ("cx", float),
+            ("cy", float),
+            ("k1", float),
+            ("k2", float),
+            ("p1", float),
+            ("p2", float),
+            ("cam_name", "<U22"),
+            ("qvecw", float),
+            ("qvecx", float),
+            ("qvecy", float),
+            ("qvecz", float),
+            ("tvecx", float),
+            ("tvecy", float),
+            ("tvecz", float),
+        ]
+    )
+    params = np.sort(params, order="cam_name")
+    return params
+
+def get_projections(params, cam_names, n_Frames=1):
+    """Returns camera intrinsics, extrinsics, projections, and distortion parameters for the named camera."""
+    projs, intrs, dists, rot, trans = [], [], [], [], []
+    for param in params:
+        if param["cam_name"] == cam_names:
+            extr = param_utils.get_extr(param)
+            intr, dist = param_utils.get_intr(param)
+            r, t = param_utils.get_rot_trans(param)
+            rot.append(r)
+            trans.append(t)
+            intrs.append(intr.copy())
+            projs.append(intr @ extr)
+            dists.append(dist)
+    cameras = {
+        'K': np.repeat(np.asarray(intrs), n_Frames, axis=0),
+        'R': np.repeat(np.asarray(rot), n_Frames, axis=0),
+        'T': np.repeat(np.asarray(trans), n_Frames, axis=0),
+        'dist': np.repeat(np.asarray(dists), n_Frames, axis=0),
+        'P': np.repeat(np.asarray(projs), n_Frames, axis=0)
+    }
+    return cameras
+
+
 class GigaHands(Dataset):
     dataname = "gigahands"
 
@@ -77,6 +131,8 @@ class GigaHands(Dataset):
         self.seqs_y = []
         self.seqs_kp3d = []
         self.seqs_mano = []
+        self.seqs_cam = []
+        
         
         rgb_seq_json = "/home/zvc/Data/GigaHands/multiview_rgb_seq_info.json"
         rgb_root = "/home/zvc/Data/GigaHands/multiview_rgb_vids"
@@ -91,15 +147,22 @@ class GigaHands(Dataset):
             video_path = os.path.join(rgb_root, scene, cam_id, vid_id)
             mano_path = rgb_seq_data[video_path]['mano_param_path']
             kp3d_path = rgb_seq_data[video_path]['kp_3d_path']
+            camera_path = os.path.join(os.path.dirname(os.path.dirname(mano_path)), 'optim_params.txt')
+            cam_params = read_params(camera_path)
+            cam = get_projections(cam_params, cam_id, n_Frames=1)
             for track in os.listdir(os.path.join(self.datapath, out, 'results', 'track_500.0')):
                 self.seqs_y.append(os.path.join(self.datapath, out, 'results', 'track_500.0', track))
                 self.seqs_kp3d.append(kp3d_path)
                 self.seqs_mano.append(mano_path)
+                self.seqs_cam.append(cam)
+                
     
         
         self._train = list(range(100, len(self.seqs_y)))
         self._test = list(range(0, 100))
 
+    def _load_cam(self, ind):
+        return self.seqs_cam[ind]
 
     def _load_rotvec(self, ind, frame_ix, is_right, flip_left=True):
         mano_params_path = self.seqs_mano[ind]
@@ -304,17 +367,108 @@ def visualize_batch(dataset_item):
 
 
 if __name__ == "__main__":
-    dataset = GigaHands(split="train", num_frames=128, sampling="conseq", pose_rep="rot6d")
+    dataset = GigaHands(split="train", num_frames=128, sampling="conseq", pose_rep="rot6d", translation=True)
     print(len(dataset))
     sample = dataset[0]
     
 
-    # import utils.rotation_conversions as geometry
+    import utils.rotation_conversions as geometry
     # pose = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(data.permute(2, 0, 1)))
-    x0 = sample['inp']
-    y = sample['ref_motion']
+    if dataset.translation:
+        x0_trans = sample['inp'].permute(2, 0, 1)[:, -1, :3]
+        x0 = sample['inp'].permute(2, 0, 1)[:, :-1, :]
+        x0 = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(x0))
+        y_trans = sample['ref_motion'].permute(2, 0, 1)[:, -1, :3]
+        y = sample['ref_motion'].permute(2, 0, 1)[:, :-1, :]
+        y = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(y))
+    else:
+        xo_trans = torch.zeros_like(sample['inp'].permute(2, 0, 1)[:, -1, :3])
+        x0 = sample['inp'].permute(2, 0, 1)
+        x0 = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(x0))
+        y_trans = torch.zeros_like(sample['ref_motion'].permute(2, 0, 1)[:, -1, :3])
+        y = sample['ref_motion'].permute(2, 0, 1)
+        y = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(y))
     inpaint_mask = sample['inpaint_mask']
     mask = sample['mask']
     beta = sample['beta']
+    is_right = sample['is_right']
+    cam = sample['cam']
 
-    print("debug")
+    # temporal mask
+    valid_indices = torch.nonzero(mask).squeeze()
+    if valid_indices.numel() > 0:
+        start_idx = valid_indices[0].item()
+        end_idx = valid_indices[-1].item()
+
+    # model
+    from vis import load_model, Renderer
+    render = Renderer(height=720, width=1280, faces=None, extra_mesh=[])
+    model_path = '/home/zvc/Project/motion-diffusion-model/body_models'
+    if is_right:
+        hand_model = load_model(
+        gender='neutral', model_type='manor', model_path=model_path,
+        num_pca_comps=6, use_pose_blending=True, use_shape_blending=True,
+        use_pca=False, use_flat_mean=False)
+    else:
+        hand_model = load_model(
+        gender='neutral', model_type='manol', model_path=model_path,
+        num_pca_comps=6, use_pose_blending=True, use_shape_blending=True,
+        use_pca=False, use_flat_mean=False)
+        x0_trans[:, 0] *= -1
+        y_trans[:, 0] *= -1
+        x0[:, :, 1] *= -1
+        x0[:, :, 2] *= -1
+        y[:, :, 1] *= -1
+        y[:, :, 2] *= -1
+
+    # param
+    frames_gt = []
+    frames_ref = []
+    for idx in range(start_idx, end_idx+1):
+        # gt
+        hand_param_gt = {
+            "poses": torch.cat([torch.zeros_like(x0[idx, 0, :]), x0[idx, 1:, :]], dim=1), 
+            "Rh": x0[idx, 0, :],
+            "Th": x0_trans[idx],
+            "shapes": beta,
+        }
+        vertices_gt = hand_model(return_verts=True, return_tensor=False, **hand_param_gt)[0]
+        faces = hand_model.faces
+        image_gt = np.zeros((720, 1280, 3))
+        render_data_gt = {
+            0: {'vertices': vertices_gt, 'faces': faces, 'vid': 1, 'name': f'gt_{idx}'},
+        }
+        render_results_gt = render.render(render_data_gt, cam, [image_gt], add_back=False)
+        image_vis_gt = render_results_gt[0][:, :, [2, 1, 0, 3]]
+        frames_gt.append(image_vis_gt.astype(np.uint8))
+
+        # ref
+        hand_param_ref = {
+            "poses": torch.cat([torch.zeros_like(y[idx, 0, :]), y[idx, 1:, :]], dim=1), 
+            "Rh": y[idx, 0, :],
+            "Th": y_trans[idx],
+            "shapes": beta,
+        }
+        vertices_ref = hand_model(return_verts=True, return_tensor=False, **hand_param_ref)[0]
+        faces = hand_model.faces
+        image_ref = np.zeros((720, 1280, 3))
+        render_data_ref = {
+            0: {'vertices': vertices_ref, 'faces': faces, 'vid': 1, 'name': f'ref_{idx}'},
+        }
+        render_results_ref = render.render(render_data_ref, cam, [image_ref], add_back=False)
+        image_vis_ref = render_results_ref[0][:, :, [2, 1, 0, 3]]
+        frames_ref.append(image_vis_ref.astype(np.uint8))
+
+    # Save video
+    import imageio
+    save_path = '/home/zvc/Project/motion-diffusion-model/_vis'
+    
+    output_video_gt = save_path / 'output_gt.mp4'
+    imageio.mimsave(str(output_video_gt), frames_gt, fps=30)
+    print(f"Saved output video to {output_video_gt}")
+
+    output_video_ref = save_path / 'output_ref.mp4'
+    imageio.mimsave(str(output_video_ref), frames_ref, fps=30)
+    print(f"Saved output video to {output_video_ref}")
+
+    
