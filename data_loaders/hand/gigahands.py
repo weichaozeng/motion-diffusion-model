@@ -435,7 +435,7 @@ if __name__ == "__main__":
             "Rh": x0[idx, 0, :].unsqueeze(0).to(device),
             "Th": x0_trans[idx].unsqueeze(0).to(device),
             "shapes": beta.to(device),
-        }.to(device)
+        }
         vertices_gt = hand_model(return_verts=True, return_tensor=False, **hand_param_gt)[0]
         faces = hand_model.faces
         image_gt = np.zeros((720, 1280, 3))
