@@ -427,7 +427,7 @@ if __name__ == "__main__":
     for idx in range(start_idx, end_idx+1):
         # gt
         hand_param_gt = {
-            "poses": torch.cat([torch.zeros_like(x0[idx, 0, :]).unsqueeze(0), x0[idx, 1:, :]], dim=0).unsqueeze(0), 
+            "poses": torch.cat([torch.zeros_like(x0[idx, 0, :]).unsqueeze(0), x0[idx, 1:, :]], dim=0).unsqueeze(0).reshape(1, -1), 
             "Rh": x0[idx, 0, :].unsqueeze(0),
             "Th": x0_trans[idx].unsqueeze(0),
             "shapes": beta,
@@ -444,7 +444,7 @@ if __name__ == "__main__":
 
         # ref
         hand_param_ref = {
-            "poses": torch.cat([torch.zeros_like(y[idx, 0, :]).unsqueeze(0), y[idx, 1:, :]], dim=0).unsqueeze(0), 
+            "poses": torch.cat([torch.zeros_like(y[idx, 0, :]).unsqueeze(0), y[idx, 1:, :]], dim=0).unsqueeze(0).reshape(1, -1), 
             "Rh": y[idx, 0, :].unsqueeze(0),
             "Th": y_trans[idx].unsqueeze(0),
             "shapes": beta,
