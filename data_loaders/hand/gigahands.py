@@ -164,10 +164,10 @@ class GigaHands(Dataset):
     def _load_cam(self, ind):
         return self.seqs_cam[ind]
 
-    def _load_rotvec(self, ind, frame_ix, is_right, flip_left=True):
-        mano_params_path = self.seqs_mano[ind]
-        with open(mano_params_path, 'r') as f:
-            mano_data = json.load(f)
+    def _load_rotvec(self, ind, frame_ix, mano_data, is_right, flip_left=True):
+        # mano_params_path = self.seqs_mano[ind]
+        # with open(mano_params_path, 'r') as f:
+        #     mano_data = json.load(f)
 
         if is_right:
             full_poses = torch.tensor(mano_data["right"]["poses"], dtype=torch.float32)
@@ -201,10 +201,7 @@ class GigaHands(Dataset):
     #         joints3D[:, 0] *= -1
     #     return joints3D
     
-    def _load_translation(self, ind, frame_ix, is_right, flip_left=True):
-        mano_params_path = self.seqs_mano[ind]
-        with open(mano_params_path, 'r') as f:
-            mano_data = json.load(f)
+    def _load_translation(self, ind, frame_ix, mano_data, is_right, flip_left=True):
 
         if is_right:
             Th = torch.tensor(mano_data["right"]["Th"], dtype=torch.float32)
@@ -482,4 +479,4 @@ if __name__ == "__main__":
         imageio.mimsave(str(output_video_ref), frames_ref, fps=30)
         print(f"Saved output video to {output_video_ref}")
 
-    
+        print(f"data name {sample['name']}")

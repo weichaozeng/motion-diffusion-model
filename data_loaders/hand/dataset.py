@@ -9,6 +9,8 @@ from utils.misc import to_torch
 import utils.rotation_conversions as geometry
 import random
 import pickle
+import os
+import json
 
 
 class Dataset(torch.utils.data.Dataset):
@@ -34,8 +36,8 @@ class Dataset(torch.utils.data.Dataset):
         self._original_train = None
         self._original_test = None
 
-    def get_pose_data(self, data_index, frame_ix, is_right, y_data):
-        pose, beta, ref_motion, inpain_mask, orig_root, orig_root_y,first_frame_root_pose_matrix, first_frame_root_pose_matrix_y  = self._load(data_index, frame_ix, is_right, y_data)
+    def get_pose_data(self, data_index, frame_ix, is_right, y_data, mano_data):
+        pose, beta, ref_motion, inpain_mask, orig_root, orig_root_y,first_frame_root_pose_matrix, first_frame_root_pose_matrix_y  = self._load(data_index, frame_ix, is_right, y_data, mano_data)
         return pose, beta, ref_motion, inpain_mask, orig_root, orig_root_y,first_frame_root_pose_matrix, first_frame_root_pose_matrix_y
     
     def __getitem__(self, index):
@@ -45,7 +47,7 @@ class Dataset(torch.utils.data.Dataset):
             data_index = self._test[index]
         return self._get_item_data_index(data_index)
     
-    def _load(self, ind, frame_ix, is_right, y_data):
+    def _load(self, ind, frame_ix, is_right, y_data, mano_data):
         pose_rep = self.pose_rep
         if pose_rep == "xyz" or self.translation:
             if getattr(self, "_load_joints3D", None) is not None:
@@ -60,7 +62,7 @@ class Dataset(torch.utils.data.Dataset):
                     raise ValueError("This representation is not possible.")
                 if getattr(self, "_load_translation") is None:
                     raise ValueError("Can't extract translations.")
-                ret_tr = self._load_translation(ind, frame_ix, is_right)
+                ret_tr = self._load_translation(ind, frame_ix, mano_data, is_right)
                 orig_root = to_torch(ret_tr[0]).clone()
                 ret_tr = to_torch(ret_tr - ret_tr[0])
             # y
@@ -84,7 +86,7 @@ class Dataset(torch.utils.data.Dataset):
             if getattr(self, "_load_rotvec", None) is None or getattr(self, "_load_rotvec_y", None) is None :
                 raise ValueError("This representation is not possible.")
             else:
-                pose, beta = self._load_rotvec(ind, frame_ix, is_right)
+                pose, beta = self._load_rotvec(ind, frame_ix, mano_data, is_right)
                 if not self.glob:
                     pose = pose[:, 1:, :]
                 pose = to_torch(pose)
@@ -153,14 +155,19 @@ class Dataset(torch.utils.data.Dataset):
         else:
             cam = self._load_cam(data_index)
         seq_y = self.seqs_y[data_index]
+        seq_mano = self.seqs_mano[data_index]
+        with open(seq_mano, 'r') as f:
+            mano_data = json.load(f)
         with open(seq_y, 'rb') as f:
             data = pickle.load(f)
-        nframes = data['frame_indices'][-1] - data['frame_indices'][0] + 1
+        max_nframe = min(data['frame_indices'][-1], len(mano_data)["right"]["Th"])
+        min_nframe = max(0, data['frame_indices'][0])
+        nframes = max_nframe - min_nframe + 1
         is_right = data["handedness"][0]
 
         if self.num_frames == -1 and (self.max_len == -1 or nframes <= self.max_len):
             # frame_ix = np.arange(nframes)
-            frame_ix = np.arange(data['frame_indices'][0], data['frame_indices'][-1] + 1)
+            frame_ix = np.arange(min_nframe, max_nframe + 1)
         else:
             if self.num_frames == -2:
                 if self.min_len <= 0:
@@ -179,9 +186,9 @@ class Dataset(torch.utils.data.Dataset):
                 # adding the last frame until done
                 ntoadd = max(0, num_frames - nframes)
                 # lastframe = nframes - 1
-                lastframe = data['frame_indices'][-1]
+                lastframe = max_nframe
                 padding = lastframe * np.ones(ntoadd, dtype=int)
-                frame_ix = np.concatenate((np.arange(data['frame_indices'][0], data['frame_indices'][-1] + 1), padding))
+                frame_ix = np.concatenate((np.arange(min_nframe, max_nframe + 1), padding))
                 mask[:nframes] = True
 
             elif self.sampling in ["conseq", "random_conseq"]:
@@ -197,7 +204,7 @@ class Dataset(torch.utils.data.Dataset):
                 lastone = step * (num_frames - 1)
                 shift_max = nframes - lastone - 1
                 shift = random.randint(0, max(0, shift_max - 1))
-                frame_ix = shift + np.arange(0, lastone + 1, step) + data['frame_indices'][0]
+                frame_ix = shift + np.arange(0, lastone + 1, step) + min_nframe
                 mask[:] = True
 
             # elif self.sampling == "random":
@@ -209,11 +216,12 @@ class Dataset(torch.utils.data.Dataset):
             else:
                 raise ValueError("Sampling not recognized.")
 
-        x0, x0_beta, y, inpaint_mask, orig_root, orig_root_y,first_frame_root_pose_matrix, first_frame_root_pose_matrix_y = self.get_pose_data(data_index, frame_ix, is_right, data)
+        x0, x0_beta, y, inpaint_mask, orig_root, orig_root_y,first_frame_root_pose_matrix, first_frame_root_pose_matrix_y = self.get_pose_data(data_index, frame_ix, is_right, data, mano_data)
         is_right = torch.from_numpy(np.asarray(is_right))
         
 
         output = {
+            'name': os.path.basename(seq_y), 
             'inp': x0, 
             'beta': x0_beta, 
             'ref_motion': y, 
