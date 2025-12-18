@@ -383,16 +383,22 @@ if __name__ == "__main__":
         x0_trans = sample['inp'].permute(2, 0, 1)[:, -1, :3]
         x0 = sample['inp'].permute(2, 0, 1)[:, :-1, :]
         x0 = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(x0))
+        x0_root = sample['inp_root']
+        x0_trans += x0_root
         y_trans = sample['ref_motion'].permute(2, 0, 1)[:, -1, :3]
         y = sample['ref_motion'].permute(2, 0, 1)[:, :-1, :]
         y = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(y))
+        y_root = sample['ref_motion_root']
+        y_trans += y_root
     else:
-        xo_trans = torch.zeros_like(sample['inp'].permute(2, 0, 1)[:, -1, :3])
+        x0_trans = torch.zeros_like(sample['inp'].permute(2, 0, 1)[:, -1, :3])
         x0 = sample['inp'].permute(2, 0, 1)
         x0 = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(x0))
+        
         y_trans = torch.zeros_like(sample['ref_motion'].permute(2, 0, 1)[:, -1, :3])
         y = sample['ref_motion'].permute(2, 0, 1)
         y = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(y))
+    
     inpaint_mask = sample['inpaint_mask']
     mask = sample['mask']
     beta = sample['beta']

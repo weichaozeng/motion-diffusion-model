@@ -35,8 +35,8 @@ class Dataset(torch.utils.data.Dataset):
         self._original_test = None
 
     def get_pose_data(self, data_index, frame_ix, is_right, y_data):
-        pose, beta, ref_motion, inpain_mask = self._load(data_index, frame_ix, is_right, y_data)
-        return pose, beta, ref_motion, inpain_mask
+        pose, beta, ref_motion, inpain_mask, orig_root, orig_root_y,first_frame_root_pose_matrix, first_frame_root_pose_matrix_y  = self._load(data_index, frame_ix, is_right, y_data)
+        return pose, beta, ref_motion, inpain_mask, orig_root, orig_root_y,first_frame_root_pose_matrix, first_frame_root_pose_matrix_y
     
     def __getitem__(self, index):
         if self.split == 'train':
@@ -61,6 +61,7 @@ class Dataset(torch.utils.data.Dataset):
                 if getattr(self, "_load_translation") is None:
                     raise ValueError("Can't extract translations.")
                 ret_tr = self._load_translation(ind, frame_ix, is_right)
+                orig_root = to_torch(ret_tr[0].clone())
                 ret_tr = to_torch(ret_tr - ret_tr[0])
             # y
             if getattr(self, "_load_joints3D_y", None) is not None:
@@ -75,6 +76,7 @@ class Dataset(torch.utils.data.Dataset):
                 if getattr(self, "_load_translation_y") is None:
                     raise ValueError("Can't extract translations.")
                 ret_tr_y, inpaint_mask = self._load_translation_y(ind, frame_ix, y_data)
+                orig_root_y = to_torch(ret_tr_y[0].clone())
                 ret_tr_y = to_torch(ret_tr_y - ret_tr_y[0])
                 
         
@@ -103,14 +105,14 @@ class Dataset(torch.utils.data.Dataset):
                     pose_y = pose_y[:, 1:, :]
                 pose_y = to_torch(pose_y)
                 if self.align_pose_frontview:
-                    first_frame_root_pose_matrix = geometry.axis_angle_to_matrix(pose_y[0][0])
+                    first_frame_root_pose_matrix_y = geometry.axis_angle_to_matrix(pose_y[0][0])
                     all_root_poses_matrix = geometry.axis_angle_to_matrix(pose_y[:, 0, :])
-                    aligned_root_poses_matrix = torch.matmul(torch.transpose(first_frame_root_pose_matrix, 0, 1),
+                    aligned_root_poses_matrix = torch.matmul(torch.transpose(first_frame_root_pose_matrix_y, 0, 1),
                                                             all_root_poses_matrix)
                     pose_y[:, 0, :] = geometry.matrix_to_axis_angle(aligned_root_poses_matrix)
 
                     if self.translation:
-                        ret_tr_y = torch.matmul(torch.transpose(first_frame_root_pose_matrix, 0, 1).float(),
+                        ret_tr_y = torch.matmul(torch.transpose(first_frame_root_pose_matrix_y, 0, 1).float(),
                                             torch.transpose(ret_tr_y, 0, 1))
                         ret_tr_y = torch.transpose(ret_tr_y, 0, 1)
 
@@ -140,7 +142,7 @@ class Dataset(torch.utils.data.Dataset):
         ret_y = ret_y.permute(1, 2, 0).contiguous() # J or J + 1, 6, T
         inpaint_mask = torch.from_numpy(inpaint_mask)
 
-        return ret.float(), beta.float(), ret_y.float(), inpaint_mask.float()
+        return ret.float(), beta.float(), ret_y.float(), inpaint_mask.float(), orig_root.float(), orig_root_y.float(),first_frame_root_pose_matrix.float(), first_frame_root_pose_matrix_y.float() 
     
 
     def _get_item_data_index(self, data_index):
@@ -205,11 +207,24 @@ class Dataset(torch.utils.data.Dataset):
             else:
                 raise ValueError("Sampling not recognized.")
 
-        x0, x0_beta, y, inpaint_mask = self.get_pose_data(data_index, frame_ix, is_right, data)
+        x0, x0_beta, y, inpaint_mask, orig_root, orig_root_y,first_frame_root_pose_matrix, first_frame_root_pose_matrix_y = self.get_pose_data(data_index, frame_ix, is_right, data)
         is_right = torch.from_numpy(np.asarray(is_right))
         
 
-        output = {'inp': x0, 'beta': x0_beta, 'ref_motion': y, 'inpaint_mask': inpaint_mask, 'mask': mask, 'is_right': is_right, 'cam': cam}
+        output = {
+            'inp': x0, 
+            'beta': x0_beta, 
+            'ref_motion': y, 
+            'inpaint_mask': inpaint_mask, 
+            'mask': mask, 
+            'is_right': is_right, 
+            'cam': cam, 
+            'inp_root': orig_root, 
+            'ref_motion_root': orig_root_y, 
+            'inp_ff_root_pose_mat': first_frame_root_pose_matrix, 
+            'ref_motion_ff_root_pose_mat': first_frame_root_pose_matrix_y,
+        }
+        
         return output
     
     def __len__(self):
