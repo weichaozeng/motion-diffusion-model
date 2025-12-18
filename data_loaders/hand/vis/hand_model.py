@@ -6,6 +6,7 @@ from .lbs import batch_rodrigues
 from .lbs import lbs, dqs
 import pickle
 import os.path as osp
+import torch.nn as nn
 
 def load_model(gender='neutral', use_cuda=True, model_type='smpl', skel_type='body25', device=None, model_path='data/smplx', **kwargs):
     # prepare SMPL model
