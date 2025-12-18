@@ -466,12 +466,13 @@ if __name__ == "__main__":
     # Save video
     import imageio
     save_path = '/home/zvc/Project/motion-diffusion-model/_vis'
-    
-    output_video_gt = save_path / 'output_gt.mp4'
+    os.makedirs(save_path, exist_ok=True)
+
+    output_video_gt = os.path.join(save_path, 'output_gt.mp4')
     imageio.mimsave(str(output_video_gt), frames_gt, fps=30)
     print(f"Saved output video to {output_video_gt}")
 
-    output_video_ref = save_path / 'output_ref.mp4'
+    output_video_ref = os.path.join(save_path, 'output_ref.mp4')
     imageio.mimsave(str(output_video_ref), frames_ref, fps=30)
     print(f"Saved output video to {output_video_ref}")
 
