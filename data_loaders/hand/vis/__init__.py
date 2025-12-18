@@ -1,2 +1,2 @@
-from renderer import Renderer
-from hand_model import load_model
+from .renderer import Renderer
+from .hand_model import load_model
