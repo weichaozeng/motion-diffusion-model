@@ -142,8 +142,10 @@ class Dataset(torch.utils.data.Dataset):
         ret_y = ret_y.permute(1, 2, 0).contiguous() # J or J + 1, 6, T
         inpaint_mask = torch.from_numpy(inpaint_mask)
 
-        return ret.float(), beta.float(), ret_y.float(), inpaint_mask.float(), orig_root.float(), orig_root_y.float(),first_frame_root_pose_matrix.float(), first_frame_root_pose_matrix_y.float() 
-    
+        if self.align_pose_frontview:
+            return ret.float(), beta.float(), ret_y.float(), inpaint_mask.float(), orig_root.float(), orig_root_y.float(),first_frame_root_pose_matrix.float(), first_frame_root_pose_matrix_y.float() 
+        else:
+            return ret.float(), beta.float(), ret_y.float(), inpaint_mask.float(), orig_root.float(), orig_root_y.float(), torch.eye(3).float(), torch.eye(3).float()
 
     def _get_item_data_index(self, data_index):
         if getattr(self, "_load_cam", None) is None:
