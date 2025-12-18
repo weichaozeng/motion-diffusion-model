@@ -2,8 +2,8 @@ import os
 import numpy as np
 import torch
 from os.path import join
-from lbs import batch_rodrigues
-from lbs import lbs, dqs
+from .lbs import batch_rodrigues
+from .lbs import lbs, dqs
 import pickle
 import os.path as osp
 
