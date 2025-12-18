@@ -367,6 +367,7 @@ def visualize_batch(dataset_item):
 
 
 if __name__ == "__main__":
+    from tqdm import tqdm
     if torch.cuda.is_available():
         device = torch.device('cuda')
     else:
@@ -428,7 +429,7 @@ if __name__ == "__main__":
     # param
     frames_gt = []
     frames_ref = []
-    for idx in range(start_idx, end_idx+1):
+    for idx in tqdm(range(start_idx, end_idx+1)):
         # gt
         hand_param_gt = {
             "poses": torch.cat([torch.zeros_like(x0[idx, 0, :]).unsqueeze(0), x0[idx, 1:, :]], dim=0).unsqueeze(0).reshape(1, -1).to(device), 
