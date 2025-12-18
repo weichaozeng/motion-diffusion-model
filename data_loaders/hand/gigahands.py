@@ -185,21 +185,21 @@ class GigaHands(Dataset):
     
         return poses, beta        
     
-    def _load_joints3D(self, ind, frame_ix, is_right, flip_left=True):
-        joints_path = self.seqs_kp3d[ind]
-        with open(joints_path, 'r') as f:
-            joints_data = json.load(f)
-        full_joints = torch.tensor(joints_data, dtype=torch.float32)
-        batch_joints = full_joints[frame_ix]  # (num_frames, 42, 3)
+    # def _load_joints3D(self, ind, frame_ix, is_right, flip_left=True):
+    #     joints_path = self.seqs_kp3d[ind]
+    #     with open(joints_path, 'r') as f:
+    #         joints_data = json.load(f)
+    #     full_joints = torch.tensor(joints_data, dtype=torch.float32)
+    #     batch_joints = full_joints[frame_ix]  # (num_frames, 42, 3)
 
-        if is_right:
-            joints3D = batch_joints[:, 21:]  # (num_frames, 21, 3)
-        else:
-            joints3D = batch_joints[:, :21]  # (num_frames, 21, 3)
+    #     if is_right:
+    #         joints3D = batch_joints[:, 21:]  # (num_frames, 21, 3)
+    #     else:
+    #         joints3D = batch_joints[:, :21]  # (num_frames, 21, 3)
            
-        if not is_right and flip_left:
-            joints3D[:, 0] *= -1
-        return joints3D
+    #     if not is_right and flip_left:
+    #         joints3D[:, 0] *= -1
+    #     return joints3D
     
     def _load_translation(self, ind, frame_ix, is_right, flip_left=True):
         mano_params_path = self.seqs_mano[ind]
@@ -232,8 +232,8 @@ class GigaHands(Dataset):
 
         return full_pose_rotvec[relative_indices], inpaint_mask[relative_indices]
 
-    def _load_joints3D_y(self, ind, frame_ix, y_data):
-        raise NotImplementedError
+    # def _load_joints3D_y(self, ind, frame_ix, y_data):
+    #     raise NotImplementedError
 
 
     def _load_translation_y(self, ind, frame_ix, y_data):
