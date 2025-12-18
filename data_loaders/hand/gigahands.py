@@ -4,7 +4,7 @@ import os
 import json
 import numpy as np
 import pickle
-from scipy.spatial.transform import Rotation as Rf
+from scipy.spatial.transform import Rotation as R
 import vis.camparam_utils as param_utils
 # class GigaHands(Dataset):
 #     dataname = "gigahands"
