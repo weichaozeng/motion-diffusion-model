@@ -460,7 +460,7 @@ if __name__ == "__main__":
             faces = hand_model.faces
             image_ref = np.zeros((720, 1280, 3))
             render_data_ref = {
-                0: {'vertices': vertices_ref, 'faces': faces, 'vid': 1, 'name': f'ref_{idx}'},
+                0: {'vertices': vertices_ref, 'faces': faces, 'vid': 1 if is_right else 4, 'name': f'ref_{idx}'},
             }
             render_results_ref = render.render(render_data_ref, cam, [image_ref], add_back=False)
             image_vis_ref = render_results_ref[0][:, :, [2, 1, 0, 3]]
