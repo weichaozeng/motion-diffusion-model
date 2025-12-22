@@ -369,16 +369,17 @@ if __name__ == "__main__":
         device = torch.device('cuda')
     else:
         device = torch.device('cpu')
-    dataset = GigaHands(split="train", num_frames=128, sampling="conseq", pose_rep="rot6d", translation=True, align_pose_frontview=False)
+    dataset = GigaHands(split="train", num_frames=128, sampling="conseq", pose_rep="rot6d", translation=True, align_pose_frontview=True)
     print(len(dataset))
     for sample_idx in range(10):
         sample = dataset[sample_idx]
         import utils.rotation_conversions as geometry
-        # pose = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(data.permute(2, 0, 1)))
+        # translation
         if dataset.translation:
             x0_trans = sample['inp'].permute(2, 0, 1)[:, -1, :3]
             x0 = sample['inp'].permute(2, 0, 1)[:, :-1, :]
-            x0 = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(x0))
+            x0 = geometry.rotation_6d_to_matrix(x0)
+            #x0 = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(x0))
             x0_root = sample['inp_root']
             x0_trans += x0_root
             y_trans = sample['ref_motion'].permute(2, 0, 1)[:, -1, :3]
@@ -395,6 +396,13 @@ if __name__ == "__main__":
             y = sample['ref_motion'].permute(2, 0, 1)
             y = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(y))
         
+        #align_pose_frontview
+        x0 = torch.matmul(sample['inp_ff_root_pose_mat'], x0)  
+        x0 = geometry.matrix_to_axis_angle(x0)
+        y = torch.matmul(sample['ref_motion_ff_root_pose_mat'], y)
+        y = geometry.matrix_to_axis_angle(y)
+
+
         inpaint_mask = sample['inpaint_mask']
         mask = sample['mask']
         beta = sample['beta']
