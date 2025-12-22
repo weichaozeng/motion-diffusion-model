@@ -365,6 +365,9 @@ def visualize_batch(dataset_item):
 
 if __name__ == "__main__":
     from tqdm import tqdm
+    import decord
+    from decord import VideoReader, cpu
+
     if torch.cuda.is_available():
         device = torch.device('cuda')
     else:
@@ -421,6 +424,7 @@ if __name__ == "__main__":
         beta = sample['beta']
         is_right = sample['is_right']
         cam = sample['cam']
+        frame_ix = sample['frame_ix']
 
         # temporal mask
         valid_indices = torch.nonzero(mask).squeeze()
@@ -449,6 +453,11 @@ if __name__ == "__main__":
             y[:, :, 1] *= -1
             y[:, :, 2] *= -1
 
+        # video frame
+        video_path = os.path.join("/home/zvc/Data/GigaHands/multiview_rgb_vids", sample['name'], 'rgb', sample['name'])
+        vr = VideoReader(video_path, ctx=cpu(0))
+        frames_rgb = [frame.asnumpy() for frame in vr]
+
         # param
         frames_gt = []
         frames_ref = []
@@ -462,7 +471,8 @@ if __name__ == "__main__":
             }
             vertices_gt = hand_model(return_verts=True, return_tensor=False, **hand_param_gt)[0]
             faces = hand_model.faces
-            image_gt = np.zeros((720, 1280, 3))
+            #image_gt = np.zeros((720, 1280, 3))
+            image_gt = frames_rgb[idx]
             render_data_gt = {
                 0: {'vertices': vertices_gt, 'faces': faces, 'vid': 1 if is_right else 4, 'name': f'gt_{idx}'},
             }
@@ -479,7 +489,8 @@ if __name__ == "__main__":
             }
             vertices_ref = hand_model(return_verts=True, return_tensor=False, **hand_param_ref)[0]
             faces = hand_model.faces
-            image_ref = np.zeros((720, 1280, 3))
+            # image_ref = np.zeros((720, 1280, 3))
+            image_ref = frames_rgb[idx]
             render_data_ref = {
                 0: {'vertices': vertices_ref, 'faces': faces, 'vid': 1 if is_right else 4, 'name': f'ref_{idx}'},
             }

@@ -221,7 +221,7 @@ class Dataset(torch.utils.data.Dataset):
         
 
         output = {
-            'name': os.path.dirname(seq_y), 
+            'name': os.path.basename(os.path.dirname(os.path.dirname(os.path.dirname(seq_y)))), 
             'inp': x0, 
             'beta': x0_beta, 
             'ref_motion': y, 
@@ -233,6 +233,7 @@ class Dataset(torch.utils.data.Dataset):
             'ref_motion_root': orig_root_y, 
             'inp_ff_root_pose_mat': first_frame_root_pose_matrix, 
             'ref_motion_ff_root_pose_mat': first_frame_root_pose_matrix_y,
+            'frame_ix': frame_ix,
         }
         
         return output
