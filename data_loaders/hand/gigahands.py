@@ -402,7 +402,7 @@ if __name__ == "__main__":
         #align_pose_frontview[
         x0_all_root_pose_mat = x0[:, 0, :]
         x0_all_root_pose_mat = torch.matmul(sample['inp_ff_root_pose_mat'], x0_all_root_pose_mat)
-        x0[:, 0. :] = x0_all_root_pose_mat
+        x0[:, 0, :] = x0_all_root_pose_mat
         x0 = geometry.matrix_to_axis_angle(x0)
 
         y_all_root_pose_mat = y[:, 0, :]
