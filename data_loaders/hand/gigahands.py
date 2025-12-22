@@ -384,17 +384,20 @@ if __name__ == "__main__":
             x0_trans += x0_root
             y_trans = sample['ref_motion'].permute(2, 0, 1)[:, -1, :3]
             y = sample['ref_motion'].permute(2, 0, 1)[:, :-1, :]
-            y = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(y))
+            y = geometry.rotation_6d_to_matrix(y)
+            # y = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(y))
             y_root = sample['ref_motion_root']
             y_trans += y_root
         else:
             x0_trans = torch.zeros_like(sample['inp'].permute(2, 0, 1)[:, -1, :3])
             x0 = sample['inp'].permute(2, 0, 1)
-            x0 = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(x0))
+            x0 = geometry.rotation_6d_to_matrix(x0)
+            #x0 = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(x0))
             
             y_trans = torch.zeros_like(sample['ref_motion'].permute(2, 0, 1)[:, -1, :3])
             y = sample['ref_motion'].permute(2, 0, 1)
-            y = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(y))
+            y = geometry.rotation_6d_to_matrix(y)
+            # y = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(y))
         
         #align_pose_frontview
         x0 = torch.matmul(sample['inp_ff_root_pose_mat'], x0)  
