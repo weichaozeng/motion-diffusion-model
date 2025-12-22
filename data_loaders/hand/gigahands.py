@@ -377,12 +377,17 @@ if __name__ == "__main__":
         # translation
         if dataset.translation:
             x0_trans = sample['inp'].permute(2, 0, 1)[:, -1, :3]
+            x0_trans = torch.matmul(sample['inp_ff_root_pose_mat'], torch.transpose(x0_trans, 0, 1))
+            x0_trans = torch.transpose(x0_trans, 0, 1)
             x0 = sample['inp'].permute(2, 0, 1)[:, :-1, :]
             x0 = geometry.rotation_6d_to_matrix(x0)
             #x0 = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(x0))
             x0_root = sample['inp_root']
             x0_trans += x0_root
+
             y_trans = sample['ref_motion'].permute(2, 0, 1)[:, -1, :3]
+            y_trans = torch.matmul(sample['inp_ff_root_pose_mat'], torch.transpose(y_trans, 0, 1))     
+            y_trans = torch.transpose(y_trans, 0, 1)      
             y = sample['ref_motion'].permute(2, 0, 1)[:, :-1, :]
             y = geometry.rotation_6d_to_matrix(y)
             # y = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(y))
