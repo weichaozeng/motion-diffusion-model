@@ -471,14 +471,17 @@ if __name__ == "__main__":
             }
             vertices_gt = hand_model(return_verts=True, return_tensor=False, **hand_param_gt)[0]
             faces = hand_model.faces
-            #image_gt = np.zeros((720, 1280, 3))
-            image_gt = frames_rgb[idx]
+            image_gt = np.zeros((720, 1280, 3))
             render_data_gt = {
                 0: {'vertices': vertices_gt, 'faces': faces, 'vid': 1 if is_right else 4, 'name': f'gt_{idx}'},
             }
             render_results_gt = render.render(render_data_gt, cam, [image_gt], add_back=False)
             image_vis_gt = render_results_gt[0][:, :, [2, 1, 0, 3]]
-            frames_gt.append(image_vis_gt.astype(np.uint8))
+            render_rgb_gt = image_vis_gt[:, :, :3]
+            alpha_gt = image_vis_gt[:, :, 3] / 255.0
+            alpha_gt = alpha_gt[:, :, np.newaxis]
+            combined_image_gt = (render_rgb_gt * alpha_gt + frames_rgb[idx] * (1 - alpha_gt)).astype(np.uint8)
+            frames_gt.append(combined_image_gt.astype(np.uint8))
 
             # ref
             hand_param_ref = {
@@ -489,14 +492,17 @@ if __name__ == "__main__":
             }
             vertices_ref = hand_model(return_verts=True, return_tensor=False, **hand_param_ref)[0]
             faces = hand_model.faces
-            # image_ref = np.zeros((720, 1280, 3))
-            image_ref = frames_rgb[idx]
+            image_ref = np.zeros((720, 1280, 3))
             render_data_ref = {
                 0: {'vertices': vertices_ref, 'faces': faces, 'vid': 1 if is_right else 4, 'name': f'ref_{idx}'},
             }
             render_results_ref = render.render(render_data_ref, cam, [image_ref], add_back=False)
             image_vis_ref = render_results_ref[0][:, :, [2, 1, 0, 3]]
-            frames_ref.append(image_vis_ref.astype(np.uint8))
+            render_rgb_ref = image_vis_ref[:, :, :3]
+            alpha_ref = image_vis_ref[:, :, 3] / 255.0
+            alpha_ref = alpha_ref[:, :, np.newaxis]
+            combined_image_ref = (render_rgb_ref * alpha_ref + frames_rgb[idx] * (1 - alpha_ref)).astype(np.uint8)
+            frames_ref.append(combined_image_ref.astype(np.uint8))
 
         # Save video
         import imageio
