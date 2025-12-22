@@ -399,10 +399,15 @@ if __name__ == "__main__":
             y = geometry.rotation_6d_to_matrix(y)
             # y = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(y))
         
-        #align_pose_frontview
-        x0 = torch.matmul(sample['inp_ff_root_pose_mat'], x0)  
+        #align_pose_frontview[
+        x0_all_root_pose_mat = x0[:, 0, :]
+        x0_all_root_pose_mat = torch.matmul(sample['inp_ff_root_pose_mat'], x0_all_root_pose_mat)
+        x0[:, 0. :] = x0_all_root_pose_mat
         x0 = geometry.matrix_to_axis_angle(x0)
-        y = torch.matmul(sample['ref_motion_ff_root_pose_mat'], y)
+
+        y_all_root_pose_mat = y[:, 0, :]
+        y_all_root_pose_mat = torch.matmul(sample['ref_motion_ff_root_pose_mat'], y_all_root_pose_mat)
+        y[:, 0, :] = y_all_root_pose_mat
         y = geometry.matrix_to_axis_angle(y)
 
 
