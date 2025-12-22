@@ -443,7 +443,7 @@ if __name__ == "__main__":
             faces = hand_model.faces
             image_gt = np.zeros((720, 1280, 3))
             render_data_gt = {
-                0: {'vertices': vertices_gt, 'faces': faces, 'vid': 1, 'name': f'gt_{idx}'},
+                0: {'vertices': vertices_gt, 'faces': faces, 'vid': 1 if is_right else 4, 'name': f'gt_{idx}'},
             }
             render_results_gt = render.render(render_data_gt, cam, [image_gt], add_back=False)
             image_vis_gt = render_results_gt[0][:, :, [2, 1, 0, 3]]
