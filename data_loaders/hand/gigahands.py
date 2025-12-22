@@ -454,7 +454,7 @@ if __name__ == "__main__":
             y[:, :, 2] *= -1
 
         # video frame
-        video_path = os.path.join("/home/zvc/Data/GigaHands/multiview_rgb_vids", sample['name'], 'rgb', sample['name'] + '.mp4')
+        video_path = os.path.join("/home/zvc/Data/GigaHands/symlinks", sample['name'], 'rgb', sample['name'] + '.mp4')
         vr = VideoReader(video_path, ctx=cpu(0))
         frames_rgb = [frame.asnumpy() for frame in vr]
 
