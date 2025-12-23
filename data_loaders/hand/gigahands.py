@@ -138,7 +138,8 @@ class GigaHands(Dataset):
         rgb_root = "/home/zvc/Data/GigaHands/multiview_rgb_vids"
         with open(rgb_seq_json, 'r') as f:
             rgb_seq_data = json.load(f)        
-        outs = sorted(os.listdir(self.datapath))[:200]
+        # outs = sorted(os.listdir(self.datapath))[:200]
+        outs = ["p001-folder_brics-odroid-002_cam0_brics-odroid-002_cam0_1728220733260573", "p001-folder_brics-odroid-006_cam0_brics-odroid-006_cam0_1728220733260828"]
 
         for out in outs:
             scene = out.split('_')[0]
@@ -158,8 +159,8 @@ class GigaHands(Dataset):
                 
     
         
-        self._train = list(range(100, len(self.seqs_y)))
-        self._test = list(range(0, 100))
+        self._train = list(range(0, len(self.seqs_y)))
+        # self._test = list(range(0, 100))
 
     def _load_cam(self, ind):
         return self.seqs_cam[ind]
