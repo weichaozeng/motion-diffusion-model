@@ -460,7 +460,7 @@ if __name__ == "__main__":
         # frames_rgb = [frame.asnumpy() for frame in vr]
         import glob
         import cv2
-        video_path = os.path.join("/home/zvc/Data/GigaHands/video_aligned", sample['name'].split('_')[0], "aligned_rgb", "000", '_'.join(sample['name'].split('_')[1], sample['name'].split('_')[2]))
+        video_path = os.path.join("/home/zvc/Data/GigaHands/video_aligned", sample['name'].split('_')[0], "aligned_rgb", "000", '_'.join([sample['name'].split('_')[1], sample['name'].split('_')[2]]))
         frames_path = sorted(glob(os.path.join(video_path, "*.jpg")))
         frames_rgb = [
             cv2.cvtColor(cv2.imread(p), cv2.COLOR_BGR2RGB) for p in frames_path
