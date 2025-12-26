@@ -137,7 +137,7 @@ class GigaHands(Dataset):
         data_path = Path("/home/zvc/Project/VHand/test_dataset/GigaHands/vhand/hamer_out")
         anno_root = Path("/home/zvc/Data/GigaHands/hand_poses") 
         rgb_root = Path("/home/zvc/Data/GigaHands/video_aligned")    
-        # outs = sorted(os.listdir(self.datapath))[:200]
+        # outs = sorted(os.listdir(data_path))[:200]
         outs = ["p001-folder_001_brics-odroid-002_cam0", "p001-folder_001_brics-odroid-006_cam0"]
 
         for out in outs:
@@ -154,8 +154,8 @@ class GigaHands(Dataset):
             cam_params = read_params(camera_path)
             cam = get_projections(cam_params, cam, n_Frames=1)
 
-            for track in os.listdir(os.path.join(self.datapath, out, 'results', 'track_500.0')):
-                self.seqs_y.append(os.path.join(self.datapath, out, 'results', 'track_500.0', track))
+            for track in os.listdir(data_path / out / 'results' / 'track_500.0'):
+                self.seqs_y.append(data_path / out / 'results' / 'track_500.0' / track)
                 self.seqs_kp3d.append(kp3d_path)
                 self.seqs_mano.append(mano_path)
                 self.seqs_cam.append(cam)
@@ -467,7 +467,7 @@ if __name__ == "__main__":
         video_path = sample['video_path']
         vr = VideoReader(video_path, ctx=cpu(0))
         frames_rgb = [frame.asnumpy() for frame in vr]
-        
+
         # param
         frames_gt = []
         frames_ref = []
