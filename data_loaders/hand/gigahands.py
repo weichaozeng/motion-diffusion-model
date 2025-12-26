@@ -377,7 +377,7 @@ if __name__ == "__main__":
         device = torch.device('cuda')
     else:
         device = torch.device('cpu')
-    dataset = GigaHands(split="train", num_frames=128, sampling="conseq", pose_rep="rot6d", translation=True, align_pose_frontview=True)
+    dataset = GigaHands(split="train", num_frames=128, sampling="conseq", sampling_step=1, pose_rep="rot6d", translation=True, align_pose_frontview=True)
     print(len(dataset))
     for sample_idx in range(10):
         sample = dataset[sample_idx]
@@ -434,7 +434,7 @@ if __name__ == "__main__":
         # temporal mask
         valid_indices = torch.nonzero(mask).squeeze()
         if valid_indices.numel() > 0:
-            start_idx = valid_indices[0].item()
+            start_idx = valid_indices[0].item() 
             end_idx = valid_indices[-1].item()
 
         # model
@@ -471,7 +471,7 @@ if __name__ == "__main__":
         # param
         frames_gt = []
         frames_ref = []
-        for idx in tqdm(range(start_idx, end_idx+1)):
+        for idx in tqdm(sample['frame_ix'][start_idx:end_idx+1]):
             # gt
             hand_param_gt = {
                 "poses": torch.cat([torch.zeros_like(x0[idx, 0, :]).unsqueeze(0), x0[idx, 1:, :]], dim=0).unsqueeze(0).reshape(1, -1).to(device), 
