@@ -464,7 +464,7 @@ if __name__ == "__main__":
         # frames_rgb = [frame.asnumpy() for frame in vr]
         from glob import glob
         import cv2
-        video_path = sample['video_path']
+        video_path = str(sample['video_path'])
         vr = VideoReader(video_path, ctx=cpu(0))
         frames_rgb = [frame.asnumpy() for frame in vr]
 
