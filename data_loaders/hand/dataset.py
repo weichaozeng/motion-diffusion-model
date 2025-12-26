@@ -203,7 +203,8 @@ class Dataset(torch.utils.data.Dataset):
 
                 lastone = step * (num_frames - 1)
                 shift_max = nframes - lastone - 1
-                shift = random.randint(0, max(0, shift_max - 1))
+                shift = 0
+                # shift = random.randint(0, max(0, shift_max - 1))
                 frame_ix = shift + np.arange(0, lastone + 1, step) + min_nframe
                 mask[:] = True
 
