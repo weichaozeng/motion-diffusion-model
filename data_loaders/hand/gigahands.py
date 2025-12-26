@@ -471,7 +471,7 @@ if __name__ == "__main__":
         # param
         frames_gt = []
         frames_ref = []
-        for idx in tqdm(sample['frame_ix'][start_idx:end_idx+1]):
+        for idx in tqdm(range(start_idx, end_idx+1)):
             # gt
             hand_param_gt = {
                 "poses": torch.cat([torch.zeros_like(x0[idx, 0, :]).unsqueeze(0), x0[idx, 1:, :]], dim=0).unsqueeze(0).reshape(1, -1).to(device), 
@@ -490,7 +490,7 @@ if __name__ == "__main__":
             render_rgb_gt = image_vis_gt[:, :, :3]
             alpha_gt = image_vis_gt[:, :, 3] / 255.0
             alpha_gt = alpha_gt[:, :, np.newaxis]
-            combined_image_gt = (render_rgb_gt * alpha_gt + frames_rgb[idx] * (1 - alpha_gt)).astype(np.uint8)
+            combined_image_gt = (render_rgb_gt * alpha_gt + frames_rgb[sample['frame_ix'][idx]] * (1 - alpha_gt)).astype(np.uint8)
             frames_gt.append(combined_image_gt.astype(np.uint8))
 
             # ref
@@ -511,7 +511,7 @@ if __name__ == "__main__":
             render_rgb_ref = image_vis_ref[:, :, :3]
             alpha_ref = image_vis_ref[:, :, 3] / 255.0
             alpha_ref = alpha_ref[:, :, np.newaxis]
-            combined_image_ref = (render_rgb_ref * alpha_ref + frames_rgb[idx] * (1 - alpha_ref)).astype(np.uint8)
+            combined_image_ref = (render_rgb_ref * alpha_ref + frames_rgb[sample['frame_ix'][idx]] * (1 - alpha_ref)).astype(np.uint8)
             frames_ref.append(combined_image_ref.astype(np.uint8))
 
         # Save video
