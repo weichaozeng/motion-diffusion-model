@@ -6,6 +6,7 @@ import numpy as np
 import pickle
 from scipy.spatial.transform import Rotation as R
 import vis.camparam_utils as param_utils
+from pathlib import Path
 # class GigaHands(Dataset):
 #     dataname = "gigahands"
 
@@ -125,37 +126,40 @@ def get_projections(params, cam_names, n_Frames=1):
 class GigaHands(Dataset):
     dataname = "gigahands"
 
-    def __init__(self, datapath="/home/zvc/Project/VHand/test_dataset/GigaHands/vhand/hamer_out", **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.datapath = datapath
         self.seqs_y = []
         self.seqs_kp3d = []
         self.seqs_mano = []
         self.seqs_cam = []
+        self.seqs_video = []
         
-        
-        rgb_seq_json = "/home/zvc/Data/GigaHands/multiview_rgb_seq_info.json"
-        rgb_root = "/home/zvc/Data/GigaHands/multiview_rgb_vids"
-        with open(rgb_seq_json, 'r') as f:
-            rgb_seq_data = json.load(f)        
+        data_path = Path("/home/zvc/Project/VHand/test_dataset/GigaHands/vhand/hamer_out")
+        anno_root = Path("/home/zvc/Data/GigaHands/hand_poses") 
+        rgb_root = Path("/home/zvc/Data/GigaHands/video_aligned")    
         # outs = sorted(os.listdir(self.datapath))[:200]
-        outs = ["p001-folder_brics-odroid-002_cam0_brics-odroid-002_cam0_1728220733260573", "p001-folder_brics-odroid-006_cam0_brics-odroid-006_cam0_1728220733260828"]
+        outs = ["p001-folder_001_brics-odroid-002_cam0", "p001-folder_001_brics-odroid-006_cam0"]
 
         for out in outs:
-            scene = out.split('_')[0]
-            cam_id = out.split('_')[1] + '_' + out.split('_')[2]
-            vid_id = out.split('_')[3] + '_' + out.split('_')[4] + '_' + out.split('_')[5] + '.mp4'
-            video_path = os.path.join(rgb_root, scene, cam_id, vid_id)
-            mano_path = rgb_seq_data[video_path]['mano_param_path']
-            kp3d_path = rgb_seq_data[video_path]['kp_3d_path']
+            session = out.split('_')[0]
+            seq = out.split('_')[1]
+            cam = out.split('_')[2] + '_' + out.split('_')[3]
+            # video
+            video_path = rgb_root / session / 'aligned_video' / seq /cam / f'{cam}.mp4'
+            # anno
+            mano_path = anno_root / session / 'params' / f'{seq}.json'
+            kp3d_path = anno_root / session / 'keypoints_3d_mano_align' / f'{seq}.json'
+            # cam
             camera_path = os.path.join(os.path.dirname(os.path.dirname(mano_path)), 'optim_params.txt')
             cam_params = read_params(camera_path)
-            cam = get_projections(cam_params, cam_id, n_Frames=1)
+            cam = get_projections(cam_params, cam, n_Frames=1)
+
             for track in os.listdir(os.path.join(self.datapath, out, 'results', 'track_500.0')):
                 self.seqs_y.append(os.path.join(self.datapath, out, 'results', 'track_500.0', track))
                 self.seqs_kp3d.append(kp3d_path)
                 self.seqs_mano.append(mano_path)
                 self.seqs_cam.append(cam)
+                self.seqs_video.append(video_path)
                 
     
         
@@ -460,11 +464,10 @@ if __name__ == "__main__":
         # frames_rgb = [frame.asnumpy() for frame in vr]
         from glob import glob
         import cv2
-        video_path = os.path.join("/home/zvc/Data/GigaHands/video_aligned", sample['name'].split('_')[0], "aligned_rgb", "000", '_'.join([sample['name'].split('_')[1], sample['name'].split('_')[2]]))
-        frames_path = sorted(glob(os.path.join(video_path, "*.jpg")))
-        frames_rgb = [
-            cv2.cvtColor(cv2.imread(p), cv2.COLOR_BGR2RGB) for p in frames_path
-        ]
+        video_path = sample['video_path']
+        vr = VideoReader(video_path, ctx=cpu(0))
+        frames_rgb = [frame.asnumpy() for frame in vr]
+        
         # param
         frames_gt = []
         frames_ref = []

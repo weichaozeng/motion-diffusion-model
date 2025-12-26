@@ -234,6 +234,7 @@ class Dataset(torch.utils.data.Dataset):
             'inp_ff_root_pose_mat': first_frame_root_pose_matrix, 
             'ref_motion_ff_root_pose_mat': first_frame_root_pose_matrix_y,
             'frame_ix': frame_ix,
+            'video_path': self.seqs_video[data_index],
         }
         
         return output
