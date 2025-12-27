@@ -37,8 +37,8 @@ class Dataset(torch.utils.data.Dataset):
         self._original_test = None
 
     def get_pose_data(self, data_index, frame_ix, is_right, y_data, mano_data):
-        pose, beta, ref_motion, inpain_mask, orig_root, orig_root_y,first_frame_root_pose_matrix, first_frame_root_pose_matrix_y  = self._load(data_index, frame_ix, is_right, y_data, mano_data)
-        return pose, beta, ref_motion, inpain_mask, orig_root, orig_root_y,first_frame_root_pose_matrix, first_frame_root_pose_matrix_y
+        pose, beta, ref_motion, inpain_mask, orig_root, orig_root_y,first_frame_root_pose_matrix, first_frame_root_pose_matrix_y, trans, ref_trans  = self._load(data_index, frame_ix, is_right, y_data, mano_data)
+        return pose, beta, ref_motion, inpain_mask, orig_root, orig_root_y,first_frame_root_pose_matrix, first_frame_root_pose_matrix_y, trans, ref_trans
     
     def __getitem__(self, index):
         if self.split == 'train':
@@ -49,39 +49,39 @@ class Dataset(torch.utils.data.Dataset):
     
     def _load(self, ind, frame_ix, is_right, y_data, mano_data):
         pose_rep = self.pose_rep
-        if pose_rep == "xyz" or self.translation:
-            if getattr(self, "_load_joints3D", None) is not None:
-                # Locate the root joint of initial pose at origin
-                joints3D = self._load_joints3D(ind, frame_ix, is_right)
-                joints3D = joints3D - joints3D[0, 0, :]
-                ret = to_torch(joints3D)
-                if self.translation:
-                    ret_tr = ret[:, 0, :]
-            else:
-                if pose_rep == "xyz":
-                    raise ValueError("This representation is not possible.")
-                if getattr(self, "_load_translation") is None:
-                    raise ValueError("Can't extract translations.")
-                ret_tr = self._load_translation(ind, frame_ix, mano_data, is_right)
-                orig_root = to_torch(ret_tr[0]).clone()
-                ret_tr = to_torch(ret_tr - ret_tr[0])
-            # y
-            if getattr(self, "_load_joints3D_y", None) is not None:
-                joints3D_y, inpaint_mask = self._load_joints3D_y(ind, frame_ix, y_data)
-                joints3D_y = joints3D_y - joints3D_y[0, 0, :]
-                ret_y = to_torch(joints3D)
-                if self.translation:
-                    ret_tr_y = ret_y[:, 0, :]
-            else:
-                if pose_rep == "xyz":
-                    raise ValueError("This representation is not possible.")
-                if getattr(self, "_load_translation_y") is None:
-                    raise ValueError("Can't extract translations.")
-                ret_tr_y, inpaint_mask = self._load_translation_y(ind, frame_ix, y_data)
-                orig_root_y = to_torch(ret_tr_y[0]).clone()
-                ret_tr_y = to_torch(ret_tr_y - ret_tr_y[0])
+        # if pose_rep == "xyz" or self.translation:
+        #     if getattr(self, "_load_joints3D", None) is not None:
+        #         # Locate the root joint of initial pose at origin
+        #         joints3D = self._load_joints3D(ind, frame_ix, is_right)
+        #         joints3D = joints3D - joints3D[0, 0, :]
+        #         ret = to_torch(joints3D)
+        #         if self.translation:
+        #             ret_tr = ret[:, 0, :]
+        #     else:
+        #         if pose_rep == "xyz":
+        #             raise ValueError("This representation is not possible.")
+        #         if getattr(self, "_load_translation") is None:
+        #             raise ValueError("Can't extract translations.")
+        #         ret_tr = self._load_translation(ind, frame_ix, mano_data, is_right)
+        #         orig_root = to_torch(ret_tr[0]).clone()
+        #         ret_tr = to_torch(ret_tr - ret_tr[0])
+        #     # y
+        #     if getattr(self, "_load_joints3D_y", None) is not None:
+        #         joints3D_y, inpaint_mask = self._load_joints3D_y(ind, frame_ix, y_data)
+        #         joints3D_y = joints3D_y - joints3D_y[0, 0, :]
+        #         ret_y = to_torch(joints3D)
+        #         if self.translation:
+        #             ret_tr_y = ret_y[:, 0, :]
+        #     else:
+        #         if pose_rep == "xyz":
+        #             raise ValueError("This representation is not possible.")
+        #         if getattr(self, "_load_translation_y") is None:
+        #             raise ValueError("Can't extract translations.")
+        #         ret_tr_y, inpaint_mask = self._load_translation_y(ind, frame_ix, y_data)
+        #         orig_root_y = to_torch(ret_tr_y[0]).clone()
+        #         ret_tr_y = to_torch(ret_tr_y - ret_tr_y[0])
                 
-        
+
         if pose_rep != "xyz":
             if getattr(self, "_load_rotvec", None) is None or getattr(self, "_load_rotvec_y", None) is None :
                 raise ValueError("This representation is not possible.")
@@ -97,10 +97,10 @@ class Dataset(torch.utils.data.Dataset):
                                                             all_root_poses_matrix)
                     pose[:, 0, :] = geometry.matrix_to_axis_angle(aligned_root_poses_matrix)
 
-                    if self.translation:
-                        ret_tr = torch.matmul(torch.transpose(first_frame_root_pose_matrix, 0, 1).float(),
-                                            torch.transpose(ret_tr, 0, 1))
-                        ret_tr = torch.transpose(ret_tr, 0, 1)
+                    # if self.translation:
+                    #     ret_tr = torch.matmul(torch.transpose(first_frame_root_pose_matrix, 0, 1).float(),
+                    #                         torch.transpose(ret_tr, 0, 1))
+                    #     ret_tr = torch.transpose(ret_tr, 0, 1)
                 # y
                 pose_y, inpaint_mask = self._load_rotvec_y(ind, frame_ix, y_data)
                 if not self.glob:
@@ -113,10 +113,10 @@ class Dataset(torch.utils.data.Dataset):
                                                             all_root_poses_matrix)
                     pose_y[:, 0, :] = geometry.matrix_to_axis_angle(aligned_root_poses_matrix)
 
-                    if self.translation:
-                        ret_tr_y = torch.matmul(torch.transpose(first_frame_root_pose_matrix_y, 0, 1).float(),
-                                            torch.transpose(ret_tr_y, 0, 1))
-                        ret_tr_y = torch.transpose(ret_tr_y, 0, 1)
+                    # if self.translation:
+                    #     ret_tr_y = torch.matmul(torch.transpose(first_frame_root_pose_matrix_y, 0, 1).float(),
+                    #                         torch.transpose(ret_tr_y, 0, 1))
+                    #     ret_tr_y = torch.transpose(ret_tr_y, 0, 1)
 
                 if pose_rep == "rotvec":
                     ret = pose
@@ -130,24 +130,47 @@ class Dataset(torch.utils.data.Dataset):
                 elif pose_rep == "rot6d":
                     ret = geometry.matrix_to_rotation_6d(geometry.axis_angle_to_matrix(pose))
                     ret_y = geometry.matrix_to_rotation_6d(geometry.axis_angle_to_matrix(pose_y))
-
-        if pose_rep != "xyz" and self.translation:
-            padded_tr = torch.zeros((ret.shape[0], ret.shape[2]), dtype=ret.dtype)
-            padded_tr[:, :3] = ret_tr
-            ret = torch.cat((ret, padded_tr[:, None]), 1)
-            # y 
-            padded_tr_y = torch.zeros((ret_y.shape[0], ret_y.shape[2]), dtype=ret_y.dtype)
-            padded_tr_y[:, :3] = ret_tr_y
-            ret_y = torch.cat((ret_y, padded_tr_y[:, None]), 1)
         
-        ret = ret.permute(1, 2, 0).contiguous()  # J or J + 1, 6, T
-        ret_y = ret_y.permute(1, 2, 0).contiguous() # J or J + 1, 6, T
+        if self.translation:
+            # x
+            if getattr(self, "_load_translation") is None:
+                raise ValueError("Can't extract translations x.")
+            ret_tr = self._load_translation(ind, frame_ix, mano_data, is_right)
+            orig_root = to_torch(ret_tr[0]).clone()
+            ret_tr = to_torch(ret_tr - ret_tr[0])
+            # y
+            if getattr(self, "_load_translation_y") is None:
+                raise ValueError("Can't extract translations y.")
+            ret_tr_y, _ = self._load_translation_y(ind, frame_ix, y_data)
+            orig_root_y = to_torch(ret_tr_y[0]).clone()
+            ret_tr_y = to_torch(ret_tr_y - ret_tr_y[0])
+        else:
+            ret_tr = torch.zeros((ret.shape[0], 3), dtype=ret.dtype)
+            orig_root = ret_tr[0].clone()
+            ret_tr_y = torch.zeros((ret.shape[0], 3), dtype=ret.dtype)
+            orig_root_y = ret_tr_y[0].clone()
+        # if pose_rep != "xyz" and not self.translation:
+        #     ret_tr = torch.zeros((ret.shape[0], 3), dtype=ret.dtype)
+        #     # padded_tr = torch.zeros((ret.shape[0], ret.shape[2]), dtype=ret.dtype)
+        #     # padded_tr[:, :3] = ret_tr
+        #     # ret = torch.cat((ret, padded_tr[:, None]), 1)
+        #     # # y 
+        #     ret_tr_y = torch.zeros((ret.shape[0], 3), dtype=ret.dtype)
+            # padded_tr_y = torch.zeros((ret_y.shape[0], ret_y.shape[2]), dtype=ret_y.dtype)
+            # padded_tr_y[:, :3] = ret_tr_y
+            # ret_y = torch.cat((ret_y, padded_tr_y[:, None]), 1)
+        
+        ret = ret.permute(1, 2, 0).contiguous()     # J, 6, T
+        ret_tr = ret_tr.permute(1, 0).contiguous()  # 3, T
+        ret_y = ret_y.permute(1, 2, 0).contiguous() # J, 6, T
+        ret_tr_y = ret_tr_y.permute(1, 0).contiguous()  # 3, T
         inpaint_mask = torch.from_numpy(inpaint_mask)
+        
 
         if self.align_pose_frontview:
-            return ret.float(), beta.float(), ret_y.float(), inpaint_mask.float(), orig_root.float(), orig_root_y.float(),first_frame_root_pose_matrix.float(), first_frame_root_pose_matrix_y.float() 
+            return ret.float(), beta.float(), ret_y.float(), inpaint_mask.float(), orig_root.float(), orig_root_y.float(),first_frame_root_pose_matrix.float(), first_frame_root_pose_matrix_y.float(), ret_tr.float(), ret_tr_y.float() 
         else:
-            return ret.float(), beta.float(), ret_y.float(), inpaint_mask.float(), orig_root.float(), orig_root_y.float(), torch.eye(3).float(), torch.eye(3).float()
+            return ret.float(), beta.float(), ret_y.float(), inpaint_mask.float(), orig_root.float(), orig_root_y.float(), torch.eye(3).float(), torch.eye(3).float(), ret_tr.float(), ret_tr_y.float() 
 
     def _get_item_data_index(self, data_index):
         if getattr(self, "_load_cam", None) is None:
@@ -216,7 +239,7 @@ class Dataset(torch.utils.data.Dataset):
             else:
                 raise ValueError("Sampling not recognized.")
 
-        x0, x0_beta, y, inpaint_mask, orig_root, orig_root_y,first_frame_root_pose_matrix, first_frame_root_pose_matrix_y = self.get_pose_data(data_index, frame_ix, is_right, data, mano_data)
+        x0, x0_beta, y, inpaint_mask, orig_root, orig_root_y,first_frame_root_pose_matrix, first_frame_root_pose_matrix_y, trans, ref_trans = self.get_pose_data(data_index, frame_ix, is_right, data, mano_data)
         is_right = torch.from_numpy(np.asarray(is_right))
         
 
@@ -235,6 +258,8 @@ class Dataset(torch.utils.data.Dataset):
             'ref_motion_ff_root_pose_mat': first_frame_root_pose_matrix_y,
             'frame_ix': frame_ix,
             'video_path': self.seqs_video[data_index],
+            'trans': trans,
+            'ref_trans': ref_trans,
         }
         
         return output
