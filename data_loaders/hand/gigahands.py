@@ -404,7 +404,7 @@ if __name__ == "__main__":
             y = geometry.rotation_6d_to_matrix(y)
             # y = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(y))
             y_root = sample['ref_motion_root']
-            y_trans += y_root
+            # y_trans += y_root
             y_trans = x0_trans 
         else:
             x0_trans = torch.zeros_like(sample['inp'].permute(2, 0, 1)[:, -1, :3])
