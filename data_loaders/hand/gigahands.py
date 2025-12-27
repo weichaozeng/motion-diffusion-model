@@ -381,7 +381,7 @@ if __name__ == "__main__":
         device = torch.device('cuda')
     else:
         device = torch.device('cpu')
-    dataset = GigaHands(split="train", num_frames=128, sampling="conseq", sampling_step=1, pose_rep="rot6d", translation=False, align_pose_frontview=True)
+    dataset = GigaHands(split="train", num_frames=128, sampling="conseq", sampling_step=1, pose_rep="rot6d", translation=True, align_pose_frontview=True)
     print(len(dataset))
     for sample_idx in range(10):
         sample = dataset[sample_idx]
