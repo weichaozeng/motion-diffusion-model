@@ -423,7 +423,7 @@ if __name__ == "__main__":
 
         y_all_root_pose_mat = y[:, 0, :]
         # y_all_root_pose_mat = torch.matmul(sample['ref_motion_ff_root_pose_mat'], y_all_root_pose_mat)
-        y_all_root_pose_mat = torch.matmul(sample['inp_ff_root_pose_mat'], y_all_root_pose_mat)
+        y_all_root_pose_mat = torch.matmul(sample['inp_ff_root_pose_mat'].clone(), y_all_root_pose_mat)
         y[:, 0, :] = y_all_root_pose_mat
         y = geometry.matrix_to_axis_angle(y)
 
