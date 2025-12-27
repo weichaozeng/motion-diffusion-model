@@ -138,7 +138,11 @@ class GigaHands(Dataset):
         anno_root = Path("/home/zvc/Data/GigaHands/hand_poses") 
         rgb_root = Path("/home/zvc/Data/GigaHands/video_aligned")    
         # outs = sorted(os.listdir(data_path))[:200]
-        outs = ["p001-folder_001_brics-odroid-002_cam0", "p001-folder_001_brics-odroid-006_cam0"]
+        outs = [
+            "p001-folder_001_brics-odroid-002_cam0", "p001-folder_001_brics-odroid-006_cam0",
+            "p001-packing_008_brics-odroid-008_cam0",
+            "p001-packing_008_brics-odroid-022_cam0",
+        ]
 
         for out in outs:
             session = out.split('_')[0]
@@ -357,15 +361,15 @@ class GigaHands(Dataset):
         return full_pose.astype(np.float32), mask.astype(np.bool_)
 
 
-# vis
-def visualize_batch(dataset_item):
-    inp = dataset_item['inp']
-    ref_motion = dataset_item['ref_motion']
-    inpaint_mask = dataset_item['inpaint_mask'] # 1=Real, 0=Interp
-    padding_mask = dataset_item['mask']
+# # vis
+# def visualize_batch(dataset_item):
+#     inp = dataset_item['inp']
+#     ref_motion = dataset_item['ref_motion']
+#     inpaint_mask = dataset_item['inpaint_mask'] # 1=Real, 0=Interp
+#     padding_mask = dataset_item['mask']
 
-    T = ref_motion.shape[-1]
-    frames = np.arange(T)
+#     T = ref_motion.shape[-1]
+#     frames = np.arange(T)
 
 
 if __name__ == "__main__":
@@ -377,7 +381,7 @@ if __name__ == "__main__":
         device = torch.device('cuda')
     else:
         device = torch.device('cpu')
-    dataset = GigaHands(split="train", num_frames=128, sampling="conseq", sampling_step=1, pose_rep="rot6d", translation=True, align_pose_frontview=True)
+    dataset = GigaHands(split="train", num_frames=128, sampling="conseq", sampling_step=1, pose_rep="rot6d", translation=False, align_pose_frontview=True)
     print(len(dataset))
     for sample_idx in range(10):
         sample = dataset[sample_idx]
@@ -393,14 +397,15 @@ if __name__ == "__main__":
             x0_root = sample['inp_root']
             x0_trans += x0_root
 
-            y_trans = sample['ref_motion'].permute(2, 0, 1)[:, -1, :3]
-            y_trans = torch.matmul(sample['inp_ff_root_pose_mat'], torch.transpose(y_trans, 0, 1))     
-            y_trans = torch.transpose(y_trans, 0, 1)      
+            # y_trans = sample['ref_motion'].permute(2, 0, 1)[:, -1, :3]
+            # y_trans = torch.matmul(sample['inp_ff_root_pose_mat'], torch.transpose(y_trans, 0, 1))     
+            # y_trans = torch.transpose(y_trans, 0, 1)     
             y = sample['ref_motion'].permute(2, 0, 1)[:, :-1, :]
             y = geometry.rotation_6d_to_matrix(y)
             # y = geometry.matrix_to_axis_angle(geometry.rotation_6d_to_matrix(y))
             y_root = sample['ref_motion_root']
             y_trans += y_root
+            y_trans = x0_trans 
         else:
             x0_trans = torch.zeros_like(sample['inp'].permute(2, 0, 1)[:, -1, :3])
             x0 = sample['inp'].permute(2, 0, 1)
@@ -419,7 +424,8 @@ if __name__ == "__main__":
         x0 = geometry.matrix_to_axis_angle(x0)
 
         y_all_root_pose_mat = y[:, 0, :]
-        y_all_root_pose_mat = torch.matmul(sample['ref_motion_ff_root_pose_mat'], y_all_root_pose_mat)
+        # y_all_root_pose_mat = torch.matmul(sample['ref_motion_ff_root_pose_mat'], y_all_root_pose_mat)
+        y_all_root_pose_mat = torch.matmul(sample['inp_ff_root_pose_mat'], y_all_root_pose_mat)
         y[:, 0, :] = y_all_root_pose_mat
         y = geometry.matrix_to_axis_angle(y)
 
