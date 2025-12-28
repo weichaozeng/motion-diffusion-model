@@ -173,16 +173,28 @@ class Dataset(torch.utils.data.Dataset):
             return ret.float(), beta.float(), ret_y.float(), inpaint_mask.float(), orig_root.float(), orig_root_y.float(), torch.eye(3).float(), torch.eye(3).float(), ret_tr.float(), ret_tr_y.float() 
 
     def _get_item_data_index(self, data_index):
+        # skip left
+        while True:
+            seq_y = self.seqs_y[data_index]
+            with open(seq_y, 'rb') as f:
+                temp_data = pickle.load(f)
+            if temp_data["handedness"][0] != 0:
+                data = temp_data
+                break
+            if self.split == 'train':
+                data_index = random.choice(self._train)
+            else:
+                data_index = random.choice(self._test)
+        # cam
         if getattr(self, "_load_cam", None) is None:
             raise ValueError("No cam params.")
         else:
             cam = self._load_cam(data_index)
-        seq_y = self.seqs_y[data_index]
+        # anno
         seq_mano = self.seqs_mano[data_index]
         with open(seq_mano, 'r') as f:
             mano_data = json.load(f)
-        with open(seq_y, 'rb') as f:
-            data = pickle.load(f)
+        # frame length
         max_nframe = min(data['frame_indices'][-1], len(mano_data["right"]["Th"])-1)
         min_nframe = max(0, data['frame_indices'][0])
         nframes = max_nframe - min_nframe + 1
