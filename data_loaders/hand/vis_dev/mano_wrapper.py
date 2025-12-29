@@ -106,6 +106,7 @@ if __name__ == "__main__":
     x_pose_rotvec_can[:, 0, :] = geometry.matrix_to_axis_angle(aligned_root_poses_matrix_x)
     x_pose_rot6d_can = geometry.matrix_to_rotation_6d(geometry.axis_angle_to_matrix(x_pose_rotvec_can))
 
+    print("debug")
 
 
 
