@@ -82,7 +82,7 @@ if __name__ == "__main__":
     x_pose_rotvec = torch.cat([x_Rh, x_poses], dim=1)
     x_pose_rotmat = geometry.axis_angle_to_matrix(x_pose_rotvec)
 
-    
+    print('debug')
 
 
 
