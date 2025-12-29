@@ -177,6 +177,7 @@ if __name__ == "__main__":
     frame_indices = y_data['frame_indices']
     start_idx = frame_indices[0]
     end_idx = frame_indices[-1]
+    N = len(frame_indices)
 
     # y
     y_betas = torch.from_numpy(np.asarray([mano['betas'] for mano in y_data['mano']])).mean(dim=0).reshape(-1, 10)
@@ -224,7 +225,7 @@ if __name__ == "__main__":
     y_input_mano_wrapper = {
         'global_orient': y_pose_rotmat_can[:, 0].unsqueeze(dim=1),
         'hand_pose': y_pose_rotmat_can[:, 1:],
-        'betas': y_betas,
+        'betas': y_betas.repeat(N, 1),
         'transl': transl,
     }
     y_output_mano_wrapper = mano(**y_input_mano_wrapper, pose2rot=False)
