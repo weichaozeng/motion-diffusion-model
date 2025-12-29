@@ -81,17 +81,32 @@ if __name__ == "__main__":
     # y
     y_hand_pose = torch.from_numpy(np.asarray([mano['hand_pose'] for mano in y_data['mano']]))
     y_global_orient = torch.from_numpy(np.asarray([mano['global_orient'] for mano in y_data['mano']]))
-    y_pose_rotmat = torch.cat([y_global_orient, y_hand_pose], dim=1)
-    y_pose_rotvec = geometry.matrix_to_axis_angle(y_pose_rotmat)
+    y_pose_rotmat = torch.cat([y_global_orient, y_hand_pose], dim=1) # (N, 16, 3, 3)
+    y_pose_rotvec = geometry.matrix_to_axis_angle(y_pose_rotmat) # (N, 16, 3)
 
     # x
     x_poses = torch.tensor(x_data["right"]["poses"], dtype=torch.float32)[frame_indices].reshape(-1, 16, 3)
     x_Rh = torch.tensor(x_data["right"]["Rh"], dtype=torch.float32)[frame_indices].reshape(-1, 1, 3)
-    x_pose_rotvec = torch.cat([x_Rh, x_poses[:, 1:]], dim=1)
-    x_pose_rotmat = geometry.axis_angle_to_matrix(x_pose_rotvec)
+    x_pose_rotvec = torch.cat([x_Rh, x_poses[:, 1:]], dim=1) # (N, 16, 3, 3)
+    x_pose_rotmat = geometry.axis_angle_to_matrix(x_pose_rotvec) # (N, 16, 3)
 
-    print('debug')
+    
+    # y Canonical on first frame
+    y_pose_rotvec_can = y_pose_rotvec.clone()
+    first_frame_root_pose_matrix_y = geometry.axis_angle_to_matrix(y_pose_rotvec_can[0][0])
+    all_root_poses_matrix_y = geometry.axis_angle_to_matrix(y_pose_rotvec_can[:, 0, :])
+    aligned_root_poses_matrix_y = torch.matmul(torch.transpose(first_frame_root_pose_matrix_y, 0, 1), all_root_poses_matrix_y)
+    y_pose_rotvec_can[:, 0, :] = geometry.matrix_to_axis_angle(aligned_root_poses_matrix_y)
 
+
+    # x Canonical on first frame
+    x_pose_rotvec_can = x_pose_rotvec.clone()
+    first_frame_root_pose_matrix_x = geometry.axis_angle_to_matrix(x_pose_rotvec_can[0][0])
+    all_root_poses_matrix_x = geometry.axis_angle_to_matrix(x_pose_rotvec_can[:, 0, :])
+    aligned_root_poses_matrix_x= torch.matmul(torch.transpose(first_frame_root_pose_matrix_x, 0, 1), all_root_poses_matrix_x)
+    x_pose_rotvec_can[:, 0, :] = geometry.matrix_to_axis_angle(aligned_root_poses_matrix_x)
+
+    print("debug")
 
 
 
