@@ -51,8 +51,6 @@ class MANO(smplx.MANOLayer):
 
 
 if __name__ == "__main__":
-
-
     mano_cfg = {
         'data_dir': '/home/zvc/Project/VHand/_DATA/data/',
         'model_path': '/home/zvc/Project/VHand/_DATA/data/mano',
@@ -97,6 +95,7 @@ if __name__ == "__main__":
     all_root_poses_matrix_y = geometry.axis_angle_to_matrix(y_pose_rotvec_can[:, 0, :])
     aligned_root_poses_matrix_y = torch.matmul(torch.transpose(first_frame_root_pose_matrix_y, 0, 1), all_root_poses_matrix_y)
     y_pose_rotvec_can[:, 0, :] = geometry.matrix_to_axis_angle(aligned_root_poses_matrix_y)
+    y_pose_rot6d_can = geometry.matrix_to_rotation_6d(geometry.axis_angle_to_matrix(y_pose_rotvec_can))
 
 
     # x Canonical on first frame
@@ -105,8 +104,9 @@ if __name__ == "__main__":
     all_root_poses_matrix_x = geometry.axis_angle_to_matrix(x_pose_rotvec_can[:, 0, :])
     aligned_root_poses_matrix_x= torch.matmul(torch.transpose(first_frame_root_pose_matrix_x, 0, 1), all_root_poses_matrix_x)
     x_pose_rotvec_can[:, 0, :] = geometry.matrix_to_axis_angle(aligned_root_poses_matrix_x)
+    x_pose_rot6d_can = geometry.matrix_to_rotation_6d(geometry.axis_angle_to_matrix(x_pose_rotvec_can))
 
-    print("debug")
+
 
 
 
