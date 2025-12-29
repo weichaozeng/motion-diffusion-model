@@ -70,7 +70,7 @@ if __name__ == "__main__":
 
     
     with open(data_path, 'rb') as f:
-        y_data = json.load(f)
+        y_data = pickle.load(f)
     with open(mano_path, 'r') as f:
         x_data = json.load(f)
 
