@@ -42,6 +42,9 @@ class MANO(smplx.MANOLayer):
 
 
 if __name__ == "__main__":
+    import json
+    import utils.rotation_conversions as geometry
+
     mano_cfg = {
         'data_dir': '/home/zvc/Project/VHand/_DATA/data/',
         'model_path': '/home/zvc/Project/VHand/_DATA/data/mano',
@@ -50,4 +53,37 @@ if __name__ == "__main__":
         'mean_params': 'data/mano_mean_params.npz',
         'create_body_pose': False,
     }
-    mano = MANO(pose2rot=False, **mano_cfg)
+    mano = MANO(pose2rot=True, **mano_cfg)
+
+    data_path = '/home/zvc/Project/VHand/test_dataset/GigaHands/vhand/hamer_out/p001-folder_017_brics-odroid-002_cam0/results/track_500.0/track_2.pkl'
+    mano_path = '/home/zvc/Data/GigaHands/hand_poses/p001-folder/params/017.json'
+    video_path = '/home/zvc/Data/GigaHands/symlinks/p001-folder_017_brics-odroid-002_cam0/brics-odroid-002_cam0.mp4'
+    # frame_indices = [21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72]
+
+    
+    with open(data_path, 'r') as f:
+        y_data = json.load(f)
+    with open(mano_path, 'r') as f:
+        x_data = json.load(f)
+
+    frame_indices = y_data['frame_indices']
+    start_idx = frame_indices[0]
+    end_idx = frame_indices[-1]
+
+    # y
+    y_hand_pose = torch.from_numpy(np.asarray([mano['hand_pose'] for mano in y_data['mano']]))
+    y_global_orient = torch.from_numpy(np.asarray([mano['global_orient'] for mano in y_data['mano']]))
+    y_pose_rotmat = torch.cat([y_global_orient, y_hand_pose], dim=1)
+    y_pose_rotvec = geometry.matrix_to_axis_angle(y_pose_rotmat)
+
+    # x
+    x_poses = torch.tensor(x_data["right"]["poses"], dtype=torch.float32)[frame_indices]
+    x_Rh = torch.tensor(x_data["right"]["Rh"], dtype=torch.float32)[frame_indices]
+    x_pose_rotvec = torch.cat([x_Rh, x_poses], dim=1)
+    x_pose_rotmat = geometry.axis_angle_to_matrix(x_pose_rotvec)
+
+    
+
+
+
+
