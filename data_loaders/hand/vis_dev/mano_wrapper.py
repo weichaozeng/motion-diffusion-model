@@ -6,6 +6,8 @@ import smplx
 from smplx.lbs import vertices2joints
 from smplx.utils import MANOOutput, to_tensor
 from smplx.vertex_ids import vertex_ids
+import json
+import utils.rotation_conversions as geometry
 
 
 class MANO(smplx.MANOLayer):
@@ -42,8 +44,7 @@ class MANO(smplx.MANOLayer):
 
 
 if __name__ == "__main__":
-    import json
-    import utils.rotation_conversions as geometry
+
 
     mano_cfg = {
         'data_dir': '/home/zvc/Project/VHand/_DATA/data/',
