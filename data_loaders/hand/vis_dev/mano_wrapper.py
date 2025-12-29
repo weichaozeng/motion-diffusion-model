@@ -8,6 +8,7 @@ if str(root_dir) not in sys.path:
 import torch
 import numpy as np
 import pickle
+import decord
 from typing import Optional
 import smplx
 from smplx.lbs import vertices2joints
@@ -59,7 +60,7 @@ if __name__ == "__main__":
         'mean_params': 'data/mano_mean_params.npz',
         'create_body_pose': False,
     }
-    mano = MANO(pose2rot=True, **mano_cfg)
+    mano = MANO(pose2rot=False, **mano_cfg)
 
     data_path = '/home/zvc/Project/VHand/test_dataset/GigaHands/vhand/hamer_out/p001-folder_017_brics-odroid-002_cam0/results/track_500.0/track_2.pkl'
     mano_path = '/home/zvc/Data/GigaHands/hand_poses/p001-folder/params/017.json'
@@ -77,12 +78,14 @@ if __name__ == "__main__":
     end_idx = frame_indices[-1]
 
     # y
+    y_betas = torch.from_numpy(np.asarray([mano['betas'] for mano in y_data['mano']])).mean()
     y_hand_pose = torch.from_numpy(np.asarray([mano['hand_pose'] for mano in y_data['mano']]))
     y_global_orient = torch.from_numpy(np.asarray([mano['global_orient'] for mano in y_data['mano']]))
     y_pose_rotmat = torch.cat([y_global_orient, y_hand_pose], dim=1) # (N, 16, 3, 3)
     y_pose_rotvec = geometry.matrix_to_axis_angle(y_pose_rotmat) # (N, 16, 3)
 
     # x
+    x_betas = torch.tensor(x_data["right"]["shapes"], dtype=torch.float32)
     x_poses = torch.tensor(x_data["right"]["poses"], dtype=torch.float32)[frame_indices].reshape(-1, 16, 3)
     x_Rh = torch.tensor(x_data["right"]["Rh"], dtype=torch.float32)[frame_indices].reshape(-1, 1, 3)
     x_pose_rotvec = torch.cat([x_Rh, x_poses[:, 1:]], dim=1) # (N, 16, 3, 3)
@@ -95,7 +98,9 @@ if __name__ == "__main__":
     all_root_poses_matrix_y = geometry.axis_angle_to_matrix(y_pose_rotvec_can[:, 0, :])
     aligned_root_poses_matrix_y = torch.matmul(torch.transpose(first_frame_root_pose_matrix_y, 0, 1), all_root_poses_matrix_y)
     y_pose_rotvec_can[:, 0, :] = geometry.matrix_to_axis_angle(aligned_root_poses_matrix_y)
-    y_pose_rot6d_can = geometry.matrix_to_rotation_6d(geometry.axis_angle_to_matrix(y_pose_rotvec_can))
+    y_pose_rotmat_can = geometry.axis_angle_to_matrix(y_pose_rotvec_can)
+    y_pose_rot6d_can = geometry.matrix_to_rotation_6d(y_pose_rotmat_can)
+    
 
 
     # x Canonical on first frame
@@ -104,9 +109,16 @@ if __name__ == "__main__":
     all_root_poses_matrix_x = geometry.axis_angle_to_matrix(x_pose_rotvec_can[:, 0, :])
     aligned_root_poses_matrix_x= torch.matmul(torch.transpose(first_frame_root_pose_matrix_x, 0, 1), all_root_poses_matrix_x)
     x_pose_rotvec_can[:, 0, :] = geometry.matrix_to_axis_angle(aligned_root_poses_matrix_x)
-    x_pose_rot6d_can = geometry.matrix_to_rotation_6d(geometry.axis_angle_to_matrix(x_pose_rotvec_can))
+    x_pose_rotmat_can = geometry.axis_angle_to_matrix(x_pose_rotvec_can)
+    x_pose_rot6d_can = geometry.matrix_to_rotation_6d(x_pose_rotmat_can)
 
-    print("debug")
+    
+    # y mano rec
+    y_input = {
+        'global_orient': y_pose_rotmat_can[:, 0],
+        'hand_pose': y_pose_rotmat_can[:, 1:],
+        'betas': y_betas,
+    }
 
 
 
