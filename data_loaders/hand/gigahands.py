@@ -140,9 +140,7 @@ class GigaHands(Dataset):
         rgb_root = Path("/home/zvc/Data/GigaHands/video_aligned")    
         # outs = sorted(os.listdir(data_path))[:200]
         outs = [
-            "p001-folder_001_brics-odroid-002_cam0", "p001-folder_001_brics-odroid-006_cam0",
-            "p001-packing_008_brics-odroid-008_cam0",
-            "p001-packing_008_brics-odroid-022_cam1",
+            "p001-folder_0017_brics-odroid-002_cam0", 
         ]
 
         for out in outs:
