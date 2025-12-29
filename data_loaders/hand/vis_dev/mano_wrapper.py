@@ -78,14 +78,14 @@ if __name__ == "__main__":
     end_idx = frame_indices[-1]
 
     # y
-    y_betas = torch.from_numpy(np.asarray([mano['betas'] for mano in y_data['mano']])).mean(dim=0)
+    y_betas = torch.from_numpy(np.asarray([mano['betas'] for mano in y_data['mano']])).mean(dim=0).reshape(-1, 10)
     y_hand_pose = torch.from_numpy(np.asarray([mano['hand_pose'] for mano in y_data['mano']]))
     y_global_orient = torch.from_numpy(np.asarray([mano['global_orient'] for mano in y_data['mano']]))
     y_pose_rotmat = torch.cat([y_global_orient, y_hand_pose], dim=1) # (N, 16, 3, 3)
     y_pose_rotvec = geometry.matrix_to_axis_angle(y_pose_rotmat) # (N, 16, 3)
 
     # x
-    x_betas = torch.tensor(x_data["right"]["shapes"], dtype=torch.float32)
+    x_betas = torch.tensor(x_data["right"]["shapes"], dtype=torch.float32).reshape(-1, 10)
     x_poses = torch.tensor(x_data["right"]["poses"], dtype=torch.float32)[frame_indices].reshape(-1, 16, 3)
     x_Rh = torch.tensor(x_data["right"]["Rh"], dtype=torch.float32)[frame_indices].reshape(-1, 1, 3)
     x_pose_rotvec = torch.cat([x_Rh, x_poses[:, 1:]], dim=1) # (N, 16, 3, 3)
