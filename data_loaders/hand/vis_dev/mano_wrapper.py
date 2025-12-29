@@ -51,6 +51,104 @@ class MANO(smplx.MANOLayer):
         return mano_output
 
 
+def read_params(params_path):
+    """Reads camera intrinsics and extrinsics from a formatted txt file."""
+    params = np.loadtxt(
+        params_path,
+        dtype=[
+            ("cam_id", int),
+            ("width", int),
+            ("height", int),
+            ("fx", float),
+            ("fy", float),
+            ("cx", float),
+            ("cy", float),
+            ("k1", float),
+            ("k2", float),
+            ("p1", float),
+            ("p2", float),
+            ("cam_name", "<U22"),
+            ("qvecw", float),
+            ("qvecx", float),
+            ("qvecy", float),
+            ("qvecz", float),
+            ("tvecx", float),
+            ("tvecy", float),
+            ("tvecz", float),
+        ]
+    )
+    params = np.sort(params, order="cam_name")
+    return params
+
+def get_intr(param, undistort=False):
+    intr = np.eye(3)
+    intr[0, 0] = param["fx_undist" if undistort else "fx"]
+    intr[1, 1] = param["fy_undist" if undistort else "fy"]
+    intr[0, 2] = param["cx_undist" if undistort else "cx"]
+    intr[1, 2] = param["cy_undist" if undistort else "cy"]
+
+    # TODO: Make work for arbitrary dist params in opencv
+    dist = np.asarray([param["k1"], param["k2"], param["p1"], param["p2"]])
+
+    return intr, dist
+
+
+def get_rot_trans(param):
+    qvec = np.asarray([param["qvecw"], param["qvecx"], param["qvecy"], param["qvecz"]])
+    tvec = np.asarray([param["tvecx"], param["tvecy"], param["tvecz"]])
+    r = qvec2rotmat(-qvec)
+    return r, tvec
+
+def qvec2rotmat(qvec):
+    return np.array(
+        [
+            [
+                1 - 2 * qvec[2] ** 2 - 2 * qvec[3] ** 2,
+                2 * qvec[1] * qvec[2] - 2 * qvec[0] * qvec[3],
+                2 * qvec[3] * qvec[1] + 2 * qvec[0] * qvec[2],
+            ],
+            [
+                2 * qvec[1] * qvec[2] + 2 * qvec[0] * qvec[3],
+                1 - 2 * qvec[1] ** 2 - 2 * qvec[3] ** 2,
+                2 * qvec[2] * qvec[3] - 2 * qvec[0] * qvec[1],
+            ],
+            [
+                2 * qvec[3] * qvec[1] - 2 * qvec[0] * qvec[2],
+                2 * qvec[2] * qvec[3] + 2 * qvec[0] * qvec[1],
+                1 - 2 * qvec[1] ** 2 - 2 * qvec[2] ** 2,
+            ],
+        ]
+    )
+
+def get_extr(param):
+    r, tvec = get_rot_trans(param)
+    extr = np.vstack([np.hstack([r, tvec[:, None]]), np.zeros((1, 4))])
+    extr[3, 3] = 1
+    extr = extr[:3]
+    return extr
+
+def get_projections(params, cam_names, n_Frames=1):
+    """Returns camera intrinsics, extrinsics, projections, and distortion parameters for the named camera."""
+    projs, intrs, dists, rot, trans = [], [], [], [], []
+    for param in params:
+        if param["cam_name"] == cam_names:
+            extr = get_extr(param)
+            intr, dist = get_intr(param)
+            r, t = get_rot_trans(param)
+            rot.append(r)
+            trans.append(t)
+            intrs.append(intr.copy())
+            projs.append(intr @ extr)
+            dists.append(dist)
+    cameras = {
+        'K': np.repeat(np.asarray(intrs), n_Frames, axis=0),
+        'R': np.repeat(np.asarray(rot), n_Frames, axis=0),
+        'T': np.repeat(np.asarray(trans), n_Frames, axis=0),
+        'dist': np.repeat(np.asarray(dists), n_Frames, axis=0),
+        'P': np.repeat(np.asarray(projs), n_Frames, axis=0)
+    }
+    return cameras
+
 if __name__ == "__main__":
     mano_cfg = {
         'data_dir': '/home/zvc/Project/VHand/_DATA/data/',
@@ -64,7 +162,9 @@ if __name__ == "__main__":
 
     data_path = '/home/zvc/Project/VHand/test_dataset/GigaHands/vhand/hamer_out/p001-folder_017_brics-odroid-002_cam0/results/track_500.0/track_2.pkl'
     mano_path = '/home/zvc/Data/GigaHands/hand_poses/p001-folder/params/017.json'
+    cam_path = '/home/zvc/Data/GigaHands/hand_poses/p001-folder/optim_params.txt'
     video_path = '/home/zvc/Data/GigaHands/symlinks/p001-folder_017_brics-odroid-002_cam0/brics-odroid-002_cam0.mp4'
+    cam = 'brics-odroid-002_cam0'
     # frame_indices = [21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72]
 
     
@@ -72,6 +172,7 @@ if __name__ == "__main__":
         y_data = pickle.load(f)
     with open(mano_path, 'r') as f:
         x_data = json.load(f)
+
 
     frame_indices = y_data['frame_indices']
     start_idx = frame_indices[0]
@@ -90,6 +191,12 @@ if __name__ == "__main__":
     x_Rh = torch.tensor(x_data["right"]["Rh"], dtype=torch.float32)[frame_indices].reshape(-1, 1, 3)
     x_pose_rotvec = torch.cat([x_Rh, x_poses[:, 1:]], dim=1) # (N, 16, 3, 3)
     x_pose_rotmat = geometry.axis_angle_to_matrix(x_pose_rotvec) # (N, 16, 3)
+
+
+    # trans and cam (from x)
+    transl = torch.tensor(x_data["right"]["Th"], dtype=torch.float32)[frame_indices].reshape(-1, 3)
+    cam_params = read_params(cam_path)
+    cam = get_projections(cam_params, cam, n_Frames=1)
 
     
     # y Canonical on first frame
@@ -114,11 +221,14 @@ if __name__ == "__main__":
 
     
     # y mano rec
-    y_input = {
+    y_input_mano_wrapper = {
         'global_orient': y_pose_rotmat_can[:, 0],
         'hand_pose': y_pose_rotmat_can[:, 1:],
         'betas': y_betas,
+        'transl': transl,
     }
+    y_output_mano_wrapper = mano(**y_input_mano_wrapper, pose2rot=False)
+    print('debug')
 
 
 
