@@ -231,8 +231,10 @@ class GigaHands(Dataset):
         start_idx = indices[0]
         end_idx = indices[1]
 
-        _global_orient_rotvec = geometry.matrix_to_axis_angle(np.asarray(global_orient[start_idx:end_idx+1]))
-        _hand_pose_rotvec = geometry.matrix_to_axis_angle(np.asarray(hand_pose[start_idx:end_idx+1]))
+        orient_tensor = torch.from_numpy(np.asarray(global_orient[start_idx:end_idx+1])).float()
+        pose_tensor = torch.from_numpy(np.asarray(hand_pose[start_idx:end_idx+1])).float()
+        _global_orient_rotvec = geometry.matrix_to_axis_angle(orient_tensor) # (N, 1, 3)
+        _hand_pose_rotvec = geometry.matrix_to_axis_angle(pose_tensor)
 
         full_pose_rotvec, inpaint_mask = self._slerp_y(frame_indices[start_idx:end_idx+1], global_orient[start_idx:end_idx+1], hand_pose[start_idx:end_idx+1])
 
