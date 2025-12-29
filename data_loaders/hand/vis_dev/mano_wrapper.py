@@ -78,7 +78,7 @@ if __name__ == "__main__":
     end_idx = frame_indices[-1]
 
     # y
-    y_betas = torch.from_numpy(np.asarray([mano['betas'] for mano in y_data['mano']])).mean()
+    y_betas = torch.from_numpy(np.asarray([mano['betas'] for mano in y_data['mano']])).mean(dim=0)
     y_hand_pose = torch.from_numpy(np.asarray([mano['hand_pose'] for mano in y_data['mano']]))
     y_global_orient = torch.from_numpy(np.asarray([mano['global_orient'] for mano in y_data['mano']]))
     y_pose_rotmat = torch.cat([y_global_orient, y_hand_pose], dim=1) # (N, 16, 3, 3)
