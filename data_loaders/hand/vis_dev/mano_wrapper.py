@@ -87,7 +87,7 @@ if __name__ == "__main__":
     # x
     x_poses = torch.tensor(x_data["right"]["poses"], dtype=torch.float32)[frame_indices].reshape(-1, 16, 3)
     x_Rh = torch.tensor(x_data["right"]["Rh"], dtype=torch.float32)[frame_indices].reshape(-1, 1, 3)
-    x_pose_rotvec = torch.cat([x_Rh, x_poses[:, 0:]], dim=1)
+    x_pose_rotvec = torch.cat([x_Rh, x_poses[:, 1:]], dim=1)
     x_pose_rotmat = geometry.axis_angle_to_matrix(x_pose_rotvec)
 
     print('debug')
