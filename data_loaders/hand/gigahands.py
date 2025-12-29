@@ -7,6 +7,7 @@ import pickle
 from scipy.spatial.transform import Rotation as R
 import vis.camparam_utils as param_utils
 from pathlib import Path
+import utils.rotation_conversions as geometry
 # class GigaHands(Dataset):
 #     dataname = "gigahands"
 
@@ -189,8 +190,9 @@ class GigaHands(Dataset):
         full_poses = torch.cat([Rh, full_poses[:, 3:]], dim=1) # (num_frames, 16*3)
         poses = full_poses[frame_ix].reshape(-1, 16, 3)  # (num_frames, 16, 3)
         if not is_right and flip_left:
-            poses[:, :, 1] *= -1
-            poses[:, :, 2] *= -1
+            raise NotImplementedError
+            # poses[:, :, 1] *= -1
+            # poses[:, :, 2] *= -1
     
         return poses, beta        
     
@@ -217,7 +219,8 @@ class GigaHands(Dataset):
         else:
             Th = torch.tensor(mano_data["left"]["Th"], dtype=torch.float32)
         if not is_right and flip_left:
-            Th[:, 0] *= -1
+            raise NotImplementedError
+            # Th[:, 0] *= -1
         return Th[frame_ix]  
     
     def _load_rotvec_y(self, ind, frame_ix, y_data):
@@ -229,6 +232,9 @@ class GigaHands(Dataset):
         indices = np.searchsorted(frame_indices, [frame_ix[0], frame_ix[-1]])
         start_idx = indices[0]
         end_idx = indices[1]
+
+        _global_orient_rotvec = geometry.matrix_to_axis_angle(global_orient[start_idx:end_idx+1])
+        _hand_pose_rotvec = geometry.matrix_to_axis_angle(hand_pose[start_idx:end_idx+1])
 
         full_pose_rotvec, inpaint_mask = self._slerp_y(frame_indices[start_idx:end_idx+1], global_orient[start_idx:end_idx+1], hand_pose[start_idx:end_idx+1])
 
@@ -437,16 +443,17 @@ if __name__ == "__main__":
             num_pca_comps=6, use_pose_blending=True, use_shape_blending=True,
             use_pca=False, use_flat_mean=False)
         else:
-            hand_model = load_model(
-            gender='neutral', model_type='manol', model_path=model_path,
-            num_pca_comps=6, use_pose_blending=True, use_shape_blending=True,
-            use_pca=False, use_flat_mean=False)
-            x0_trans[:, 0] *= -1
-            y_trans[:, 0] *= -1
-            x0[:, :, 1] *= -1
-            x0[:, :, 2] *= -1
-            y[:, :, 1] *= -1
-            y[:, :, 2] *= -1
+            raise NotImplementedError
+            # hand_model = load_model(
+            # gender='neutral', model_type='manol', model_path=model_path,
+            # num_pca_comps=6, use_pose_blending=True, use_shape_blending=True,
+            # use_pca=False, use_flat_mean=False)
+            # x0_trans[:, 0] *= -1
+            # y_trans[:, 0] *= -1
+            # x0[:, :, 1] *= -1
+            # x0[:, :, 2] *= -1
+            # y[:, :, 1] *= -1
+            # y[:, :, 2] *= -1
 
         # video frame
         # video_path = os.path.join("/home/zvc/Data/GigaHands/symlinks", sample['name'], 'rgb', sample['name'] + '.mp4')
