@@ -220,7 +220,6 @@ if __name__ == "__main__":
     x_pose_rotmat_can = geometry.axis_angle_to_matrix(x_pose_rotvec_can)
     x_pose_rot6d_can = geometry.matrix_to_rotation_6d(x_pose_rotmat_can)
 
-    
     # y mano rec
     y_input_mano_wrapper = {
         'global_orient': y_pose_rotmat_can[:, 0].unsqueeze(dim=1),
@@ -229,8 +228,15 @@ if __name__ == "__main__":
         'transl': transl,
     }
     y_output_mano_wrapper = mano(**y_input_mano_wrapper, pose2rot=False)
+
+    # x mano rec 
+    x_input_mano_wrapper = {
+        'global_orient': x_pose_rotmat_can[:, 0].unsqueeze(dim=1),
+        'hand_pose': x_pose_rotmat_can[:, 1:],
+        'betas': x_betas.repeat(N, 1),
+        'transl': transl,
+    }
+    x_output_mano_wrapper = mano(**x_input_mano_wrapper, pose2rot=False)
+
+
     print('debug')
-
-
-
-
