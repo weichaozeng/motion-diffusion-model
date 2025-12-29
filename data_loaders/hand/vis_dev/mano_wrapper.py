@@ -222,7 +222,7 @@ if __name__ == "__main__":
     
     # y mano rec
     y_input_mano_wrapper = {
-        'global_orient': y_pose_rotmat_can[:, 0],
+        'global_orient': y_pose_rotmat_can[:, 0].unsqueeze(dim=1),
         'hand_pose': y_pose_rotmat_can[:, 1:],
         'betas': y_betas,
         'transl': transl,
