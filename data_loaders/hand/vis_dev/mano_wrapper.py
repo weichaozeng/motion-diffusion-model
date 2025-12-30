@@ -310,7 +310,7 @@ if __name__ == "__main__":
             **misc_args
         )
         output_img_y_hamer = input_img[:, :, :3] * (1 - cam_view_y_hamer[:, :, 3:]) + cam_view_y_hamer[:, :, :3] * cam_view_y_hamer[:, :, 3:]
-        y_mano_wrapper_render_hamer.append(255 * output_img_y_hamer)
+        y_mano_wrapper_render_hamer.append((255 * output_img_y_hamer).astype(np.uint8))
 
          # x render
         cam_view_x_hamer, _ = render_hamer.render_rgba_multiple(
@@ -318,7 +318,7 @@ if __name__ == "__main__":
             **misc_args
         )
         output_img_x_hamer = input_img[:, :, :3] * (1 - cam_view_x_hamer[:, :, 3:]) + cam_view_x_hamer[:, :, :3] * cam_view_x_hamer[:, :, 3:]
-        x_mano_wrapper_render_hamer.append(255 * output_img_x_hamer)
+        x_mano_wrapper_render_hamer.append((255 * output_img_x_hamer).astype(np.uint8))
 
     os.makedirs(save_root, exist_ok=True)
     y_mano_wrapper_render_hamer_output_video = os.path.join(save_root, 'y_mano_wrapper_render_hamer.mp4')
