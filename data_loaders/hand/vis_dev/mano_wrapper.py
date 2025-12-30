@@ -391,6 +391,10 @@ if __name__ == "__main__":
     x_hand_model_render_giga = []
 
     for i, idx in enumerate(tqdm(frame_indices)):
+        # img
+        input_img = frames_rgb[idx].astype(np.float32)/ 255.0
+        input_img = np.concatenate([input_img, np.ones_like(input_img[:, :, :1])], axis=2)
+
         # with render_giga
         image_ref = np.zeros((720, 1280, 3))
         # y
