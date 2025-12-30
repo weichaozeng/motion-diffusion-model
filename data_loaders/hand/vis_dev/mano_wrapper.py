@@ -232,10 +232,10 @@ if __name__ == "__main__":
     
     # y Canonical on first frame
     y_pose_rotvec_can = y_pose_rotvec.clone()
-    first_frame_root_pose_matrix_y = geometry.axis_angle_to_matrix(y_pose_rotvec_can[0][0])
-    all_root_poses_matrix_y = geometry.axis_angle_to_matrix(y_pose_rotvec_can[:, 0, :])
-    aligned_root_poses_matrix_y = torch.matmul(torch.transpose(first_frame_root_pose_matrix_y, 0, 1), all_root_poses_matrix_y)
-    y_pose_rotvec_can[:, 0, :] = geometry.matrix_to_axis_angle(aligned_root_poses_matrix_y)
+    # first_frame_root_pose_matrix_y = geometry.axis_angle_to_matrix(y_pose_rotvec_can[0][0])
+    # all_root_poses_matrix_y = geometry.axis_angle_to_matrix(y_pose_rotvec_can[:, 0, :])
+    # aligned_root_poses_matrix_y = torch.matmul(torch.transpose(first_frame_root_pose_matrix_y, 0, 1), all_root_poses_matrix_y)
+    # y_pose_rotvec_can[:, 0, :] = geometry.matrix_to_axis_angle(aligned_root_poses_matrix_y)
     y_pose_rotmat_can = geometry.axis_angle_to_matrix(y_pose_rotvec_can)
     y_pose_rot6d_can = geometry.matrix_to_rotation_6d(y_pose_rotmat_can)
     
@@ -243,10 +243,10 @@ if __name__ == "__main__":
 
     # x Canonical on first frame
     x_pose_rotvec_can = x_pose_rotvec.clone()
-    first_frame_root_pose_matrix_x = geometry.axis_angle_to_matrix(x_pose_rotvec_can[0][0])
-    all_root_poses_matrix_x = geometry.axis_angle_to_matrix(x_pose_rotvec_can[:, 0, :])
-    aligned_root_poses_matrix_x= torch.matmul(torch.transpose(first_frame_root_pose_matrix_x, 0, 1), all_root_poses_matrix_x)
-    x_pose_rotvec_can[:, 0, :] = geometry.matrix_to_axis_angle(aligned_root_poses_matrix_x)
+    # first_frame_root_pose_matrix_x = geometry.axis_angle_to_matrix(x_pose_rotvec_can[0][0])
+    # all_root_poses_matrix_x = geometry.axis_angle_to_matrix(x_pose_rotvec_can[:, 0, :])
+    # aligned_root_poses_matrix_x= torch.matmul(torch.transpose(first_frame_root_pose_matrix_x, 0, 1), all_root_poses_matrix_x)
+    # x_pose_rotvec_can[:, 0, :] = geometry.matrix_to_axis_angle(aligned_root_poses_matrix_x)
     x_pose_rotmat_can = geometry.axis_angle_to_matrix(x_pose_rotvec_can)
     x_pose_rot6d_can = geometry.matrix_to_rotation_6d(x_pose_rotmat_can)
 

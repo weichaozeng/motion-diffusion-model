@@ -265,9 +265,9 @@ class Renderer:
                 np.radians(rot_angle), rot_axis)
         mesh.apply_transform(rot)
 
-        rot = trimesh.transformations.rotation_matrix(
-            np.radians(180), [1, 0, 0])
-        mesh.apply_transform(rot)
+        # rot = trimesh.transformations.rotation_matrix(
+        #     np.radians(180), [1, 0, 0])
+        # mesh.apply_transform(rot)
         return mesh
 
     def render_rgba(
