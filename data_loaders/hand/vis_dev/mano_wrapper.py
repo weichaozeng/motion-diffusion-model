@@ -4,11 +4,11 @@ current_file = Path(__file__).resolve()
 root_dir = current_file.parent.parent.parent.parent 
 if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
-
+import os
 import torch
 import numpy as np
 import pickle
-import decord
+from decord import VideoReader, cpu
 from typing import Optional
 import smplx
 from smplx.lbs import vertices2joints
@@ -16,7 +16,9 @@ from smplx.utils import MANOOutput, to_tensor
 from smplx.vertex_ids import vertex_ids
 import json
 import utils.rotation_conversions as geometry
-
+from data_loaders.hand.vis import Renderer as Renderer_giga
+from .renderer import Renderer as Renderer_hamer
+import imageio
 
 class MANO(smplx.MANOLayer):
     def __init__(self, *args, joint_regressor_extra: Optional[str] = None, **kwargs):
@@ -149,6 +151,30 @@ def get_projections(params, cam_names, n_Frames=1):
     }
     return cameras
 
+def get_inv_ext(cameras, nv=0):
+    R = cameras['R'][nv]
+    T = cameras['T'][nv].reshape(3, 1)
+    # E = np.eye(4)
+    # E[:3, :3] = R
+    # E[:3, 3:4] = T
+    # E_inv = np.linalg.inv(E)
+    E_inv_fast = np.eye(4)
+    E_inv_fast[:3, :3] = R.T
+    E_inv_fast[:3, 3:4] = -R.T @ T
+    return E_inv_fast
+
+def get_pyrender_pose(cameras, nv=0):
+    E_inv = get_inv_ext(cameras, nv)
+    R_flip = np.array([
+        [1, 0, 0, 0],
+        [0, -1, 0, 0],
+        [0, 0, -1, 0],
+        [0, 0, 0, 1]
+    ])
+    return E_inv @ R_flip
+
+
+
 if __name__ == "__main__":
     mano_cfg = {
         'data_dir': '/home/zvc/Project/VHand/_DATA/data/',
@@ -158,13 +184,15 @@ if __name__ == "__main__":
         'mean_params': 'data/mano_mean_params.npz',
         'create_body_pose': False,
     }
-    mano = MANO(pose2rot=False, **mano_cfg)
+    mano = MANO(pose2rot=False, use_pca=True, **mano_cfg)
 
     data_path = '/home/zvc/Project/VHand/test_dataset/GigaHands/vhand/hamer_out/p001-folder_017_brics-odroid-002_cam0/results/track_500.0/track_2.pkl'
     mano_path = '/home/zvc/Data/GigaHands/hand_poses/p001-folder/params/017.json'
     cam_path = '/home/zvc/Data/GigaHands/hand_poses/p001-folder/optim_params.txt'
     video_path = '/home/zvc/Data/GigaHands/symlinks/p001-folder_017_brics-odroid-002_cam0/brics-odroid-002_cam0.mp4'
     cam = 'brics-odroid-002_cam0'
+    model_path = '/home/zvc/Project/VHand/_DATA/data/mano/MANO_RIGHT.pkl'
+    save_root = 'home/zvc/Project/motion-diffusion-model/_vis/mano'
     # frame_indices = [21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72]
 
     
@@ -178,6 +206,7 @@ if __name__ == "__main__":
     start_idx = frame_indices[0]
     end_idx = frame_indices[-1]
     N = len(frame_indices)
+
 
     # y
     y_betas = torch.from_numpy(np.asarray([mano['betas'] for mano in y_data['mano']])).mean(dim=0).reshape(-1, 10)
@@ -220,7 +249,7 @@ if __name__ == "__main__":
     x_pose_rotmat_can = geometry.axis_angle_to_matrix(x_pose_rotvec_can)
     x_pose_rot6d_can = geometry.matrix_to_rotation_6d(x_pose_rotmat_can)
 
-    # y mano rec
+    # y mano rec with mano wrapper
     y_input_mano_wrapper = {
         'global_orient': y_pose_rotmat_can[:, 0].unsqueeze(dim=1),
         'hand_pose': y_pose_rotmat_can[:, 1:],
@@ -229,7 +258,7 @@ if __name__ == "__main__":
     }
     y_output_mano_wrapper = mano(**y_input_mano_wrapper, pose2rot=False)
 
-    # x mano rec 
+    # x mano rec  with mano wrapper
     x_input_mano_wrapper = {
         'global_orient': x_pose_rotmat_can[:, 0].unsqueeze(dim=1),
         'hand_pose': x_pose_rotmat_can[:, 1:],
@@ -239,4 +268,60 @@ if __name__ == "__main__":
     x_output_mano_wrapper = mano(**x_input_mano_wrapper, pose2rot=False)
 
 
-    print('debug')
+    # video
+    vr = VideoReader(video_path, ctx=cpu(0))
+    frames_rgb = [frame.asnumpy() for frame in vr]
+    h, w = frames_rgb[0].shape[:2]
+
+    # faces
+    with open(model_path, 'rb') as mano_file:
+        mano_model = pickle.load(mano_file, encoding='latin1')
+    faces = mano_model['f']
+
+    # renderer
+    render_giga = Renderer_giga(height=720, width=1280, faces=None, extra_mesh=[])
+    render_hamer = Renderer_hamer(faces=faces)
+
+    # iter
+    y_mano_wrapper_render_hamer = []
+    x_mano_wrapper_render_hamer = []
+
+    for i, idx in enumerate(range(frame_indices)):
+        # img
+        input_img = frames_rgb[idx].astype(np.float32)/ 255.0
+        input_img = np.concatenate([input_img, np.ones_like(input_img[:, :, :1])], axis=2)
+        
+        # with render_hamer
+        misc_args = dict(
+            mesh_base_color=(0.65098039, 0.74117647, 0.85882353),
+            scene_bg_color=(1, 1, 1),
+            focal_length=[cam['K'][0][0, 0], cam['K'][0][1, 1]],
+            camera_center=[cam['K'][0][0, 2], cam['K'][0][1, 2]],
+            camera_pose=get_pyrender_pose(cam),
+            cam_t=[0, 0, 0], 
+            render_res=[h, w], 
+            is_right=1, 
+        )
+
+        # y render
+        cam_view_y_hamer, _ = render_hamer.render_rgba_multiple(
+            y_output_mano_wrapper.vertices[i], 
+            **misc_args
+        )
+        output_img_y_hamer = input_img[:, :, :3] * (1 - cam_view_y_hamer[:, :, 3:]) + cam_view_y_hamer[:, :, :3] * cam_view_y_hamer[:, :, 3:]
+        y_mano_wrapper_render_hamer.append(output_img_y_hamer)
+
+         # x render
+        cam_view_x_hamer, _ = render_hamer.render_rgba_multiple(
+            x_output_mano_wrapper.vertices[i], 
+            **misc_args
+        )
+        output_img_x_hamer = input_img[:, :, :3] * (1 - cam_view_x_hamer[:, :, 3:]) + cam_view_x_hamer[:, :, :3] * cam_view_x_hamer[:, :, 3:]
+        x_mano_wrapper_render_hamer.append(output_img_x_hamer)
+
+    os.makedirs(save_root, exist_ok=True)
+    y_mano_wrapper_render_hamer_output_video = os.path.join(save_root, 'y_mano_wrapper_render_hamer.mp4')
+    imageio.mimsave(str(y_mano_wrapper_render_hamer_output_video), y_mano_wrapper_render_hamer, fps=30)
+
+    x_mano_wrapper_render_hamer_output_video = os.path.join(save_root, 'x_mano_wrapper_render_hamer.mp4')
+    imageio.mimsave(str(x_mano_wrapper_render_hamer_output_video), x_mano_wrapper_render_hamer, fps=30)
