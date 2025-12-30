@@ -287,7 +287,7 @@ if __name__ == "__main__":
     y_mano_wrapper_render_hamer = []
     x_mano_wrapper_render_hamer = []
 
-    for i, idx in enumerate(tqdm(range(frame_indices))):
+    for i, idx in enumerate(tqdm(frame_indices)):
         # img
         input_img = frames_rgb[idx].astype(np.float32)/ 255.0
         input_img = np.concatenate([input_img, np.ones_like(input_img[:, :, :1])], axis=2)
