@@ -513,7 +513,7 @@ if __name__ == "__main__":
 
         # Save video
         import imageio
-        save_path = '/home/zvc/Project/motion-diffusion-model/_vis'
+        save_path = '/home/zvc/Project/motion-diffusion-model/_vis/datasets/'
         os.makedirs(save_path, exist_ok=True)
 
         output_video_gt = os.path.join(save_path, f'output_gt_{sample_idx}.mp4')
