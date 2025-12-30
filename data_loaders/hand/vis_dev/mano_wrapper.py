@@ -233,6 +233,12 @@ if __name__ == "__main__":
     y_betas = torch.from_numpy(np.asarray([mano['betas'] for mano in y_data['mano']])).mean(dim=0).reshape(-1, 10)
     y_hand_pose = torch.from_numpy(np.asarray([mano['hand_pose'] for mano in y_data['mano']]))
     y_global_orient = torch.from_numpy(np.asarray([mano['global_orient'] for mano in y_data['mano']]))
+    R_fix = torch.tensor([
+        [1,  0,  0],
+        [0, -1,  0],
+        [0,  0, -1]
+    ])
+    y_global_orient_corrected = y_global_orient @ R_fix
     y_pose_rotmat = torch.cat([y_global_orient, y_hand_pose], dim=1) # (N, 16, 3, 3)
     y_pose_rotvec = geometry.matrix_to_axis_angle(y_pose_rotmat) # (N, 16, 3)
 

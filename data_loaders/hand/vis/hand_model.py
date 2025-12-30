@@ -379,8 +379,7 @@ class SMPLlayer(nn.Module):
                 vertices = vertices[:, :self.J_regressor.shape[0], :]
             else:
                 vertices = vertices[:, self.J_regressor.shape[0]:, :]
-        # vertices = torch.matmul(vertices, rot.transpose(1, 2)) + transl
-        vertices = torch.matmul(vertices, rot) + transl
+        vertices = torch.matmul(vertices, rot.transpose(1, 2)) + transl
         if not return_tensor:
             vertices = vertices.detach().cpu().numpy()
         return vertices
