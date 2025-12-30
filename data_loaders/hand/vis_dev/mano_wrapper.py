@@ -322,7 +322,9 @@ if __name__ == "__main__":
 
     os.makedirs(save_root, exist_ok=True)
     y_mano_wrapper_render_hamer_output_video = os.path.join(save_root, 'y_mano_wrapper_render_hamer.mp4')
-    imageio.mimsave(str(y_mano_wrapper_render_hamer_output_video), y_mano_wrapper_render_hamer, fps=30)
+    imageio.mimsave(y_mano_wrapper_render_hamer_output_video, y_mano_wrapper_render_hamer, fps=30)
+    print(f"Saved output video to {y_mano_wrapper_render_hamer_output_video}")
 
     x_mano_wrapper_render_hamer_output_video = os.path.join(save_root, 'x_mano_wrapper_render_hamer.mp4')
-    imageio.mimsave(str(x_mano_wrapper_render_hamer_output_video), x_mano_wrapper_render_hamer, fps=30)
+    imageio.mimsave(x_mano_wrapper_render_hamer_output_video, x_mano_wrapper_render_hamer, fps=30)
+    print(f"Saved output video to {x_mano_wrapper_render_hamer_output_video}")
