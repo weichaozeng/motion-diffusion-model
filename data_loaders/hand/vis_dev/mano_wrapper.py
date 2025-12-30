@@ -300,7 +300,7 @@ if __name__ == "__main__":
             camera_center=[cam['K'][0][0, 2], cam['K'][0][1, 2]],
             camera_pose=get_pyrender_pose(cam),
             cam_t=np.asarray([[0, 0, 0],]), 
-            render_res=[h, w], 
+            render_res=[w, h], 
             is_right=np.asarray([1],), 
         )
 
