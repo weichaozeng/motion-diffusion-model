@@ -193,7 +193,7 @@ if __name__ == "__main__":
     video_path = '/home/zvc/Data/GigaHands/symlinks/p001-folder_017_brics-odroid-002_cam0/brics-odroid-002_cam0.mp4'
     cam = 'brics-odroid-002_cam0'
     model_path = '/home/zvc/Project/VHand/_DATA/data/mano/MANO_RIGHT.pkl'
-    save_root = 'home/zvc/Project/motion-diffusion-model/_vis/mano'
+    save_root = '/home/zvc/Project/motion-diffusion-model/_vis/mano'
     # frame_indices = [21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72]
 
     
