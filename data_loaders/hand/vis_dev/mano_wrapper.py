@@ -235,7 +235,7 @@ if __name__ == "__main__":
     y_global_orient = torch.from_numpy(np.asarray([mano['global_orient'] for mano in y_data['mano']]))
     R_fix = torch.tensor([
         [-1.,  0.,  0.],
-        [0., 1.,  0.],
+        [0., -1.,  0.],
         [0.,  0., 1.]
     ])
     y_global_orient_corrected = y_global_orient @ R_fix
