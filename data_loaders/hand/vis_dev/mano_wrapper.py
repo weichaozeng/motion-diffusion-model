@@ -234,7 +234,7 @@ if __name__ == "__main__":
     y_hand_pose = torch.from_numpy(np.asarray([mano['hand_pose'] for mano in y_data['mano']]))
     y_global_orient = torch.from_numpy(np.asarray([mano['global_orient'] for mano in y_data['mano']]))
     R_fix = torch.tensor([
-        [-1.,  0.,  0.],
+        [1.,  0.,  0.],
         [0., -1.,  0.],
         [0.,  0., 1.]
     ])
