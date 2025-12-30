@@ -430,7 +430,7 @@ if __name__ == "__main__":
         render_data_y = {
             0: {'vertices': vertices_y, 'faces': faces, 'vid': 1, 'name': f'ref_{idx}'},
         }
-        render_results_y = render_giga.render(render_data_y, cam, [image_ref.copy()], add_back=False)
+        render_results_y = render_giga.render(render_data_y, cam, [image_ref.copy()], add_back=False, angle=0)
         image_vis_y = render_results_y[0][:, :, [2, 1, 0, 3]]
         render_rgb_y = image_vis_y[:, :, :3]
         alpha_y = image_vis_y[:, :, 3] / 255.0

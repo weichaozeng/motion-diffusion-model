@@ -104,10 +104,10 @@ class Renderer(object):
 
     def render(self, render_data, cameras, images,
         use_white=False, add_back=True,
-        ret_depth=False, ret_color=False):
+        ret_depth=False, ret_color=False, angle=180):
         # Need to flip x-axis
         rot = trimesh.transformations.rotation_matrix(
-            np.radians(180), [1, 0, 0])
+            np.radians(angle), [1, 0, 0])
         output_images, output_colors, output_depths = [], [], []
         for nv, img_ in enumerate(images):
             if use_white:
