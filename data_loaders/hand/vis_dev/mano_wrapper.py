@@ -19,6 +19,7 @@ import utils.rotation_conversions as geometry
 from data_loaders.hand.vis import Renderer as Renderer_giga
 from data_loaders.hand.vis_dev.renderer import Renderer as Renderer_hamer
 import imageio
+from tqdm import tqdm
 
 class MANO(smplx.MANOLayer):
     def __init__(self, *args, joint_regressor_extra: Optional[str] = None, **kwargs):
@@ -286,7 +287,7 @@ if __name__ == "__main__":
     y_mano_wrapper_render_hamer = []
     x_mano_wrapper_render_hamer = []
 
-    for i, idx in enumerate(range(frame_indices)):
+    for i, idx in enumerate(tqdm(range(frame_indices))):
         # img
         input_img = frames_rgb[idx].astype(np.float32)/ 255.0
         input_img = np.concatenate([input_img, np.ones_like(input_img[:, :, :1])], axis=2)
