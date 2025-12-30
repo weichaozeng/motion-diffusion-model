@@ -17,7 +17,7 @@ from smplx.vertex_ids import vertex_ids
 import json
 import utils.rotation_conversions as geometry
 from data_loaders.hand.vis import Renderer as Renderer_giga
-from .renderer import Renderer as Renderer_hamer
+from data_loaders.hand.vis_dev.renderer import Renderer as Renderer_hamer
 import imageio
 
 class MANO(smplx.MANOLayer):
