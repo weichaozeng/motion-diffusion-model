@@ -294,33 +294,33 @@ if __name__ == "__main__":
         input_img = frames_rgb[idx].astype(np.float32)/ 255.0
         input_img = np.concatenate([input_img, np.ones_like(input_img[:, :, :1])], axis=2)
         
-        # with render_hamer
-        misc_args = dict(
-            mesh_base_color=(0.65098039, 0.74117647, 0.85882353),
-            scene_bg_color=(1, 1, 1),
-            focal_length=[cam['K'][0][0, 0], cam['K'][0][1, 1]],
-            camera_center=[cam['K'][0][0, 2], cam['K'][0][1, 2]],
-            camera_pose=get_pyrender_pose(cam),
-            cam_t=np.asarray([[0, 0, 0],]), 
-            render_res=[w, h], 
-            is_right=np.asarray([1],), 
-        )
+        # # with render_hamer
+        # misc_args = dict(
+        #     mesh_base_color=(0.65098039, 0.74117647, 0.85882353),
+        #     scene_bg_color=(1, 1, 1),
+        #     focal_length=[cam['K'][0][0, 0], cam['K'][0][1, 1]],
+        #     camera_center=[cam['K'][0][0, 2], cam['K'][0][1, 2]],
+        #     camera_pose=get_pyrender_pose(cam),
+        #     cam_t=np.asarray([[0, 0, 0],]), 
+        #     render_res=[w, h], 
+        #     is_right=np.asarray([1],), 
+        # )
 
-        # y render
-        cam_view_y_hamer, _ = render_hamer.render_rgba_multiple(
-            y_output_mano_wrapper.vertices[i].detach().numpy()[None], 
-            **misc_args
-        )
-        output_img_y_hamer = input_img[:, :, :3] * (1 - cam_view_y_hamer[:, :, 3:]) + cam_view_y_hamer[:, :, :3] * cam_view_y_hamer[:, :, 3:]
-        y_mano_wrapper_render_hamer.append((255 * output_img_y_hamer).astype(np.uint8))
+        # # y render
+        # cam_view_y_hamer, _ = render_hamer.render_rgba_multiple(
+        #     y_output_mano_wrapper.vertices[i].detach().numpy()[None], 
+        #     **misc_args
+        # )
+        # output_img_y_hamer = input_img[:, :, :3] * (1 - cam_view_y_hamer[:, :, 3:]) + cam_view_y_hamer[:, :, :3] * cam_view_y_hamer[:, :, 3:]
+        # y_mano_wrapper_render_hamer.append((255 * output_img_y_hamer).astype(np.uint8))
 
-         # x render
-        cam_view_x_hamer, _ = render_hamer.render_rgba_multiple(
-            x_output_mano_wrapper.vertices[i].detach().numpy()[None], 
-            **misc_args
-        )
-        output_img_x_hamer = input_img[:, :, :3] * (1 - cam_view_x_hamer[:, :, 3:]) + cam_view_x_hamer[:, :, :3] * cam_view_x_hamer[:, :, 3:]
-        x_mano_wrapper_render_hamer.append((255 * output_img_x_hamer).astype(np.uint8))
+        #  # x render
+        # cam_view_x_hamer, _ = render_hamer.render_rgba_multiple(
+        #     x_output_mano_wrapper.vertices[i].detach().numpy()[None], 
+        #     **misc_args
+        # )
+        # output_img_x_hamer = input_img[:, :, :3] * (1 - cam_view_x_hamer[:, :, 3:]) + cam_view_x_hamer[:, :, :3] * cam_view_x_hamer[:, :, 3:]
+        # x_mano_wrapper_render_hamer.append((255 * output_img_x_hamer).astype(np.uint8))
 
 
         # with render_giga
