@@ -238,7 +238,12 @@ if __name__ == "__main__":
         [0,  0, 1],
         [0,  -1,  0]
     ], dtype=torch.float32)
-    y_global_orient_corrected = (y_global_orient @ R_fix)
+    R_flip_wrist = torch.tensor([
+        [-1,  0,  0],
+        [ 0,  1,  0],
+        [ 0,  0, -1]
+    ], dtype=torch.float32)
+    y_global_orient_corrected = R_flip_wrist @ (y_global_orient @ R_fix)
     y_pose_rotmat = torch.cat([y_global_orient_corrected, y_hand_pose], dim=1) # (N, 16, 3, 3)
     y_pose_rotvec = geometry.matrix_to_axis_angle(y_pose_rotmat) # (N, 16, 3)
 
