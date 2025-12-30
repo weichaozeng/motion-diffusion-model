@@ -18,6 +18,7 @@ import json
 import utils.rotation_conversions as geometry
 from data_loaders.hand.vis import Renderer as Renderer_giga
 from data_loaders.hand.vis_dev.renderer import Renderer as Renderer_hamer
+from data_loaders.hand.vis import load_model
 import imageio
 from tqdm import tqdm
 
@@ -177,6 +178,10 @@ def get_pyrender_pose(cameras, nv=0):
 
 
 if __name__ == "__main__":
+    if torch.cuda.is_available():
+        device = torch.device('cuda')
+    else:
+        device = torch.device('cpu')
     mano_cfg = {
         'data_dir': '/home/zvc/Project/VHand/_DATA/data/',
         'model_path': '/home/zvc/Project/VHand/_DATA/data/mano',
@@ -186,6 +191,16 @@ if __name__ == "__main__":
         'create_body_pose': False,
     }
     mano = MANO(pose2rot=False, flat_hand_mean=True, **mano_cfg)
+
+
+    hand_model_path = '/home/zvc/Project/motion-diffusion-model/body_models'
+    hand_model = load_model(
+    gender='neutral', model_type='manor', model_path=hand_model_path,
+    num_pca_comps=6, use_pose_blending=True, use_shape_blending=True,
+    use_pca=False, use_flat_mean=False)
+    
+
+
 
     data_path = '/home/zvc/Project/VHand/test_dataset/GigaHands/vhand/hamer_out/p001-folder_017_brics-odroid-011_cam0/results/track_500.0/track_1.pkl'
     mano_path = '/home/zvc/Data/GigaHands/hand_poses/p001-folder/params/017.json'
@@ -283,7 +298,7 @@ if __name__ == "__main__":
     render_giga = Renderer_giga(height=720, width=1280, faces=None, extra_mesh=[])
     render_hamer = Renderer_hamer(faces=faces)
 
-    # iter
+    # iter mano wrapper
     y_mano_wrapper_render_hamer = []
     x_mano_wrapper_render_hamer = []
     y_mano_wrapper_render_giga = []
@@ -352,13 +367,13 @@ if __name__ == "__main__":
 
 
     os.makedirs(save_root, exist_ok=True)
-    y_mano_wrapper_render_hamer_output_video = os.path.join(save_root, 'y_mano_wrapper_render_hamer.mp4')
-    imageio.mimsave(y_mano_wrapper_render_hamer_output_video, y_mano_wrapper_render_hamer, fps=30)
-    print(f"Saved output video to {y_mano_wrapper_render_hamer_output_video}")
+    # y_mano_wrapper_render_hamer_output_video = os.path.join(save_root, 'y_mano_wrapper_render_hamer.mp4')
+    # imageio.mimsave(y_mano_wrapper_render_hamer_output_video, y_mano_wrapper_render_hamer, fps=30)
+    # print(f"Saved output video to {y_mano_wrapper_render_hamer_output_video}")
 
-    x_mano_wrapper_render_hamer_output_video = os.path.join(save_root, 'x_mano_wrapper_render_hamer.mp4')
-    imageio.mimsave(x_mano_wrapper_render_hamer_output_video, x_mano_wrapper_render_hamer, fps=30)
-    print(f"Saved output video to {x_mano_wrapper_render_hamer_output_video}")
+    # x_mano_wrapper_render_hamer_output_video = os.path.join(save_root, 'x_mano_wrapper_render_hamer.mp4')
+    # imageio.mimsave(x_mano_wrapper_render_hamer_output_video, x_mano_wrapper_render_hamer, fps=30)
+    # print(f"Saved output video to {x_mano_wrapper_render_hamer_output_video}")
 
     y_mano_wrapper_render_giga_output_video = os.path.join(save_root, 'y_mano_wrapper_render_giga.mp4')
     imageio.mimsave(y_mano_wrapper_render_giga_output_video, y_mano_wrapper_render_giga, fps=30)
@@ -367,3 +382,61 @@ if __name__ == "__main__":
     x_mano_wrapper_render_giga_output_video = os.path.join(save_root, 'x_mano_wrapper_render_giga.mp4')
     imageio.mimsave(x_mano_wrapper_render_giga_output_video, x_mano_wrapper_render_giga, fps=30)
     print(f"Saved output video to {x_mano_wrapper_render_giga_output_video}")
+
+
+    # iter hand model
+    y_hand_model_render_hamer = []
+    x_hand_model_render_hamer = []
+    y_hand_model_render_giga = []
+    x_hand_model_render_giga = []
+
+    for i, idx in enumerate(tqdm(frame_indices)):
+        # with render_giga
+        image_ref = np.zeros((720, 1280, 3))
+        # y
+        hand_param_y = {
+            "poses": torch.cat([torch.zeros_like(y_pose_rotvec_can[idx, 0, :]).unsqueeze(0), y_pose_rotvec_can[idx, 1:, :]], dim=0).unsqueeze(0).reshape(1, -1).to(device), 
+            "Rh": y_pose_rotvec_can[idx, 0, :].unsqueeze(0).to(device),
+            "Th": transl[idx].unsqueeze(0).to(device),
+            "shapes": y_betas.to(device),
+        }
+        vertices_y = hand_model(return_verts=True, return_tensor=False, **hand_param_y)[0]
+        render_data_y = {
+            0: {'vertices': vertices_y, 'faces': faces, 'vid': 1, 'name': f'ref_{idx}'},
+        }
+        render_results_y = render_giga.render(render_data_y, cam, [image_ref.copy()], add_back=False)
+        image_vis_y = render_results_y[0][:, :, [2, 1, 0, 3]]
+        render_rgb_y = image_vis_y[:, :, :3]
+        alpha_y = image_vis_y[:, :, 3] / 255.0
+        alpha_y = alpha_y[:, :, np.newaxis]
+        combined_image_y = (render_rgb_y * alpha_y + input_img[:, :, :3] * 255 * (1 - alpha_y)).astype(np.uint8)
+        y_hand_model_render_giga.append(combined_image_y)
+
+
+        # x
+        hand_param_x = {
+            "poses": torch.cat([torch.zeros_like(x_pose_rotvec_can[idx, 0, :]).unsqueeze(0), x_pose_rotvec_can[idx, 1:, :]], dim=0).unsqueeze(0).reshape(1, -1).to(device), 
+            "Rh": x_pose_rotvec_can[idx, 0, :].unsqueeze(0).to(device),
+            "Th": transl[idx].unsqueeze(0).to(device),
+            "shapes": x_betas.to(device),
+        }
+        vertices_x = hand_model(return_verts=True, return_tensor=False, **hand_param_x)[0]
+        render_data_x = {
+            0: {'vertices': vertices_x, 'faces': faces, 'vid': 1, 'name': f'ref_{idx}'},
+        }
+        render_results_x = render_giga.render(render_data_x, cam, [image_ref.copy()], add_back=False)
+        image_vis_x = render_results_x[0][:, :, [2, 1, 0, 3]]
+        render_rgb_x = image_vis_x[:, :, :3]
+        alpha_x = image_vis_x[:, :, 3] / 255.0
+        alpha_x = alpha_x[:, :, np.newaxis]
+        combined_image_x = (render_rgb_x * alpha_x + input_img[:, :, :3] * 255 * (1 - alpha_x)).astype(np.uint8)
+        x_hand_model_render_giga.append(combined_image_x)
+
+
+    y_hand_model_render_giga_output_video = os.path.join(save_root, 'y_hand_model_render_giga.mp4')
+    imageio.mimsave(y_hand_model_render_giga_output_video, y_hand_model_render_giga, fps=30)
+    print(f"Saved output video to {y_hand_model_render_giga_output_video}")
+
+    x_hand_model_render_giga_output_video = os.path.join(save_root, 'x_hand_model_render_giga.mp4')
+    imageio.mimsave(x_hand_model_render_giga_output_video, x_hand_model_render_giga, fps=30)
+    print(f"Saved output video to {x_hand_model_render_giga_output_video}")
