@@ -299,7 +299,7 @@ if __name__ == "__main__":
             focal_length=[cam['K'][0][0, 0], cam['K'][0][1, 1]],
             camera_center=[cam['K'][0][0, 2], cam['K'][0][1, 2]],
             camera_pose=get_pyrender_pose(cam),
-            cam_t=[0, 0, 0], 
+            cam_t=[[0, 0, 0]], 
             render_res=[h, w], 
             is_right=1, 
         )
