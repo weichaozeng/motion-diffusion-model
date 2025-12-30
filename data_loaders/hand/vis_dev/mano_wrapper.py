@@ -299,14 +299,14 @@ if __name__ == "__main__":
             focal_length=[cam['K'][0][0, 0], cam['K'][0][1, 1]],
             camera_center=[cam['K'][0][0, 2], cam['K'][0][1, 2]],
             camera_pose=get_pyrender_pose(cam),
-            cam_t=np.asarray([[0, 0, 0]]), 
+            cam_t=np.asarray([[0, 0, 0],]), 
             render_res=[h, w], 
-            is_right=np.asarray([1]), 
+            is_right=np.asarray([1],), 
         )
 
         # y render
         cam_view_y_hamer, _ = render_hamer.render_rgba_multiple(
-            y_output_mano_wrapper.vertices[i].detach().numpy(), 
+            y_output_mano_wrapper.vertices[i].detach().numpy()[None], 
             **misc_args
         )
         output_img_y_hamer = input_img[:, :, :3] * (1 - cam_view_y_hamer[:, :, 3:]) + cam_view_y_hamer[:, :, :3] * cam_view_y_hamer[:, :, 3:]
@@ -314,7 +314,7 @@ if __name__ == "__main__":
 
          # x render
         cam_view_x_hamer, _ = render_hamer.render_rgba_multiple(
-            x_output_mano_wrapper.vertices[i].detach().numpy(), 
+            x_output_mano_wrapper.vertices[i].detach().numpy()[None], 
             **misc_args
         )
         output_img_x_hamer = input_img[:, :, :3] * (1 - cam_view_x_hamer[:, :, 3:]) + cam_view_x_hamer[:, :, :3] * cam_view_x_hamer[:, :, 3:]
