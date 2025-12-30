@@ -301,7 +301,7 @@ if __name__ == "__main__":
             camera_pose=get_pyrender_pose(cam),
             cam_t=[[0, 0, 0]], 
             render_res=[h, w], 
-            is_right=1, 
+            is_right=[1], 
         )
 
         # y render
