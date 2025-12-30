@@ -306,7 +306,7 @@ if __name__ == "__main__":
 
         # y render
         cam_view_y_hamer, _ = render_hamer.render_rgba_multiple(
-            y_output_mano_wrapper.vertices[i], 
+            y_output_mano_wrapper.vertices[i].detach().numpy(), 
             **misc_args
         )
         output_img_y_hamer = input_img[:, :, :3] * (1 - cam_view_y_hamer[:, :, 3:]) + cam_view_y_hamer[:, :, :3] * cam_view_y_hamer[:, :, 3:]
@@ -314,7 +314,7 @@ if __name__ == "__main__":
 
          # x render
         cam_view_x_hamer, _ = render_hamer.render_rgba_multiple(
-            x_output_mano_wrapper.vertices[i], 
+            x_output_mano_wrapper.vertices[i].detach().numpy(), 
             **misc_args
         )
         output_img_x_hamer = input_img[:, :, :3] * (1 - cam_view_x_hamer[:, :, 3:]) + cam_view_x_hamer[:, :, :3] * cam_view_x_hamer[:, :, 3:]
