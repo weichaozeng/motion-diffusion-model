@@ -190,7 +190,7 @@ if __name__ == "__main__":
         'mean_params': 'data/mano_mean_params.npz',
         'create_body_pose': False,
     }
-    mano = MANO(pose2rot=False, flat_hand_mean=True, **mano_cfg)
+    mano = MANO(pose2rot=True, flat_hand_mean=False, **mano_cfg)
 
 
     hand_model_path = '/home/zvc/Project/motion-diffusion-model/body_models'
