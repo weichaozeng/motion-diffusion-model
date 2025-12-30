@@ -286,6 +286,8 @@ if __name__ == "__main__":
     # iter
     y_mano_wrapper_render_hamer = []
     x_mano_wrapper_render_hamer = []
+    y_mano_wrapper_render_giga = []
+    x_mano_wrapper_render_giga = []
 
     for i, idx in enumerate(tqdm(frame_indices)):
         # img
@@ -320,6 +322,35 @@ if __name__ == "__main__":
         output_img_x_hamer = input_img[:, :, :3] * (1 - cam_view_x_hamer[:, :, 3:]) + cam_view_x_hamer[:, :, :3] * cam_view_x_hamer[:, :, 3:]
         x_mano_wrapper_render_hamer.append((255 * output_img_x_hamer).astype(np.uint8))
 
+
+        # with render_giga
+        image_ref = np.zeros((720, 1280, 3))
+
+        # y render
+        render_data_y = {
+            0: {'vertices': y_output_mano_wrapper.vertices[i].detach().numpy()[None], 'faces': faces, 'vid': 1, 'name': f'ref_{idx}'},
+        }
+        render_results_y = render_giga.render(render_data_y, cam, [image_ref.copy()], add_back=False)
+        image_vis_y = render_results_y[0][:, :, [2, 1, 0, 3]]
+        render_rgb_y = image_vis_y[:, :, :3]
+        alpha_y = image_vis_y[:, :, 3] / 255.0
+        alpha_y = alpha_y[:, :, np.newaxis]
+        combined_image_y = (render_rgb_y * alpha_y + input_img[:, :, :3] * 255 * (1 - alpha_y)).astype(np.uint8)
+        y_mano_wrapper_render_giga.append(combined_image_y)
+
+        # x render
+        render_data_x = {
+            0: {'vertices': x_output_mano_wrapper.vertices[i].detach().numpy()[None], 'faces': faces, 'vid': 1, 'name': f'ref_{idx}'},
+        }
+        render_results_x = render_giga.render(render_data_x, cam, [image_ref.copy()], add_back=False)
+        image_vis_x = render_results_x[0][:, :, [2, 1, 0, 3]]
+        render_rgb_x = image_vis_x[:, :, :3]
+        alpha_x = image_vis_x[:, :, 3] / 255.0
+        alpha_x = alpha_x[:, :, np.newaxis]
+        combined_image_x = (render_rgb_x * alpha_x + input_img[:, :, :3] * 255 * (1 - alpha_x)).astype(np.uint8)
+        x_mano_wrapper_render_giga.append(combined_image_x)
+
+
     os.makedirs(save_root, exist_ok=True)
     y_mano_wrapper_render_hamer_output_video = os.path.join(save_root, 'y_mano_wrapper_render_hamer.mp4')
     imageio.mimsave(y_mano_wrapper_render_hamer_output_video, y_mano_wrapper_render_hamer, fps=30)
@@ -328,3 +359,11 @@ if __name__ == "__main__":
     x_mano_wrapper_render_hamer_output_video = os.path.join(save_root, 'x_mano_wrapper_render_hamer.mp4')
     imageio.mimsave(x_mano_wrapper_render_hamer_output_video, x_mano_wrapper_render_hamer, fps=30)
     print(f"Saved output video to {x_mano_wrapper_render_hamer_output_video}")
+
+    y_mano_wrapper_render_giga_output_video = os.path.join(save_root, 'y_mano_wrapper_render_giga.mp4')
+    imageio.mimsave(y_mano_wrapper_render_giga_output_video, y_mano_wrapper_render_giga, fps=30)
+    print(f"Saved output video to {y_mano_wrapper_render_giga_output_video}")
+
+    x_mano_wrapper_render_giga_output_video = os.path.join(save_root, 'x_mano_wrapper_render_giga.mp4')
+    imageio.mimsave(x_mano_wrapper_render_giga_output_video, x_mano_wrapper_render_giga, fps=30)
+    print(f"Saved output video to {x_mano_wrapper_render_giga_output_video}")
