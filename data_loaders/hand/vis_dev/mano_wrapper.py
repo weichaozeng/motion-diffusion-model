@@ -198,6 +198,11 @@ if __name__ == "__main__":
     gender='neutral', model_type='manor', model_path=hand_model_path,
     num_pca_comps=6, use_pose_blending=True, use_shape_blending=True,
     use_pca=False, use_flat_mean=False)
+
+    hand_model_hamer = load_model(
+    gender='neutral', model_type='manor', model_path=hand_model_path,
+    num_pca_comps=6, use_pose_blending=True, use_shape_blending=True,
+    use_pca=False, use_flat_mean=True)
     
 
 
@@ -421,7 +426,7 @@ if __name__ == "__main__":
             "Th": transl[idx].unsqueeze(0).to(device),
             "shapes": y_betas.to(device),
         }
-        vertices_y = hand_model(return_verts=True, return_tensor=False, **hand_param_y)[0]
+        vertices_y = hand_model_hamer(return_verts=True, return_tensor=False, **hand_param_y)[0]
         render_data_y = {
             0: {'vertices': vertices_y, 'faces': faces, 'vid': 1, 'name': f'ref_{idx}'},
         }
