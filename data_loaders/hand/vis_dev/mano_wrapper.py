@@ -243,13 +243,13 @@ if __name__ == "__main__":
         [ 0,  1,  0],
         [ 0,  0, -1]
     ], dtype=torch.float32)
-    theta = np.pi / 2 
-    R_90_z = torch.tensor([
-        [np.cos(theta), -np.sin(theta), 0],
-        [np.sin(theta),  np.cos(theta), 0],
-        [0,              0,             1]
+    theta = -np.pi / 2  
+    R_90_x = torch.tensor([
+        [1, 0,               0              ],
+        [0, np.cos(theta),  -np.sin(theta)  ],
+        [0, np.sin(theta),   np.cos(theta)  ]
     ], dtype=torch.float32)
-    y_global_orient_corrected = R_90_z @ (R_flip_wrist @ (y_global_orient @ R_fix))
+    y_global_orient_corrected = R_90_x @ (R_flip_wrist @ (y_global_orient @ R_fix))
     y_pose_rotmat = torch.cat([y_global_orient_corrected, y_hand_pose], dim=1) # (N, 16, 3, 3)
     y_pose_rotvec = geometry.matrix_to_axis_angle(y_pose_rotmat) # (N, 16, 3)
 
