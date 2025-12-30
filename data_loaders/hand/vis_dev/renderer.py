@@ -373,8 +373,8 @@ class Renderer:
         # camera = pyrender.IntrinsicsCamera(fx=focal_length, fy=focal_length,
         #                                    cx=camera_center[0], cy=camera_center[1], zfar=1e12)
 
-        camera_pose = camera_pose if camera_pose else np.eye(4)
-        camera_center = camera_center if camera_center else [render_res[0] / 2., render_res[1] / 2.]
+        camera_pose = camera_pose if camera_pose is not None else np.eye(4)
+        camera_center = camera_center if camera_center is not None else [render_res[0] / 2., render_res[1] / 2.]
         focal_length = focal_length if focal_length is not None else self.focal_length
         camera = pyrender.IntrinsicsCamera(fx=focal_length[0], fy=focal_length[1],
                                            cx=camera_center[0], cy=camera_center[1], zfar=1e12)
