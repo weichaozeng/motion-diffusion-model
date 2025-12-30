@@ -187,7 +187,7 @@ if __name__ == "__main__":
     }
     mano = MANO(pose2rot=False, use_pca=False, **mano_cfg)
 
-    data_path = '/home/zvc/Project/VHand/test_dataset/GigaHands/vhand/hamer_out/p001-folder_017_brics-odroid-011_cam0/results/track_500.0/track_2.pkl'
+    data_path = '/home/zvc/Project/VHand/test_dataset/GigaHands/vhand/hamer_out/p001-folder_017_brics-odroid-011_cam0/results/track_500.0/track_1.pkl'
     mano_path = '/home/zvc/Data/GigaHands/hand_poses/p001-folder/params/017.json'
     cam_path = '/home/zvc/Data/GigaHands/hand_poses/p001-folder/optim_params.txt'
     video_path = '/home/zvc/Data/GigaHands/symlinks/p001-folder_017_brics-odroid-011_cam0/brics-odroid-011_cam0.mp4'
