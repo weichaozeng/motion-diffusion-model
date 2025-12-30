@@ -328,7 +328,7 @@ if __name__ == "__main__":
 
         # y render
         render_data_y = {
-            0: {'vertices': y_output_mano_wrapper.vertices[i].detach().numpy()[None], 'faces': faces, 'vid': 1, 'name': f'ref_{idx}'},
+            0: {'vertices': y_output_mano_wrapper.vertices[i].detach().numpy(), 'faces': faces, 'vid': 1, 'name': f'ref_{idx}'},
         }
         render_results_y = render_giga.render(render_data_y, cam, [image_ref.copy()], add_back=False)
         image_vis_y = render_results_y[0][:, :, [2, 1, 0, 3]]
@@ -340,7 +340,7 @@ if __name__ == "__main__":
 
         # x render
         render_data_x = {
-            0: {'vertices': x_output_mano_wrapper.vertices[i].detach().numpy()[None], 'faces': faces, 'vid': 1, 'name': f'ref_{idx}'},
+            0: {'vertices': x_output_mano_wrapper.vertices[i].detach().numpy(), 'faces': faces, 'vid': 1, 'name': f'ref_{idx}'},
         }
         render_results_x = render_giga.render(render_data_x, cam, [image_ref.copy()], add_back=False)
         image_vis_x = render_results_x[0][:, :, [2, 1, 0, 3]]
