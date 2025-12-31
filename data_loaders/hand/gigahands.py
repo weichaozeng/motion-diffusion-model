@@ -94,10 +94,7 @@ class GigaHands(Dataset):
         data_path = Path("/home/zvc/Project/VHand/test_dataset/GigaHands/vhand/hamer_out")
         anno_root = Path("/home/zvc/Data/GigaHands/hand_poses") 
         rgb_root = Path("/home/zvc/Data/GigaHands/video_aligned")    
-        # outs = sorted(os.listdir(data_path))[:200]
-        outs = [
-            "p001-folder_017_brics-odroid-002_cam0", 
-        ]
+        outs = sorted(os.listdir(data_path))[:200]
 
         for out in outs:
             session = out.split('_')[0]
