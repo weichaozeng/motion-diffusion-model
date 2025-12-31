@@ -205,18 +205,28 @@ def get_pyrender_pose(cameras, nv=0):
 
 def get_hamer_to_world_orient(y_global_orient, cam_extrinsic, crop_center, cam_intrinsics, R_base):
     N = y_global_orient.shape[0]
-    R_w2c = cam_extrinsic[:3, :3]
-    R_c2w = R_w2c.T() # (3, 3)
+    device = y_global_orient.device
 
-    fx = cam_intrinsics[0, 0]
-    fy = cam_intrinsics[1, 1]
-    cx = cam_intrinsics[0, 2]
-    cy = cam_intrinsics[1, 2]
+    def to_tensor(x):
+        if isinstance(x, torch.Tensor):
+            return x.to(device).float()
+        return torch.from_numpy(x).to(device).float()
+    
+    R_w2c = to_tensor(cam_extrinsic)
+    K = to_tensor(cam_intrinsics)
+    centers = to_tensor(crop_center)
+    R_base = to_tensor(R_base)
 
-    ux, uy = crop_center[:, 0], crop_center[:, 1]
+    R_w2c = R_w2c[:3, :3]
+    R_c2w = R_w2c.t() 
+
+    fx, fy = K[0, 0], K[1, 1]
+    cx, cy = K[0, 2], K[1, 2]
+    ux, uy = centers[:, 0], centers[:, 1]
     theta_y = torch.atan((ux - cx) / fx)   
-    theta_x = -torch.atan((uy - cy) / fy)
+    theta_x = -torch.atan((uy - cy) / fy)  
 
+    # R_adj (N, 3, 3)
     cos_y, sin_y = torch.cos(theta_y), torch.sin(theta_y)
     cos_x, sin_x = torch.cos(theta_x), torch.sin(theta_x)
     ones = torch.ones_like(theta_y)
@@ -226,20 +236,18 @@ def get_hamer_to_world_orient(y_global_orient, cam_extrinsic, crop_center, cam_i
         torch.stack([cos_y,  zeros, sin_y], dim=-1),
         torch.stack([zeros,  ones,  zeros], dim=-1),
         torch.stack([-sin_y, zeros, cos_y], dim=-1)
-    ], dim=-2) # (N, 3, 3)
+    ], dim=-2)
 
     Rx = torch.stack([
         torch.stack([ones,  zeros,  zeros], dim=-1),
         torch.stack([zeros, cos_x, -sin_x], dim=-1),
         torch.stack([zeros, sin_x,  cos_x], dim=-1)
-    ], dim=-2) # (N, 3, 3)
+    ], dim=-2)
 
-    # R_adj = Ry @ Rx
-    R_adj = Ry @ Rx
+    R_adj = Ry @ Rx 
+
     # R_world = R_c2w @ R_adj @ R_hamer @ R_base
-    R_c2w_batch = R_c2w.unsqueeze(0).expand(N, -1, -1)
-    R_base_batch = R_base.unsqueeze(0).expand(N, -1, -1)
-    y_global_orient_world = R_c2w_batch @ R_adj @ y_global_orient @ R_base_batch
+    y_global_orient_world = R_c2w.unsqueeze(0) @ R_adj @ y_global_orient @ R_base.unsqueeze(0)
     
     return y_global_orient_world
 
@@ -314,7 +322,7 @@ if __name__ == "__main__":
     # corrected on global orient of y
     # R_base = torch.tensor([[0, -1, 0], [0, 0, -1], [1, 0, 0]], dtype=torch.float32)
     R_base = torch.tensor([[1, 0, 0], [0, 1, 0], [0, 0, 1]], dtype=torch.float32)
-    boxes = np.asarray(y_data['boxes'])
+    boxes = torch.from_numpy(np.asarray(y_data['boxes']))
     y_crop_centers = (boxes[:, 2:4] + boxes[:, 0:2]) / 2.0
     y_global_orient_corrected = get_hamer_to_world_orient(
         y_global_orient, 
