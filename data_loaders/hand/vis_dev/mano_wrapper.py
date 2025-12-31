@@ -293,6 +293,10 @@ if __name__ == "__main__":
     # sovle R_fix
     R_fix = solve_optimal_rotation(x_pose_rotmat[:, 0,], y_pose_rotmat[:, 0])
     print(R_fix)
+    y_global_orient_corrected = R_fix @ y_global_orient
+    y_pose_rotmat = torch.cat([y_global_orient_corrected, y_hand_pose], dim=1) # (N, 16, 3, 3)
+    y_pose_rotvec = geometry.matrix_to_axis_angle(y_pose_rotmat) # (N, 16, 3)
+
 
 
     # trans and cam (from x)
