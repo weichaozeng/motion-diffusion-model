@@ -180,7 +180,7 @@ class Dataset(torch.utils.data.Dataset):
         min_nframe = max(0, y_data['frame_indices'][0])
         nframes = max_nframe - min_nframe + 1
         # handedness
-        is_right = x_data["handedness"][0]
+        is_right = y_data["handedness"][0]
         is_right = torch.from_numpy(np.asarray(is_right))
 
         assert self.num_frames > 0
