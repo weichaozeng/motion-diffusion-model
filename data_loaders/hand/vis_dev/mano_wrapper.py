@@ -215,7 +215,6 @@ def get_hamer_to_world_orient(y_global_orient, cam_extrinsic, crop_center, cam_i
     R_w2c = to_tensor(cam_extrinsic)
     K = to_tensor(cam_intrinsics)
     centers = to_tensor(crop_center)
-    R_base = to_tensor(R_base)
 
     R_w2c = R_w2c[:3, :3]
     R_c2w = R_w2c.t() 
