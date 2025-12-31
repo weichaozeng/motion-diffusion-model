@@ -324,7 +324,7 @@ if __name__ == "__main__":
         cam['K'][0]
     )
     # corrected on hand_pose of y
-    pose_mean = torch.from_numpy(np.asarray(mano_model['hands_mean'].reshape(-1, 3)), dtype=torch.float32)
+    pose_mean = torch.tensor(np.asarray(mano_model['hands_mean'].reshape(-1, 3)), dtype=torch.float32)
     y_hand_pose_rotvec = geometry.matrix_to_axis_angle(y_hand_pose)
     y_hand_pose_corrected = y_hand_pose_rotvec - pose_mean
     y_hand_pose_corrected = geometry.axis_angle_to_matrix(y_hand_pose_corrected)
