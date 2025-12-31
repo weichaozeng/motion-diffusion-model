@@ -175,16 +175,33 @@ def get_pyrender_pose(cameras, nv=0):
     ])
     return E_inv @ R_flip
 
-def get_fine_tune_matrix(axis='x', angle_deg=5.0):
-    theta = np.radians(angle_deg)
-    c = np.cos(theta)
-    s = np.sin(theta)
-    if axis == 'x':
-        return torch.tensor([[1, 0, 0], [0, c, -s], [0, s, c]], dtype=torch.float32)
-    elif axis == 'y':
-        return torch.tensor([[c, 0, s], [0, 1, 0], [-s, 0, c]], dtype=torch.float32)
-    elif axis == 'z':
-        return torch.tensor([[c, -s, 0], [s, c, 0], [0, 0, 1]], dtype=torch.float32)
+# def get_fine_tune_matrix(axis='x', angle_deg=5.0):
+#     theta = np.radians(angle_deg)
+#     c = np.cos(theta)
+#     s = np.sin(theta)
+#     if axis == 'x':
+#         return torch.tensor([[1, 0, 0], [0, c, -s], [0, s, c]], dtype=torch.float32)
+#     elif axis == 'y':
+#         return torch.tensor([[c, 0, s], [0, 1, 0], [-s, 0, c]], dtype=torch.float32)
+#     elif axis == 'z':
+#         return torch.tensor([[c, -s, 0], [s, c, 0], [0, 0, 1]], dtype=torch.float32)
+    
+def solve_optimal_rotation(X, Y):
+    # 1. M = sum(X_i @ Y_i.T)
+    M = torch.bmm(X, Y.transpose(-1, -2)).sum(dim=0)
+    
+    # 2. SVD
+    U, S, Vh = torch.linalg.svd(M)
+    
+    # 3. R
+    R = U @ Vh
+    
+    # 4. det=1
+    if torch.det(R) < 0:
+        U[:, -1] *= -1
+        R = U @ Vh
+        
+    return R
 
 
 
@@ -251,19 +268,19 @@ if __name__ == "__main__":
     y_betas = torch.from_numpy(np.asarray([mano['betas'] for mano in y_data['mano']])).mean(dim=0).reshape(-1, 10)
     y_hand_pose = torch.from_numpy(np.asarray([mano['hand_pose'] for mano in y_data['mano']]))
     y_global_orient = torch.from_numpy(np.asarray([mano['global_orient'] for mano in y_data['mano']]))
-    R_fix = torch.tensor([
-        [-1, 0, 0],
-        [0, 1, 0],
-        [0, 0, 1]
-    ], dtype=torch.float32)
-    R_flip = torch.tensor([
-        [1, 0, 0],
-        [0, -1, 0],
-        [0, 0, 1]
-    ], dtype=torch.float32)
-    R_fine_tune = get_fine_tune_matrix(axis='z', angle_deg=-90.0)
-    y_global_orient_corrected = R_fine_tune @ R_flip @ y_global_orient @ R_fix
-    y_pose_rotmat = torch.cat([y_global_orient_corrected, y_hand_pose], dim=1) # (N, 16, 3, 3)
+    # R_fix = torch.tensor([
+    #     [-1, 0, 0],
+    #     [0, 1, 0],
+    #     [0, 0, 1]
+    # ], dtype=torch.float32)
+    # R_flip = torch.tensor([
+    #     [1, 0, 0],
+    #     [0, -1, 0],
+    #     [0, 0, 1]
+    # ], dtype=torch.float32)
+    # R_fine_tune = get_fine_tune_matrix(axis='z', angle_deg=-90.0)
+    # y_global_orient_corrected = R_fine_tune @ R_flip @ y_global_orient @ R_fix
+    y_pose_rotmat = torch.cat([y_global_orient, y_hand_pose], dim=1) # (N, 16, 3, 3)
     y_pose_rotvec = geometry.matrix_to_axis_angle(y_pose_rotmat) # (N, 16, 3)
 
     # x
@@ -272,6 +289,10 @@ if __name__ == "__main__":
     x_Rh = torch.tensor(x_data["right"]["Rh"], dtype=torch.float32)[frame_indices].reshape(-1, 1, 3)
     x_pose_rotvec = torch.cat([x_Rh, x_poses[:, 1:]], dim=1) # (N, 16, 3, 3)
     x_pose_rotmat = geometry.axis_angle_to_matrix(x_pose_rotvec) # (N, 16, 3)
+
+    # sovle R_fix
+    R_fix = solve_optimal_rotation(x_pose_rotmat[:, 0,], y_pose_rotmat[:, 0])
+    print(R_fix)
 
 
     # trans and cam (from x)
