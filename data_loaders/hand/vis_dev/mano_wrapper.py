@@ -235,20 +235,20 @@ if __name__ == "__main__":
 
 
 
-    # data_path = '/home/zvc/Project/VHand/test_dataset/GigaHands/vhand/hamer_out/p001-folder_017_brics-odroid-011_cam0/results/track_500.0/track_1.pkl'
-    # mano_path = '/home/zvc/Data/GigaHands/hand_poses/p001-folder/params/017.json'
-    # cam_path = '/home/zvc/Data/GigaHands/hand_poses/p001-folder/optim_params.txt'
-    # video_path = '/home/zvc/Data/GigaHands/symlinks/p001-folder_017_brics-odroid-011_cam0/brics-odroid-011_cam0.mp4'
-    # cam = 'brics-odroid-011_cam0'
-    # model_path = '/home/zvc/Project/VHand/_DATA/data/mano/MANO_RIGHT.pkl'
-    # save_root = '/home/zvc/Project/motion-diffusion-model/_vis/mano'
-    data_path = '/home/zvc/Project/VHand/test_dataset/GigaHands/vhand/hamer_out/p001-packing_008_brics-odroid-024_cam1/results/track_500.0/track_2.pkl'
-    mano_path = '/home/zvc/Data/GigaHands/hand_poses/p001-packing/params/008.json'
-    cam_path = '/home/zvc/Data/GigaHands/hand_poses/p001-packing/optim_params.txt'
-    video_path = '/home/zvc/Data/GigaHands/symlinks/p001-packing_008_brics-odroid-024_cam1/brics-odroid-024_cam1.mp4'
-    cam = 'brics-odroid-024_cam1'
+    data_path = '/home/zvc/Project/VHand/test_dataset/GigaHands/vhand/hamer_out/p001-folder_017_brics-odroid-011_cam0/results/track_500.0/track_1.pkl'
+    mano_path = '/home/zvc/Data/GigaHands/hand_poses/p001-folder/params/017.json'
+    cam_path = '/home/zvc/Data/GigaHands/hand_poses/p001-folder/optim_params.txt'
+    video_path = '/home/zvc/Data/GigaHands/symlinks/p001-folder_017_brics-odroid-011_cam0/brics-odroid-011_cam0.mp4'
+    cam = 'brics-odroid-011_cam0'
     model_path = '/home/zvc/Project/VHand/_DATA/data/mano/MANO_RIGHT.pkl'
     save_root = '/home/zvc/Project/motion-diffusion-model/_vis/mano'
+    # data_path = '/home/zvc/Project/VHand/test_dataset/GigaHands/vhand/hamer_out/p001-packing_008_brics-odroid-024_cam1/results/track_500.0/track_2.pkl'
+    # mano_path = '/home/zvc/Data/GigaHands/hand_poses/p001-packing/params/008.json'
+    # cam_path = '/home/zvc/Data/GigaHands/hand_poses/p001-packing/optim_params.txt'
+    # video_path = '/home/zvc/Data/GigaHands/symlinks/p001-packing_008_brics-odroid-024_cam1/brics-odroid-024_cam1.mp4'
+    # cam = 'brics-odroid-024_cam1'
+    # model_path = '/home/zvc/Project/VHand/_DATA/data/mano/MANO_RIGHT.pkl'
+    # save_root = '/home/zvc/Project/motion-diffusion-model/_vis/mano'
 
 
     
