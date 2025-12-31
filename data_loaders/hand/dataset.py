@@ -211,7 +211,7 @@ class Dataset(torch.utils.data.Dataset):
             frame_indices = shift + np.arange(0, lastone + 1, step) + min_nframe
             suffix_mask[:] = True
 
-        data_dict = self._load(data_index, frame_indices, is_right, y_data, cam)
+        data_dict = self._load(data_index, frame_indices, is_right, y_data, x_data, cam)
 
         output = {
             'name': os.path.basename(os.path.dirname(os.path.dirname(os.path.dirname(seq_y)))), 
