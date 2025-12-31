@@ -186,23 +186,62 @@ def get_pyrender_pose(cameras, nv=0):
 #     elif axis == 'z':
 #         return torch.tensor([[c, -s, 0], [s, c, 0], [0, 0, 1]], dtype=torch.float32)
     
-def solve_optimal_rotation(X, Y):
-    # 1. M = sum(X_i @ Y_i.T)
-    M = torch.bmm(X, Y.transpose(-1, -2)).sum(dim=0)
+# def solve_optimal_rotation(X, Y):
+#     # 1. M = sum(X_i @ Y_i.T)
+#     M = torch.bmm(X, Y.transpose(-1, -2)).sum(dim=0)
     
-    # 2. SVD
-    U, S, Vh = torch.linalg.svd(M)
+#     # 2. SVD
+#     U, S, Vh = torch.linalg.svd(M)
     
-    # 3. R
-    R = U @ Vh
+#     # 3. R
+#     R = U @ Vh
     
-    # 4. det=1
-    if torch.det(R) < 0:
-        U[:, -1] *= -1
-        R = U @ Vh
+#     # 4. det=1
+#     if torch.det(R) < 0:
+#         U[:, -1] *= -1
+#         R = U @ Vh
         
-    return R
+#     return R
 
+def get_hamer_to_world_orient(y_global_orient, cam_extrinsic, crop_center, cam_intrinsics, R_base):
+    N = y_global_orient.shape[0]
+    R_w2c = cam_extrinsic[:3, :3]
+    R_c2w = R_w2c.t() # (3, 3)
+
+    fx = cam_intrinsics[0, 0]
+    fy = cam_intrinsics[1, 1]
+    cx = cam_intrinsics[0, 2]
+    cy = cam_intrinsics[1, 2]
+
+    ux, uy = crop_center[:, 0], crop_center[:, 1]
+    theta_y = torch.atan((ux - cx) / fx)   
+    theta_x = -torch.atan((uy - cy) / fy)
+
+    cos_y, sin_y = torch.cos(theta_y), torch.sin(theta_y)
+    cos_x, sin_x = torch.cos(theta_x), torch.sin(theta_x)
+    ones = torch.ones_like(theta_y)
+    zeros = torch.zeros_like(theta_y)
+
+    Ry = torch.stack([
+        torch.stack([cos_y,  zeros, sin_y], dim=-1),
+        torch.stack([zeros,  ones,  zeros], dim=-1),
+        torch.stack([-sin_y, zeros, cos_y], dim=-1)
+    ], dim=-2) # (N, 3, 3)
+
+    Rx = torch.stack([
+        torch.stack([ones,  zeros,  zeros], dim=-1),
+        torch.stack([zeros, cos_x, -sin_x], dim=-1),
+        torch.stack([zeros, sin_x,  cos_x], dim=-1)
+    ], dim=-2) # (N, 3, 3)
+
+    # R_adj = Ry @ Rx
+    R_adj = Ry @ Rx
+    # R_world = R_c2w @ R_adj @ R_hamer @ R_base
+    R_c2w_batch = R_c2w.unsqueeze(0).expand(N, -1, -1)
+    R_base_batch = R_base.unsqueeze(0).expand(N, -1, -1)
+    y_global_orient_world = R_c2w_batch @ R_adj @ y_global_orient @ R_base_batch
+    
+    return y_global_orient_world
 
 
 if __name__ == "__main__":
@@ -263,24 +302,28 @@ if __name__ == "__main__":
     end_idx = frame_indices[-1]
     N = len(frame_indices)
 
+    # trans and cam (from x)
+    transl = torch.tensor(x_data["right"]["Th"], dtype=torch.float32)[frame_indices].reshape(-1, 3)
+    cam_params = read_params(cam_path)
+    cam = get_projections(cam_params, cam, n_Frames=1)
 
     # y
     y_betas = torch.from_numpy(np.asarray([mano['betas'] for mano in y_data['mano']])).mean(dim=0).reshape(-1, 10)
     y_hand_pose = torch.from_numpy(np.asarray([mano['hand_pose'] for mano in y_data['mano']]))
     y_global_orient = torch.from_numpy(np.asarray([mano['global_orient'] for mano in y_data['mano']]))
-    # R_fix = torch.tensor([
-    #     [-1, 0, 0],
-    #     [0, 1, 0],
-    #     [0, 0, 1]
-    # ], dtype=torch.float32)
-    # R_flip = torch.tensor([
-    #     [1, 0, 0],
-    #     [0, -1, 0],
-    #     [0, 0, 1]
-    # ], dtype=torch.float32)
-    # R_fine_tune = get_fine_tune_matrix(axis='z', angle_deg=-90.0)
-    # y_global_orient_corrected = R_fine_tune @ R_flip @ y_global_orient @ R_fix
-    y_pose_rotmat = torch.cat([y_global_orient, y_hand_pose], dim=1) # (N, 16, 3, 3)
+    # corrected on global orient of y
+    # R_base = torch.tensor([[0, -1, 0], [0, 0, -1], [1, 0, 0]], dtype=torch.float32)
+    R_base = torch.tensor([[1, 0, 0], [0, 1, 0], [0, 0, 1]], dtype=torch.float32)
+    boxes = np.asarray(y_data['boxes'])
+    y_crop_centers = (boxes[:, 2:4] + boxes[:, 0:2]) / 2.0
+    y_global_orient_corrected = get_hamer_to_world_orient(
+        y_global_orient, 
+        cam['R'][0], 
+        y_crop_centers,        
+        cam['K'][0], 
+        R_base
+    )
+    y_pose_rotmat = torch.cat([y_global_orient_corrected, y_hand_pose], dim=1) # (N, 16, 3, 3)
     y_pose_rotvec = geometry.matrix_to_axis_angle(y_pose_rotmat) # (N, 16, 3)
 
     # x
@@ -290,19 +333,12 @@ if __name__ == "__main__":
     x_pose_rotvec = torch.cat([x_Rh, x_poses[:, 1:]], dim=1) # (N, 16, 3, 3)
     x_pose_rotmat = geometry.axis_angle_to_matrix(x_pose_rotvec) # (N, 16, 3)
 
-    # sovle R_fix
-    R_fix = solve_optimal_rotation(x_pose_rotmat[:, 0,], y_pose_rotmat[:, 0])
-    print(R_fix)
-    y_global_orient_corrected = R_fix @ y_global_orient
-    y_pose_rotmat = torch.cat([y_global_orient_corrected, y_hand_pose], dim=1) # (N, 16, 3, 3)
-    y_pose_rotvec = geometry.matrix_to_axis_angle(y_pose_rotmat) # (N, 16, 3)
-
-
-
-    # trans and cam (from x)
-    transl = torch.tensor(x_data["right"]["Th"], dtype=torch.float32)[frame_indices].reshape(-1, 3)
-    cam_params = read_params(cam_path)
-    cam = get_projections(cam_params, cam, n_Frames=1)
+    # # sovle R_fix
+    # R_fix = solve_optimal_rotation(x_pose_rotmat[:, 0,], y_pose_rotmat[:, 0])
+    # print(R_fix)
+    # y_global_orient_corrected = R_fix @ y_global_orient
+    # y_pose_rotmat = torch.cat([y_global_orient_corrected, y_hand_pose], dim=1) # (N, 16, 3, 3)
+    # y_pose_rotvec = geometry.matrix_to_axis_angle(y_pose_rotmat) # (N, 16, 3)
 
     
     # y Canonical on first frame
