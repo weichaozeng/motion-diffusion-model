@@ -273,12 +273,6 @@ if __name__ == "__main__":
     num_pca_comps=6, use_pose_blending=True, use_shape_blending=True,
     use_pca=False, use_flat_mean=False)
 
-    hand_model_hamer = load_model(
-    gender='neutral', model_type='manor', model_path=hand_model_path,
-    num_pca_comps=6, use_pose_blending=True, use_shape_blending=True,
-    use_pca=False, use_flat_mean=True)
-    
-
 
 
     data_path = '/home/zvc/Project/VHand/test_dataset/GigaHands/vhand/hamer_out/p001-folder_017_brics-odroid-011_cam0/results/track_500.0/track_1.pkl'
@@ -302,6 +296,8 @@ if __name__ == "__main__":
         y_data = pickle.load(f)
     with open(mano_path, 'r') as f:
         x_data = json.load(f)
+    with open(model_path, 'rb') as mano_file:
+        mano_model = pickle.load(mano_file, encoding='latin1')
 
 
     frame_indices = y_data['frame_indices']
@@ -327,7 +323,13 @@ if __name__ == "__main__":
         y_crop_centers,        
         cam['K'][0]
     )
-    y_pose_rotmat = torch.cat([y_global_orient_corrected, y_hand_pose], dim=1) # (N, 16, 3, 3)
+    # corrected on hand_pose of y
+    pose_mean = torch.from_numpy(np.asarray(mano_model['hands_mean'].reshape(-1, 3)))
+    y_hand_pose_rotvec = geometry.matrix_to_axis_angle(y_hand_pose)
+    y_hand_pose_corrected = y_hand_pose_rotvec - pose_mean
+    y_hand_pose_corrected = geometry.axis_angle_to_matrix(y_hand_pose_corrected)
+    # concat
+    y_pose_rotmat = torch.cat([y_global_orient_corrected, y_hand_pose_corrected], dim=1) # (N, 16, 3, 3)
     y_pose_rotvec = geometry.matrix_to_axis_angle(y_pose_rotmat) # (N, 16, 3)
 
     # x
@@ -407,8 +409,6 @@ if __name__ == "__main__":
     h, w = frames_rgb[0].shape[:2]
 
     # faces
-    with open(model_path, 'rb') as mano_file:
-        mano_model = pickle.load(mano_file, encoding='latin1')
     faces = mano_model['f']
 
     # renderer
@@ -521,7 +521,7 @@ if __name__ == "__main__":
             "Th": transl[idx].unsqueeze(0).to(device),
             "shapes": y_betas.to(device),
         }
-        vertices_y = hand_model_hamer(return_verts=True, return_tensor=False, **hand_param_y)[0]
+        vertices_y = hand_model(return_verts=True, return_tensor=False, **hand_param_y)[0]
         render_data_y = {
             0: {'vertices': vertices_y, 'faces': faces, 'vid': 1, 'name': f'ref_{idx}'},
         }
