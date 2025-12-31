@@ -261,7 +261,7 @@ if __name__ == "__main__":
         [0, -1, 0],
         [0, 0, 1]
     ], dtype=torch.float32)
-    R_fine_tune = get_fine_tune_matrix(axis='z', angle_deg=45.0)
+    R_fine_tune = get_fine_tune_matrix(axis='z', angle_deg=-45.0)
     y_global_orient_corrected = R_fine_tune @ R_flip @ y_global_orient @ R_fix
     y_pose_rotmat = torch.cat([y_global_orient_corrected, y_hand_pose], dim=1) # (N, 16, 3, 3)
     y_pose_rotvec = geometry.matrix_to_axis_angle(y_pose_rotmat) # (N, 16, 3)
