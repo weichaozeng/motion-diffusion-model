@@ -203,7 +203,7 @@ def get_pyrender_pose(cameras, nv=0):
         
 #     return R
 
-def get_hamer_to_world_orient(y_global_orient, cam_extrinsic, crop_center, cam_intrinsics, R_base):
+def get_hamer_to_world_orient(y_global_orient, cam_extrinsic, crop_center, cam_intrinsics):
     N = y_global_orient.shape[0]
     device = y_global_orient.device
 
@@ -246,8 +246,8 @@ def get_hamer_to_world_orient(y_global_orient, cam_extrinsic, crop_center, cam_i
 
     R_adj = Ry @ Rx 
 
-    # R_world = R_c2w @ R_adj @ R_hamer @ R_base
-    y_global_orient_world = R_c2w.unsqueeze(0) @ R_adj @ y_global_orient.squeeze(1) @ R_base.unsqueeze(0)
+    # R_world = R_c2w @ R_adj @ R_hamer
+    y_global_orient_world = R_c2w.unsqueeze(0) @ R_adj @ y_global_orient.squeeze(1) 
     
     return y_global_orient_world.unsqueeze(1)
 
@@ -320,16 +320,13 @@ if __name__ == "__main__":
     y_hand_pose = torch.from_numpy(np.asarray([mano['hand_pose'] for mano in y_data['mano']]))
     y_global_orient = torch.from_numpy(np.asarray([mano['global_orient'] for mano in y_data['mano']]))
     # corrected on global orient of y
-    # R_base = torch.tensor([[0, -1, 0], [0, 0, -1], [1, 0, 0]], dtype=torch.float32)
-    R_base = torch.tensor([[1, 0, 0], [0, 1, 0], [0, 0, 1]], dtype=torch.float32)
     boxes = torch.from_numpy(np.asarray(y_data['boxes']))
     y_crop_centers = (boxes[:, 2:4] + boxes[:, 0:2]) / 2.0
     y_global_orient_corrected = get_hamer_to_world_orient(
         y_global_orient, 
         cam['R'][0], 
         y_crop_centers,        
-        cam['K'][0], 
-        R_base
+        cam['K'][0]
     )
     y_pose_rotmat = torch.cat([y_global_orient_corrected, y_hand_pose], dim=1) # (N, 16, 3, 3)
     y_pose_rotvec = geometry.matrix_to_axis_angle(y_pose_rotmat) # (N, 16, 3)
