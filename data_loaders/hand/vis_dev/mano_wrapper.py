@@ -206,7 +206,7 @@ def get_pyrender_pose(cameras, nv=0):
 def get_hamer_to_world_orient(y_global_orient, cam_extrinsic, crop_center, cam_intrinsics, R_base):
     N = y_global_orient.shape[0]
     R_w2c = cam_extrinsic[:3, :3]
-    R_c2w = R_w2c.t() # (3, 3)
+    R_c2w = R_w2c.T() # (3, 3)
 
     fx = cam_intrinsics[0, 0]
     fy = cam_intrinsics[1, 1]
