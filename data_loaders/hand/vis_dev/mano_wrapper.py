@@ -246,7 +246,8 @@ def get_hamer_to_world_orient(y_global_orient, cam_extrinsic, crop_center, cam_i
     R_adj = Ry @ Rx 
 
     # R_world = R_c2w @ R_adj @ R_hamer
-    y_global_orient_world = R_c2w.unsqueeze(0) @ R_adj @ y_global_orient.squeeze(1) 
+    # y_global_orient_world = R_c2w.unsqueeze(0) @ R_adj @ y_global_orient.squeeze(1)
+    y_global_orient_world = R_c2w.unsqueeze(0) @ y_global_orient.squeeze(1) 
     
     return y_global_orient_world.unsqueeze(1)
 
