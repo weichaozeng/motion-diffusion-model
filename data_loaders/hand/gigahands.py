@@ -8,68 +8,24 @@ from scipy.spatial.transform import Rotation as R
 import vis.camparam_utils as param_utils
 from pathlib import Path
 import utils.rotation_conversions as geometry
-# class GigaHands(Dataset):
-#     dataname = "gigahands"
 
-#     def __init__(self, datapath="dataset/gigahands", **kwargs):
-#         super().__init__(**kwargs)
-#         self.datapath = datapath
-
-#         self.scenes = sorted(os.listdir(self.datapath))[:2]
-#         self.seqs_kp3d = []
-#         self.seqs_mano = []
-#         self._num_frames_in_video = []
-#         for scene in self.scenes:
-#             dir_kp3d = os.path.join(self.datapath, scene, "keypoints_3d_mano_align")
-#             dir_mano = os.path.join(self.datapath, scene, "params")
-#             for seq in sorted(os.listdir(dir_kp3d)):
-#                 with open(os.path.join(dir_mano, seq), 'r') as f:
-#                     _data = json.load(f)
-#                 # left hand
-#                 self.seqs_kp3d.append(os.path.join(dir_kp3d, seq))
-#                 self.seqs_mano.append(os.path.join(dir_mano, seq))
-#                 self._num_frames_in_video.append(len(_data["left"]["poses"]))
-#                 # right hand
-#                 self.seqs_kp3d.append(os.path.join(dir_kp3d, seq))
-#                 self.seqs_mano.append(os.path.join(dir_mano, seq))
-#                 self._num_frames_in_video.append(len(_data["right"]["poses"]))
-        
-#         self._train = list(range(100, len(self.seqs_kp3d)))
-#         self._test = list(range(0, 100))
-
-
-#     def _load_rotvec(self, ind, frame_ix, flip_left=True):
-#         mano_params_path = self.seqs_mano[ind]
-#         with open(mano_params_path, 'r') as f:
-#             mano_data = json.load(f)
-#         is_left_hand = (ind % 2 == 0)
-#         if is_left_hand:
-#             full_poses = torch.tensor(mano_data["left"]["poses"], dtype=torch.float32) 
-#             Rh = torch.tensor(mano_data["left"]["Rh"], dtype=torch.float32)
-#         else:
-#             full_poses = torch.tensor(mano_data["right"]["poses"], dtype=torch.float32)
-#             Rh = torch.tensor(mano_data["right"]["Rh"], dtype=torch.float32)
-#         full_poses = torch.cat([Rh, full_poses[:, 3:]], dim=1) # (num_frames, 16*3)
-#         poses = full_poses[frame_ix].reshape(-1, 16, 3)  # (num_frames, 16, 3)
-#         if is_left_hand and flip_left:
-#             poses[:, :, 1] *= -1
-#             poses[:, :, 2] *= -1
-#         return poses        
-    
-#     def _load_joints3D(self, ind, frame_ix, flip_left=True):
-#         joints_path = self.seqs_kp3d[ind]
-#         with open(joints_path, 'r') as f:
-#             joints_data = json.load(f)
-#         full_joints = torch.tensor(joints_data, dtype=torch.float32)
-#         batch_joints = full_joints[frame_ix]  # (num_frames, 42, 3)
-#         is_left_hand = (ind % 2 == 0) 
-#         if is_left_hand:
-#             joints3D = batch_joints[:, :21]  # (num_frames, 21, 3)
-#         else:
-#             joints3D = batch_joints[:, 21:]  # (num_frames, 21, 3)
-#         if is_left_hand and flip_left:
-#             joints3D[:, 0] *= -1
-#         return joints3D
+MANO_HANDS_MEAN = [
+    [ 0.1117, -0.0429,  0.4164],
+    [ 0.1088,  0.0660,  0.7562],
+    [-0.0964,  0.0909,  0.1885],
+    [-0.1181, -0.0509,  0.5296],
+    [-0.1437, -0.0552,  0.7049],
+    [-0.0192,  0.0923,  0.3379],
+    [-0.4570,  0.1963,  0.6255],
+    [-0.2147,  0.0660,  0.5069],
+    [-0.3697,  0.0603,  0.0795],
+    [-0.1419,  0.0859,  0.6355],
+    [-0.3033,  0.0579,  0.6314],
+    [-0.1761,  0.1321,  0.3734],
+    [ 0.8510, -0.2769,  0.0915],
+    [-0.4998, -0.0266, -0.0529],
+    [ 0.5356, -0.0460,  0.2774]
+    ]
 
 
 def read_params(params_path):
@@ -172,19 +128,19 @@ class GigaHands(Dataset):
     def _load_cam(self, ind):
         return self.seqs_cam[ind]
 
-    def _load_rotvec(self, ind, frame_ix, mano_data, is_right, flip_left=True):
+    def _load_rotvec_x(self, ind, frame_ix, x_data, is_right, flip_left=True):
         # mano_params_path = self.seqs_mano[ind]
         # with open(mano_params_path, 'r') as f:
         #     mano_data = json.load(f)
 
         if is_right:
-            full_poses = torch.tensor(mano_data["right"]["poses"], dtype=torch.float32)
-            Rh = torch.tensor(mano_data["right"]["Rh"], dtype=torch.float32)
-            beta = torch.tensor(mano_data["right"]["shapes"], dtype=torch.float32)
+            full_poses = torch.tensor(x_data["right"]["poses"], dtype=torch.float32)
+            Rh = torch.tensor(x_data["right"]["Rh"], dtype=torch.float32)
+            beta = torch.tensor(x_data["right"]["shapes"], dtype=torch.float32)
         else:
-            full_poses = torch.tensor(mano_data["left"]["poses"], dtype=torch.float32) 
-            Rh = torch.tensor(mano_data["left"]["Rh"], dtype=torch.float32)
-            beta = torch.tensor(mano_data["left"]["shapes"], dtype=torch.float32)
+            full_poses = torch.tensor(x_data["left"]["poses"], dtype=torch.float32) 
+            Rh = torch.tensor(x_data["left"]["Rh"], dtype=torch.float32)
+            beta = torch.tensor(x_data["left"]["shapes"], dtype=torch.float32)
         full_poses = torch.cat([Rh, full_poses[:, 3:]], dim=1) # (num_frames, 16*3)
         poses = full_poses[frame_ix].reshape(-1, 16, 3)  # (num_frames, 16, 3)
         if not is_right and flip_left:
@@ -210,42 +166,51 @@ class GigaHands(Dataset):
     #         joints3D[:, 0] *= -1
     #     return joints3D
     
-    def _load_translation(self, ind, frame_ix, mano_data, is_right, flip_left=True):
+    def _load_translation_x(self, ind, frame_ix, x_data, is_right, flip_left=True):
 
         if is_right:
-            Th = torch.tensor(mano_data["right"]["Th"], dtype=torch.float32)
+            Th = torch.tensor(x_data["right"]["Th"], dtype=torch.float32)
         else:
-            Th = torch.tensor(mano_data["left"]["Th"], dtype=torch.float32)
+            Th = torch.tensor(x_data["left"]["Th"], dtype=torch.float32)
         if not is_right and flip_left:
             raise NotImplementedError
             # Th[:, 0] *= -1
         return Th[frame_ix]  
     
-    def _load_rotvec_y(self, ind, frame_ix, y_data):
+    def _load_rotvec_y(self, ind, frame_ix, y_data, cam):
         # seq_y_path = self.seqs_y[ind]
         frame_indices = y_data['frame_indices']
-        hand_pose = [mano['hand_pose'] for mano in y_data['mano']]
-        global_orient = [mano['global_orient'] for mano in y_data['mano']]
+        hand_pose = torch.from_numpy(np.asarray([mano['hand_pose'] for mano in y_data['mano']]))
+        global_orient = torch.from_numpy(np.asarray([mano['global_orient'] for mano in y_data['mano']]))
+        # corret
+        boxes = torch.from_numpy(np.asarray(y_data['boxes']))
+        crop_centers = (boxes[:, 2:4] + boxes[:, 0:2]) / 2.0
+        global_orient_corrected, R_c2w, R_adj = self.get_hamer_to_world_orient(
+            global_orient, 
+            cam['R'][0], 
+            crop_centers,        
+            cam['K'][0]
+        )
+        pose_mean = torch.tensor(np.asarray(MANO_HANDS_MEAN), dtype=torch.float32)
+        hand_pose_rotvec = geometry.matrix_to_axis_angle(hand_pose)
+        hand_pose_corrected = hand_pose_rotvec - pose_mean
+        hand_pose_corrected = geometry.axis_angle_to_matrix(hand_pose_corrected)
 
+        global_orient_corrected = global_orient_corrected.numpy()
+        hand_pose_corrected = hand_pose_corrected.numpy()
+
+        # slerp
         indices = np.searchsorted(frame_indices, [frame_ix[0], frame_ix[-1]])
         start_idx = indices[0]
         end_idx = indices[1]
-
-        orient_tensor = torch.from_numpy(np.asarray(global_orient[start_idx:end_idx+1])).float()
-        pose_tensor = torch.from_numpy(np.asarray(hand_pose[start_idx:end_idx+1])).float()
-        _global_orient_rotvec = geometry.matrix_to_axis_angle(orient_tensor) # (N, 1, 3)
-        _hand_pose_rotvec = geometry.matrix_to_axis_angle(pose_tensor)
-
-        full_pose_rotvec, inpaint_mask = self._slerp_y(frame_indices[start_idx:end_idx+1], global_orient[start_idx:end_idx+1], hand_pose[start_idx:end_idx+1])
+        full_pose_rotvec, inpaint_mask = self._slerp_y(frame_indices[start_idx:end_idx+1], global_orient_corrected[start_idx:end_idx+1], hand_pose_corrected[start_idx:end_idx+1])
 
         relative_indices = frame_ix - frame_indices[start_idx]
         max_relative_idx = full_pose_rotvec.shape[0] - 1
         relative_indices = np.clip(relative_indices, 0, max_relative_idx)
 
-        return full_pose_rotvec[relative_indices], inpaint_mask[relative_indices]
+        return full_pose_rotvec[relative_indices], inpaint_mask[relative_indices], R_c2w, R_adj
 
-    # def _load_joints3D_y(self, ind, frame_ix, y_data):
-    #     raise NotImplementedError
 
 
     def _load_translation_y(self, ind, frame_ix, y_data):
@@ -366,6 +331,53 @@ class GigaHands(Dataset):
 
         return full_pose.astype(np.float32), mask.astype(np.bool_)
 
+    def get_hamer_to_world_orient(self, y_global_orient, cam_extrinsic, crop_center, cam_intrinsics):
+        N = y_global_orient.shape[0]
+        device = y_global_orient.device
+
+        def to_tensor(x):
+            if isinstance(x, torch.Tensor):
+                return x.to(device).float()
+            return torch.from_numpy(x).to(device).float()
+        
+        R_w2c = to_tensor(cam_extrinsic)
+        K = to_tensor(cam_intrinsics)
+        centers = to_tensor(crop_center)
+
+        R_w2c = R_w2c[:3, :3]
+        R_c2w = R_w2c.t() 
+
+        fx, fy = K[0, 0], K[1, 1]
+        cx, cy = K[0, 2], K[1, 2]
+        ux, uy = centers[:, 0], centers[:, 1]
+        theta_y = torch.atan((ux - cx) / fx)   
+        theta_x = -torch.atan((uy - cy) / fy)  
+
+        # R_adj (N, 3, 3)
+        cos_y, sin_y = torch.cos(theta_y), torch.sin(theta_y)
+        cos_x, sin_x = torch.cos(theta_x), torch.sin(theta_x)
+        ones = torch.ones_like(theta_y)
+        zeros = torch.zeros_like(theta_y)
+
+        Ry = torch.stack([
+            torch.stack([cos_y,  zeros, sin_y], dim=-1),
+            torch.stack([zeros,  ones,  zeros], dim=-1),
+            torch.stack([-sin_y, zeros, cos_y], dim=-1)
+        ], dim=-2)
+
+        Rx = torch.stack([
+            torch.stack([ones,  zeros,  zeros], dim=-1),
+            torch.stack([zeros, cos_x, -sin_x], dim=-1),
+            torch.stack([zeros, sin_x,  cos_x], dim=-1)
+        ], dim=-2)
+
+        R_adj = Ry @ Rx 
+
+        # R_world = R_c2w @ R_adj @ R_hamer
+        y_global_orient_world = R_c2w.unsqueeze(0) @ R_adj @ y_global_orient.squeeze(1)
+        
+        return y_global_orient_world.unsqueeze(1), R_c2w, R_adj
+
 
 # # vis
 # def visualize_batch(dataset_item):
@@ -392,43 +404,42 @@ if __name__ == "__main__":
     for sample_idx in range(10):
         sample = dataset[sample_idx]
         import utils.rotation_conversions as geometry
-        x0_trans = sample['trans'].permute(1, 0)
-        x0_root = sample['inp_root']
-        x0_trans += x0_root
-        x0 = sample['inp'].permute(2, 0, 1)
-        x0 = geometry.rotation_6d_to_matrix(x0)
+        x_trans = sample['x_trans'].permute(1, 0)
+        x_root_trans = sample['x_root_trans']
+        x_trans += x_root_trans
+        x_pose_rot6d = sample['x_pose'].permute(2, 0, 1)
+        x_pose_rotmat = geometry.rotation_6d_to_matrix(x_pose_rot6d)
 
         # y_trans = sample['ref_trans'].permute(1, 0)   
         # y_root = sample['ref_motion_root']
         # y_trans += y_root
-        y_trans = x0_trans.clone()
-        y = sample['ref_motion'].permute(2, 0, 1)
-        y = geometry.rotation_6d_to_matrix(y)
+        y_trans = x_trans.clone()
+        y_pose_rot6d = sample['y_pose'].permute(2, 0, 1)
+        y_pose_rotmat = geometry.rotation_6d_to_matrix(y_pose_rot6d)
 
 
         
         #align_pose_frontview[
-        x0_all_root_pose_mat = x0[:, 0, :]
-        x0_all_root_pose_mat = torch.matmul(sample['inp_ff_root_pose_mat'], x0_all_root_pose_mat)
-        x0[:, 0, :] = x0_all_root_pose_mat
-        x0 = geometry.matrix_to_axis_angle(x0)
+        x_all_root_pose_mat = x_pose_rotmat[:, 0,]
+        x_all_root_pose_mat = torch.matmul(sample['x_ff_root_orient_rotmat'], x_all_root_pose_mat)
+        x_pose_rotmat[:, 0,] = x_all_root_pose_mat
+        x_pose_rotvec = geometry.matrix_to_axis_angle(x_pose_rotmat)
 
-        y_all_root_pose_mat = y[:, 0, :]
-        # y_all_root_pose_mat = torch.matmul(sample['ref_motion_ff_root_pose_mat'], y_all_root_pose_mat)
-        y_all_root_pose_mat = torch.matmul(sample['inp_ff_root_pose_mat'].clone(), y_all_root_pose_mat)
-        y[:, 0, :] = y_all_root_pose_mat
-        y = geometry.matrix_to_axis_angle(y)
+        y_all_root_pose_mat = y_pose_rotmat[:, 0,]
+        y_all_root_pose_mat = torch.matmul(sample['y_ff_root_orient_rotmat'], y_all_root_pose_mat)
+        y_pose_rotmat[:, 0,] = y_all_root_pose_mat
+        y_pose_rotvec = geometry.matrix_to_axis_angle(y_pose_rotmat)
 
 
         inpaint_mask = sample['inpaint_mask']
-        mask = sample['mask']
-        beta = sample['beta']
+        suffix_mask = sample['suffix_mask']
+        x_beta = sample['x_beta']
         is_right = sample['is_right']
         cam = sample['cam']
-        frame_ix = sample['frame_ix']
+        frame_indices = sample['frame_indices']
 
         # temporal mask
-        valid_indices = torch.nonzero(mask).squeeze()
+        valid_indices = torch.nonzero(suffix_mask).squeeze()
         if valid_indices.numel() > 0:
             start_idx = valid_indices[0].item() 
             end_idx = valid_indices[-1].item()
@@ -471,10 +482,10 @@ if __name__ == "__main__":
         for idx in tqdm(range(start_idx, end_idx+1)):
             # gt
             hand_param_gt = {
-                "poses": torch.cat([torch.zeros_like(x0[idx, 0, :]).unsqueeze(0), x0[idx, 1:, :]], dim=0).unsqueeze(0).reshape(1, -1).to(device), 
-                "Rh": x0[idx, 0, :].unsqueeze(0).to(device),
-                "Th": x0_trans[idx].unsqueeze(0).to(device),
-                "shapes": beta.to(device),
+                "poses": torch.cat([torch.zeros_like(x_pose_rotvec[idx, 0, :]).unsqueeze(0), x_pose_rotvec[idx, 1:, :]], dim=0).unsqueeze(0).reshape(1, -1).to(device), 
+                "Rh": x_pose_rotvec[idx, 0, :].unsqueeze(0).to(device),
+                "Th": x_trans[idx].unsqueeze(0).to(device),
+                "shapes": x_beta.to(device),
             }
             vertices_gt = hand_model(return_verts=True, return_tensor=False, **hand_param_gt)[0]
             faces = hand_model.faces
@@ -487,15 +498,15 @@ if __name__ == "__main__":
             render_rgb_gt = image_vis_gt[:, :, :3]
             alpha_gt = image_vis_gt[:, :, 3] / 255.0
             alpha_gt = alpha_gt[:, :, np.newaxis]
-            combined_image_gt = (render_rgb_gt * alpha_gt + frames_rgb[sample['frame_ix'][idx]] * (1 - alpha_gt)).astype(np.uint8)
+            combined_image_gt = (render_rgb_gt * alpha_gt + frames_rgb[sample['frame_indices'][idx]] * (1 - alpha_gt)).astype(np.uint8)
             frames_gt.append(combined_image_gt.astype(np.uint8))
 
             # ref
             hand_param_ref = {
-                "poses": torch.cat([torch.zeros_like(y[idx, 0, :]).unsqueeze(0), y[idx, 1:, :]], dim=0).unsqueeze(0).reshape(1, -1).to(device), 
-                "Rh": y[idx, 0, :].unsqueeze(0).to(device),
-                "Th": y_trans[idx].unsqueeze(0).to(device),
-                "shapes": beta.to(device),
+                "poses": torch.cat([torch.zeros_like(y_pose_rotvec[idx, 0, :]).unsqueeze(0), y_pose_rotvec[idx, 1:, :]], dim=0).unsqueeze(0).reshape(1, -1).to(device), 
+                "Rh": y_pose_rotvec[idx, 0, :].unsqueeze(0).to(device),
+                "Th": x_trans[idx].unsqueeze(0).to(device),
+                "shapes": x_beta.to(device),
             }
             vertices_ref = hand_model(return_verts=True, return_tensor=False, **hand_param_ref)[0]
             faces = hand_model.faces
@@ -508,7 +519,7 @@ if __name__ == "__main__":
             render_rgb_ref = image_vis_ref[:, :, :3]
             alpha_ref = image_vis_ref[:, :, 3] / 255.0
             alpha_ref = alpha_ref[:, :, np.newaxis]
-            combined_image_ref = (render_rgb_ref * alpha_ref + frames_rgb[sample['frame_ix'][idx]] * (1 - alpha_ref)).astype(np.uint8)
+            combined_image_ref = (render_rgb_ref * alpha_ref + frames_rgb[sample['frame_indices'][idx]] * (1 - alpha_ref)).astype(np.uint8)
             frames_ref.append(combined_image_ref.astype(np.uint8))
 
         # Save video
@@ -516,11 +527,11 @@ if __name__ == "__main__":
         save_path = '/home/zvc/Project/motion-diffusion-model/_vis/datasets/'
         os.makedirs(save_path, exist_ok=True)
 
-        output_video_gt = os.path.join(save_path, f'output_gt_{sample_idx}.mp4')
+        output_video_gt = os.path.join(save_path, f'x_{sample_idx}.mp4')
         imageio.mimsave(str(output_video_gt), frames_gt, fps=30)
         print(f"Saved output video to {output_video_gt}")
 
-        output_video_ref = os.path.join(save_path, f'output_ref_{sample_idx}.mp4')
+        output_video_ref = os.path.join(save_path, f'y_{sample_idx}.mp4')
         imageio.mimsave(str(output_video_ref), frames_ref, fps=30)
         print(f"Saved output video to {output_video_ref}")
 

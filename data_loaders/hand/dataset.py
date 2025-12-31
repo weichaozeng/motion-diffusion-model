@@ -14,18 +14,15 @@ import json
 
 
 class Dataset(torch.utils.data.Dataset):
-    def __init__(self, num_frames=1, sampling="conseq", sampling_step=1, split="train", pose_rep="rot6d", translation=False, glob=True, max_len=-1, min_len=-1, num_seq_max=-1, **kwargs):
+    def __init__(self, num_frames=1, sampling="conseq", sampling_step=1, split="train", pose_rep="rot6d", translation=False, glob=True, **kwargs):
         super().__init__()
         self.num_frames = num_frames
-        self.sampling = sampling
+        self.sampling = sampling 
         self.sampling_step = sampling_step
         self.split = split
         self.pose_rep = pose_rep
         self.translation = translation
         self.glob = glob
-        self.max_len = max_len
-        self.min_len = min_len
-        self.num_seq_max = num_seq_max
 
         self.align_pose_frontview = kwargs.get('align_pose_frontview', False)
 
@@ -36,9 +33,9 @@ class Dataset(torch.utils.data.Dataset):
         self._original_train = None
         self._original_test = None
 
-    def get_pose_data(self, data_index, frame_ix, is_right, y_data, mano_data):
-        pose, beta, ref_motion, inpain_mask, orig_root, orig_root_y,first_frame_root_pose_matrix, first_frame_root_pose_matrix_y, trans, ref_trans  = self._load(data_index, frame_ix, is_right, y_data, mano_data)
-        return pose, beta, ref_motion, inpain_mask, orig_root, orig_root_y,first_frame_root_pose_matrix, first_frame_root_pose_matrix_y, trans, ref_trans
+    # def get_pose_data(self, data_index, frame_ix, is_right, y_data, mano_data):
+    #     pose, beta, ref_motion, inpain_mask, orig_root, orig_root_y,first_frame_root_pose_matrix, first_frame_root_pose_matrix_y, trans, ref_trans  = self._load(data_index, frame_ix, is_right, y_data, mano_data)
+    #     return pose, beta, ref_motion, inpain_mask, orig_root, orig_root_y,first_frame_root_pose_matrix, first_frame_root_pose_matrix_y, trans, ref_trans
     
     def __getitem__(self, index):
         if self.split == 'train':
@@ -47,108 +44,77 @@ class Dataset(torch.utils.data.Dataset):
             data_index = self._test[index]
         return self._get_item_data_index(data_index)
     
-    def _load(self, ind, frame_ix, is_right, y_data, mano_data):
+    def _load(self, ind, frame_ix, is_right, y_data, x_data, cam):
         pose_rep = self.pose_rep
-        # if pose_rep == "xyz" or self.translation:
-        #     if getattr(self, "_load_joints3D", None) is not None:
-        #         # Locate the root joint of initial pose at origin
-        #         joints3D = self._load_joints3D(ind, frame_ix, is_right)
-        #         joints3D = joints3D - joints3D[0, 0, :]
-        #         ret = to_torch(joints3D)
-        #         if self.translation:
-        #             ret_tr = ret[:, 0, :]
-        #     else:
-        #         if pose_rep == "xyz":
-        #             raise ValueError("This representation is not possible.")
-        #         if getattr(self, "_load_translation") is None:
-        #             raise ValueError("Can't extract translations.")
-        #         ret_tr = self._load_translation(ind, frame_ix, mano_data, is_right)
-        #         orig_root = to_torch(ret_tr[0]).clone()
-        #         ret_tr = to_torch(ret_tr - ret_tr[0])
-        #     # y
-        #     if getattr(self, "_load_joints3D_y", None) is not None:
-        #         joints3D_y, inpaint_mask = self._load_joints3D_y(ind, frame_ix, y_data)
-        #         joints3D_y = joints3D_y - joints3D_y[0, 0, :]
-        #         ret_y = to_torch(joints3D)
-        #         if self.translation:
-        #             ret_tr_y = ret_y[:, 0, :]
-        #     else:
-        #         if pose_rep == "xyz":
-        #             raise ValueError("This representation is not possible.")
-        #         if getattr(self, "_load_translation_y") is None:
-        #             raise ValueError("Can't extract translations.")
-        #         ret_tr_y, inpaint_mask = self._load_translation_y(ind, frame_ix, y_data)
-        #         orig_root_y = to_torch(ret_tr_y[0]).clone()
-        #         ret_tr_y = to_torch(ret_tr_y - ret_tr_y[0])
-                
+        assert pose_rep != "xyz"
 
-        if pose_rep != "xyz":
-            if getattr(self, "_load_rotvec", None) is None or getattr(self, "_load_rotvec_y", None) is None :
-                raise ValueError("This representation is not possible.")
+        if getattr(self, "_load_rotvec_x", None) is None or getattr(self, "_load_rotvec_y", None) is None :
+            raise ValueError("This representation is not possible.")
+        else:
+            # x
+            x_pose, x_beta = self._load_rotvec_x(ind, frame_ix, x_data, is_right)
+            if not self.glob:
+                x_pose = x_pose[:, 1:, :]
+            x_pose = to_torch(x_pose)
+            if self.align_pose_frontview:
+                x_first_frame_root_pose_matrix = geometry.axis_angle_to_matrix(x_pose[0][0])
+                x_all_root_poses_matrix = geometry.axis_angle_to_matrix(x_pose[:, 0, :])
+                x_aligned_root_poses_matrix = torch.matmul(torch.transpose(x_first_frame_root_pose_matrix, 0, 1), x_all_root_poses_matrix)
+                x_pose[:, 0, :] = geometry.matrix_to_axis_angle(x_aligned_root_poses_matrix)
             else:
-                pose, beta = self._load_rotvec(ind, frame_ix, mano_data, is_right)
-                if not self.glob:
-                    pose = pose[:, 1:, :]
-                pose = to_torch(pose)
-                if self.align_pose_frontview:
-                    first_frame_root_pose_matrix = geometry.axis_angle_to_matrix(pose[0][0])
-                    all_root_poses_matrix = geometry.axis_angle_to_matrix(pose[:, 0, :])
-                    aligned_root_poses_matrix = torch.matmul(torch.transpose(first_frame_root_pose_matrix, 0, 1),
-                                                            all_root_poses_matrix)
-                    pose[:, 0, :] = geometry.matrix_to_axis_angle(aligned_root_poses_matrix)
+                x_first_frame_root_pose_matrix = torch.eye(3).float()
+                # if self.translation:
+                #     ret_tr = torch.matmul(torch.transpose(first_frame_root_pose_matrix, 0, 1).float(),
+                #                         torch.transpose(ret_tr, 0, 1))
+                #     ret_tr = torch.transpose(ret_tr, 0, 1)
+            # y
+            y_pose, inpaint_mask, R_c2w, R_adj = self._load_rotvec_y(ind, frame_ix, y_data, cam)
+            if not self.glob:
+                y_pose = y_pose[:, 1:, :]
+            y_pose = to_torch(y_pose)
+            if self.align_pose_frontview:
+                y_first_frame_root_pose_matrix = geometry.axis_angle_to_matrix(y_pose[0][0])
+                y_all_root_poses_matrix = geometry.axis_angle_to_matrix(y_pose[:, 0, :])
+                y_aligned_root_poses_matrix = torch.matmul(torch.transpose(y_first_frame_root_pose_matrix, 0, 1), y_all_root_poses_matrix)
+                y_pose[:, 0, :] = geometry.matrix_to_axis_angle(y_aligned_root_poses_matrix)
+            else:
+                y_first_frame_root_pose_matrix = torch.eye(3).float()
+                # if self.translation:
+                #     ret_tr_y = torch.matmul(torch.transpose(first_frame_root_pose_matrix_y, 0, 1).float(),
+                #                         torch.transpose(ret_tr_y, 0, 1))
+                #     ret_tr_y = torch.transpose(ret_tr_y, 0, 1)
 
-                    # if self.translation:
-                    #     ret_tr = torch.matmul(torch.transpose(first_frame_root_pose_matrix, 0, 1).float(),
-                    #                         torch.transpose(ret_tr, 0, 1))
-                    #     ret_tr = torch.transpose(ret_tr, 0, 1)
-                # y
-                pose_y, inpaint_mask = self._load_rotvec_y(ind, frame_ix, y_data)
-                if not self.glob:
-                    pose_y = pose_y[:, 1:, :]
-                pose_y = to_torch(pose_y)
-                if self.align_pose_frontview:
-                    first_frame_root_pose_matrix_y = geometry.axis_angle_to_matrix(pose_y[0][0])
-                    all_root_poses_matrix = geometry.axis_angle_to_matrix(pose_y[:, 0, :])
-                    aligned_root_poses_matrix = torch.matmul(torch.transpose(first_frame_root_pose_matrix_y, 0, 1),
-                                                            all_root_poses_matrix)
-                    pose_y[:, 0, :] = geometry.matrix_to_axis_angle(aligned_root_poses_matrix)
-
-                    # if self.translation:
-                    #     ret_tr_y = torch.matmul(torch.transpose(first_frame_root_pose_matrix_y, 0, 1).float(),
-                    #                         torch.transpose(ret_tr_y, 0, 1))
-                    #     ret_tr_y = torch.transpose(ret_tr_y, 0, 1)
-
-                if pose_rep == "rotvec":
-                    ret = pose
-                    ret_y = pose_y
-                elif pose_rep == "rotmat":
-                    ret = geometry.axis_angle_to_matrix(pose).view(*pose.shape[:2], 9)
-                    ret_y = geometry.axis_angle_to_matrix(pose_y).view(*pose_y.shape[:2], 9)
-                elif pose_rep == "rotquat":
-                    ret = geometry.axis_angle_to_quaternion(pose)
-                    ret_y = geometry.axis_angle_to_quaternion(pose_y)
-                elif pose_rep == "rot6d":
-                    ret = geometry.matrix_to_rotation_6d(geometry.axis_angle_to_matrix(pose))
-                    ret_y = geometry.matrix_to_rotation_6d(geometry.axis_angle_to_matrix(pose_y))
+            if pose_rep == "rotvec":
+                x_pose = x_pose
+                y_pose = y_pose
+            elif pose_rep == "rotmat":
+                x_pose = geometry.axis_angle_to_matrix(x_pose).view(*x_pose.shape[:2], 9)
+                y_pose = geometry.axis_angle_to_matrix(y_pose).view(*y_pose.shape[:2], 9)
+            elif pose_rep == "rotquat":
+                x_pose = geometry.axis_angle_to_quaternion(x_pose)
+                y_pose = geometry.axis_angle_to_quaternion(y_pose)
+            elif pose_rep == "rot6d":
+                x_pose = geometry.matrix_to_rotation_6d(geometry.axis_angle_to_matrix(x_pose))
+                y_pose = geometry.matrix_to_rotation_6d(geometry.axis_angle_to_matrix(y_pose))
         
         if self.translation:
             # x
-            if getattr(self, "_load_translation") is None:
+            if getattr(self, "_load_translation_x") is None:
                 raise ValueError("Can't extract translations x.")
-            ret_tr = self._load_translation(ind, frame_ix, mano_data, is_right)
-            orig_root = to_torch(ret_tr[0]).clone()
-            ret_tr = to_torch(ret_tr - ret_tr[0])
+            x_trans = self._load_translation_x(ind, frame_ix, x_data, is_right)
+            x_orig_root = to_torch(x_trans[0]).clone()
+            x_trans = to_torch(x_trans - x_trans[0])
             # y
             if getattr(self, "_load_translation_y") is None:
                 raise ValueError("Can't extract translations y.")
-            ret_tr_y, _ = self._load_translation_y(ind, frame_ix, y_data)
-            orig_root_y = to_torch(ret_tr_y[0]).clone()
-            ret_tr_y = to_torch(ret_tr_y - ret_tr_y[0])
+            y_trans, _= self._load_translation_y(ind, frame_ix, y_data)
+            y_orig_root = to_torch(y_trans[0]).clone()
+            y_trans = to_torch(y_trans - y_trans[0])
         else:
-            ret_tr = torch.zeros((ret.shape[0], 3), dtype=ret.dtype)
-            orig_root = ret_tr[0].clone()
-            ret_tr_y = torch.zeros((ret.shape[0], 3), dtype=ret.dtype)
-            orig_root_y = ret_tr_y[0].clone()
+            x_trans = torch.zeros((x_pose.shape[0], 3), dtype=x_pose.dtype)
+            x_orig_root = x_trans[0].clone()
+            y_trans = torch.zeros((y_pose.shape[0], 3), dtype=y_pose.dtype)
+            y_orig_root = y_trans[0].clone()
         # if pose_rep != "xyz" and not self.translation:
         #     ret_tr = torch.zeros((ret.shape[0], 3), dtype=ret.dtype)
         #     # padded_tr = torch.zeros((ret.shape[0], ret.shape[2]), dtype=ret.dtype)
@@ -160,17 +126,31 @@ class Dataset(torch.utils.data.Dataset):
             # padded_tr_y[:, :3] = ret_tr_y
             # ret_y = torch.cat((ret_y, padded_tr_y[:, None]), 1)
         
-        ret = ret.permute(1, 2, 0).contiguous()     # J, 6, T
-        ret_tr = ret_tr.permute(1, 0).contiguous()  # 3, T
-        ret_y = ret_y.permute(1, 2, 0).contiguous() # J, 6, T
-        ret_tr_y = ret_tr_y.permute(1, 0).contiguous()  # 3, T
+        x_pose = x_pose.permute(1, 2, 0).contiguous()         # J, 6, T
+        x_trans = x_trans.permute(1, 0).contiguous()      # 3, T
+        y_pose = y_pose.permute(1, 2, 0).contiguous()     # J, 6, T
+        y_trans = y_trans.permute(1, 0).contiguous()  # 3, T
         inpaint_mask = torch.from_numpy(inpaint_mask)
         
+        data_dict = {
+            'inpaint_mask': inpaint_mask.float(),
+            # x
+            'x_pose': x_pose.float(),
+            'x_beta': x_beta.float(),
+            'x_root_trans': x_orig_root.float(),
+            'x_trans': x_trans.float(),
+            'x_ff_root_orient_rotmat': x_first_frame_root_pose_matrix,
+            # y
+            'y_pose': x_pose.float(),
+            'y_root_trans': y_orig_root.float(),
+            'y_trans': y_trans.float(),
+            'y_ff_root_orient_rotmat': y_first_frame_root_pose_matrix,
+            # corr
+            'R_c2w': R_c2w,
+            'R_adj': R_adj,
+        }
 
-        if self.align_pose_frontview:
-            return ret.float(), beta.float(), ret_y.float(), inpaint_mask.float(), orig_root.float(), orig_root_y.float(),first_frame_root_pose_matrix.float(), first_frame_root_pose_matrix_y.float(), ret_tr.float(), ret_tr_y.float() 
-        else:
-            return ret.float(), beta.float(), ret_y.float(), inpaint_mask.float(), orig_root.float(), orig_root_y.float(), torch.eye(3).float(), torch.eye(3).float(), ret_tr.float(), ret_tr_y.float() 
+        return data_dict
 
     def _get_item_data_index(self, data_index):
         # skip left
@@ -179,7 +159,7 @@ class Dataset(torch.utils.data.Dataset):
             with open(seq_y, 'rb') as f:
                 temp_data = pickle.load(f)
             if temp_data["handedness"][0] != 0:
-                data = temp_data
+                y_data = temp_data
                 break
             if self.split == 'train':
                 data_index = random.choice(self._train)
@@ -193,85 +173,65 @@ class Dataset(torch.utils.data.Dataset):
         # anno
         seq_mano = self.seqs_mano[data_index]
         with open(seq_mano, 'r') as f:
-            mano_data = json.load(f)
+            x_data = json.load(f)
+
         # frame length
-        max_nframe = min(data['frame_indices'][-1], len(mano_data["right"]["Th"])-1)
-        min_nframe = max(0, data['frame_indices'][0])
+        max_nframe = min(y_data['frame_indices'][-1], len(x_data["right"]["Th"])-1)
+        min_nframe = max(0, y_data['frame_indices'][0])
         nframes = max_nframe - min_nframe + 1
-        is_right = data["handedness"][0]
-
-        if self.num_frames == -1 and (self.max_len == -1 or nframes <= self.max_len):
-            # frame_ix = np.arange(nframes)
-            frame_ix = np.arange(min_nframe, max_nframe + 1)
-        else:
-            if self.num_frames == -2:
-                if self.min_len <= 0:
-                    raise ValueError("You should put a min_len > 0 for num_frames == -2 mode")
-                if self.max_len != -1:
-                    max_frame = min(nframes, self.max_len)
-                else:
-                    max_frame = nframes
-
-                num_frames = random.randint(self.min_len, max(max_frame, self.min_len))
-            else:
-                num_frames = self.num_frames if self.num_frames != -1 else self.max_len
-
-            mask = torch.zeros(num_frames, dtype=torch.bool)
-            if num_frames > nframes:
-                # adding the last frame until done
-                ntoadd = max(0, num_frames - nframes)
-                # lastframe = nframes - 1
-                lastframe = max_nframe
-                padding = lastframe * np.ones(ntoadd, dtype=int)
-                frame_ix = np.concatenate((np.arange(min_nframe, max_nframe + 1), padding))
-                mask[:nframes] = True
-
-            elif self.sampling in ["conseq", "random_conseq"]:
-                step_max = (nframes - 1) // (num_frames - 1)
-                if self.sampling == "conseq":
-                    if self.sampling_step == -1 or self.sampling_step * (num_frames - 1) >= nframes:
-                        step = step_max
-                    else:
-                        step = self.sampling_step
-                elif self.sampling == "random_conseq":
-                    step = random.randint(1, step_max)
-
-                lastone = step * (num_frames - 1)
-                shift_max = nframes - lastone - 1
-                shift = random.randint(0, max(0, shift_max - 1))
-                frame_ix = shift + np.arange(0, lastone + 1, step) + min_nframe
-                mask[:] = True
-
-            # elif self.sampling == "random":
-            #     choices = np.random.choice(range(nframes),
-            #                                num_frames,
-            #                                replace=False)
-            #     frame_ix = sorted(choices)
-
-            else:
-                raise ValueError("Sampling not recognized.")
-
-        x0, x0_beta, y, inpaint_mask, orig_root, orig_root_y,first_frame_root_pose_matrix, first_frame_root_pose_matrix_y, trans, ref_trans = self.get_pose_data(data_index, frame_ix, is_right, data, mano_data)
+        # handedness
+        is_right = x_data["handedness"][0]
         is_right = torch.from_numpy(np.asarray(is_right))
-        
+
+        assert self.num_frames > 0
+        num_frames = self.num_frames if self.num_frames != -1 else self.max_len
+        suffix_mask = torch.zeros(num_frames, dtype=torch.bool)
+
+        if num_frames > nframes:
+            # adding the last frame until done
+            ntoadd = max(0, num_frames - nframes)
+            # lastframe = nframes - 1
+            lastframe = max_nframe
+            padding = lastframe * np.ones(ntoadd, dtype=int)
+            frame_indices = np.concatenate((np.arange(min_nframe, max_nframe + 1), padding))
+            suffix_mask[:nframes] = True
+
+        elif self.sampling in ["conseq"]:
+            step_max = (nframes - 1) // (num_frames - 1)
+            if self.sampling == "conseq":
+                if self.sampling_step == -1 or self.sampling_step * (num_frames - 1) >= nframes:
+                    step = step_max
+                else:
+                    step = self.sampling_step
+            else:
+                raise NotImplementedError
+            lastone = step * (num_frames - 1)
+            shift_max = nframes - lastone - 1
+            shift = random.randint(0, max(0, shift_max - 1))
+            frame_indices = shift + np.arange(0, lastone + 1, step) + min_nframe
+            suffix_mask[:] = True
+
+        data_dict = self._load(data_index, frame_indices, is_right, y_data, cam)
 
         output = {
             'name': os.path.basename(os.path.dirname(os.path.dirname(os.path.dirname(seq_y)))), 
-            'inp': x0, 
-            'beta': x0_beta, 
-            'ref_motion': y, 
-            'inpaint_mask': inpaint_mask, 
-            'mask': mask, 
+            'video_path': self.seqs_video[data_index],
+            'frame_indices': frame_indices,
+            'inpaint_mask': data_dict['inpaint_mask'], 
+            'suffix_mask': suffix_mask, 
             'is_right': is_right, 
             'cam': cam, 
-            'inp_root': orig_root, 
-            'ref_motion_root': orig_root_y, 
-            'inp_ff_root_pose_mat': first_frame_root_pose_matrix, 
-            'ref_motion_ff_root_pose_mat': first_frame_root_pose_matrix_y,
-            'frame_ix': frame_ix,
-            'video_path': self.seqs_video[data_index],
-            'trans': trans,
-            'ref_trans': ref_trans,
+            # x
+            'x_pose': data_dict['x_pose'], 
+            'x_beta': data_dict['x_beta'], 
+            'x_trans': data_dict['x_trans'],
+            'x_root_trans': data_dict['x_root_trans'], 
+            'x_ff_root_orient_rotmat': data_dict['x_ff_root_orient_rotmat'], 
+            # y
+            'y_pose': data_dict['y_pose'], 
+            'y_trans': data_dict['y_trans'],
+            'y_root_trans': data_dict['y_root_trans'], 
+            'y_ff_root_orient_rotmat': data_dict['y_ff_root_orient_rotmat'],
         }
         
         return output
