@@ -381,7 +381,7 @@ if __name__ == "__main__":
         'betas': y_betas.repeat(N, 1),
         'transl': transl,
     }
-    y_output_mano_wrapper = mano(**y_input_mano_wrapper, pose2rot=True)
+    y_output_mano_wrapper = mano(**y_input_mano_wrapper, pose2rot=True, add_mean=True)
 
 
 
