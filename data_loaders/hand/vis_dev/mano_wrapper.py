@@ -190,7 +190,8 @@ if __name__ == "__main__":
         'mean_params': 'data/mano_mean_params.npz',
         'create_body_pose': False,
     }
-    mano = MANO(pose2rot=True, flat_hand_mean=False, **mano_cfg)
+    mano = MANO(pose2rot=True, flat_hand_mean=True, **mano_cfg)
+    mano_hamer = MANO(pose2rot=True, flat_hand_mean=False, **mano_cfg)
 
 
     hand_model_path = '/home/zvc/Project/motion-diffusion-model/body_models'
@@ -302,7 +303,7 @@ if __name__ == "__main__":
         'betas': y_betas.repeat(N, 1),
         'transl': transl,
     }
-    y_output_mano_wrapper = mano(**y_input_mano_wrapper, pose2rot=True)
+    y_output_mano_wrapper = mano_hamer(**y_input_mano_wrapper, pose2rot=True)
 
 
 
