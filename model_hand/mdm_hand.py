@@ -95,29 +95,34 @@ class MDM_Hand(nn.Module):
                 y_pose = torch.zeros_like(y_pose)
                 inpaint_mask = torch.zeros_like(inpaint_mask)
         else:
-            keep_mask = (~uncond).float().to(x.device)
-            y_pose = y_pose * keep_mask.view(bs, 1, 1, 1)
-            inpaint_mask = inpaint_mask * keep_mask.view()
+            # if uncond is a tensor of shape [bs]
+            keep_mask = (~uncond).float().to(x.device).view(1, bs, 1)
+            y_pose = y_pose * keep_mask
+            inpaint_mask = inpaint_mask * keep_mask
         
-        # concat
+        # concat: [nframes, bs, njoints*nfeats*2 + 1]
         x_full = torch.cat([x, y_pose, inpaint_mask], dim=2)
+        
+        # x_full: [nframes, bs, latent_dim]; time_emb: [1, bs, latent_dim]
         x_full = self.input_process(x_full)
-        # time
-        time_emb = self.embed_timestep(timesteps)   # [1, bs, d]
+        time_emb = self.embed_timestep(timesteps)
 
         if self.suffix_mask:
             # True will be masked
             step_mask = torch.zeros((bs, 1), dtype=torch.bool, device=x.device)
             frames_mask = torch.cat([step_mask, batch['suffix_mask']], dim=1)
-
-        if self.arch == 'trans_enc':
-            # adding the timestep embed
-            xseq = torch.cat((time_emb, x_full), axis=0)  # [seqlen+1, bs, d]
-            xseq = self.sequence_pos_encoder(xseq)  # [seqlen+1, bs, d]
-            output = self.seqTransEncoder(xseq, src_key_padding_mask=frames_mask)[1:]  # , src_key_padding_mask=~maskseq)  # [seqlen, bs, d]
         else:
-            raise NotImplementedError()
-        output = self.output_process(output)  # [bs, njoints, nfeats, nframes]
+            raise NotImplementedError("Suffix mask must be True for hand model")
+
+        assert self.arch == 'trans_enc'
+        # adding the timestep embed; [nframes+1, bs, d]
+        xseq = torch.cat((time_emb, x_full), axis=0)
+        xseq = self.sequence_pos_encoder(xseq)
+        # output: [nframes+1, bs, d]
+        output = self.seqTransEncoder(xseq, src_key_padding_mask=frames_mask)[1:]
+        
+        # output: [nframes+1, bs, d] -> [bs, njoints, nfeats, nframes]
+        output = self.output_process(output)
         return output
 
 
@@ -178,11 +183,9 @@ class InputProcess(nn.Module):
         if self.data_rep == 'rot_vel':
             self.velEmbedding = nn.Linear(self.input_feats, self.latent_dim)
 
-    def forward(self, x):
-        bs, njoints, nfeats, nframes = x.shape
-        x = x.permute((3, 0, 1, 2)).reshape(nframes, bs, njoints*nfeats)
-
-        if self.data_rep in ['rot6d', 'xyz', 'hml_vec']:
+    def forward(self, x_full):
+        # x_full: [seqlen, bs, input_feats]; input_feats = njoints*nfeats*2 + 1
+        if self.data_rep in ['rot6d', 'xyz']:
             x = self.poseEmbedding(x)  # [seqlen, bs, d]
             return x
         elif self.data_rep == 'rot_vel':
@@ -210,109 +213,15 @@ class OutputProcess(nn.Module):
     def forward(self, output):
         nframes, bs, d = output.shape
         if self.data_rep in ['rot6d', 'xyz', 'hml_vec']:
-            output = self.poseFinal(output)  # [seqlen, bs, 150]
+            output = self.poseFinal(output)  # [nframes, bs, njoints*nfeats]
         elif self.data_rep == 'rot_vel':
             first_pose = output[[0]]  # [1, bs, d]
-            first_pose = self.poseFinal(first_pose)  # [1, bs, 150]
-            vel = output[1:]  # [seqlen-1, bs, d]
-            vel = self.velFinal(vel)  # [seqlen-1, bs, 150]
-            output = torch.cat((first_pose, vel), axis=0)  # [seqlen, bs, 150]
+            first_pose = self.poseFinal(first_pose)  # [1, bs, njoints*nfeats]
+            vel = output[1:]  # [nframes-1, bs, d]
+            vel = self.velFinal(vel)  # [nframes-1, bs, njoints*nfeats]
+            output = torch.cat((first_pose, vel), axis=0)  # [nframes, bs, njoints*nfeats]
         else:
             raise ValueError
         output = output.reshape(nframes, bs, self.njoints, self.nfeats)
         output = output.permute(1, 2, 3, 0)  # [bs, njoints, nfeats, nframes]
-        return output
-
-
-class EmbedAction(nn.Module):
-    def __init__(self, num_actions, latent_dim):
-        super().__init__()
-        self.action_embedding = nn.Parameter(torch.randn(num_actions, latent_dim))
-
-    def forward(self, input):
-        idx = input[:, 0].to(torch.long)  # an index array must be long
-        output = self.action_embedding[idx]
-        return output
-    
-class EmbedTargetLocSingle(nn.Module):
-    def __init__(self, all_goal_joint_names, latent_dim, num_layers=1):
-        super().__init__()
-        self.extended_goal_joint_names = all_goal_joint_names + ['traj', 'heading']
-        self.target_cond_dim = len(self.extended_goal_joint_names) * 4  # 4 => (x,y,z,is_valid)
-        self.latent_dim = latent_dim
-        _layers = [nn.Linear(self.target_cond_dim, self.latent_dim)]
-        for _ in range(num_layers):
-            _layers += [nn.SiLU(), nn.Linear(self.latent_dim, self.latent_dim)]
-        self.mlp = nn.Sequential(*_layers)
-
-    def forward(self, input, target_joint_names, target_heading):
-        # TODO - generate validity from outside the model
-        validity = torch.zeros_like(input)[..., :1]
-        for sample_idx, sample_joint_names in enumerate(target_joint_names):
-            sample_joint_names_w_heading = np.append(sample_joint_names, 'heading') if target_heading[sample_idx] else sample_joint_names
-            for j in sample_joint_names_w_heading:
-                validity[sample_idx, self.extended_goal_joint_names.index(j)] = 1.
-
-        mlp_input = torch.cat([input, validity], dim=-1).view(input.shape[0], -1)
-        return self.mlp(mlp_input)
-
-
-class EmbedTargetLocSplit(nn.Module):
-    def __init__(self, all_goal_joint_names, latent_dim, num_layers=1):
-        super().__init__()
-        self.extended_goal_joint_names = all_goal_joint_names + ['traj', 'heading']
-        self.target_cond_dim = 4
-        self.latent_dim = latent_dim
-        self.splited_dim = self.latent_dim // len(self.extended_goal_joint_names)
-        assert self.latent_dim % len(self.extended_goal_joint_names) == 0
-        self.mini_mlps = nn.ModuleList()
-        for _ in self.extended_goal_joint_names:
-            _layers = [nn.Linear(self.target_cond_dim, self.splited_dim)]
-            for _ in range(num_layers):
-                _layers += [nn.SiLU(), nn.Linear(self.splited_dim, self.splited_dim)]
-            self.mini_mlps.append(nn.Sequential(*_layers))
-
-    def forward(self, input, target_joint_names, target_heading):
-        # TODO - generate validity from outside the model
-        validity = torch.zeros_like(input)[..., :1]
-        for sample_idx, sample_joint_names in enumerate(target_joint_names):
-            sample_joint_names_w_heading = np.append(sample_joint_names, 'heading') if target_heading[sample_idx] else sample_joint_names
-            for j in sample_joint_names_w_heading:
-                validity[sample_idx, self.extended_goal_joint_names.index(j)] = 1.
-
-        mlp_input = torch.cat([input, validity], dim=-1)
-        mlp_splits = [self.mini_mlps[i](mlp_input[:, i]) for i in range(mlp_input.shape[1])] 
-        return torch.cat(mlp_splits, dim=-1)
-  
-class EmbedTargetLocMulti(nn.Module):
-    def __init__(self, all_goal_joint_names, latent_dim):
-        super().__init__()
-        
-        # todo: use a tensor of weight per joint, and another one for biases, then apply a selection in one go like we to for actions
-        self.extended_goal_joint_names = all_goal_joint_names + ['traj', 'heading']
-        self.extended_goal_joint_idx = {joint_name: idx for idx, joint_name in enumerate(self.extended_goal_joint_names)}
-        self.n_extended_goal_joints = len(self.extended_goal_joint_names)
-        self.target_loc_emb = nn.ParameterDict({joint_name: 
-            nn.Sequential(
-                nn.Linear(3, latent_dim),
-                nn.SiLU(),
-                nn.Linear(latent_dim, latent_dim)) 
-            for joint_name in self.extended_goal_joint_names})  # todo: check if 3 works for heading and traj
-            # nn.Linear(3, latent_dim) for joint_name in self.extended_goal_joint_names})  # todo: check if 3 works for heading and traj
-        self.target_all_loc_emb = WeightedSum(self.n_extended_goal_joints) # nn.Linear(self.n_extended_goal_joints, latent_dim)
-        self.latent_dim = latent_dim
-
-    def forward(self, input, target_joint_names, target_heading):
-        output = torch.zeros((input.shape[0], self.latent_dim), dtype=input.dtype, device=input.device)
-        
-        # Iterate over the batch and apply the appropriate filter for each joint
-        for sample_idx, sample_joint_names in enumerate(target_joint_names):
-            sample_joint_names_w_heading = np.append(sample_joint_names, 'heading') if target_heading[sample_idx] else sample_joint_names
-            output_one_sample = torch.zeros((self.n_extended_goal_joints, self.latent_dim), dtype=input.dtype, device=input.device)
-            for joint_name in sample_joint_names_w_heading:
-                layer = self.target_loc_emb[joint_name]
-                output_one_sample[self.extended_goal_joint_idx[joint_name]] = layer(input[sample_idx, self.extended_goal_joint_idx[joint_name]])  
-            output[sample_idx] = self.target_all_loc_emb(output_one_sample)
-            # print(torch.where(output_one_sample.sum(axis=1)!=0)[0].cpu().numpy())
-               
         return output

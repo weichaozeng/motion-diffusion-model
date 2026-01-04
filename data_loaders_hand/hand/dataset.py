@@ -5,8 +5,8 @@ root_dir = current_file.parent.parent.parent
 sys.path.append(str(root_dir))
 import torch
 import numpy as np
-from utils.misc import to_torch
-import utils.rotation_conversions as geometry
+from utils_hand.misc import to_torch
+import utils_hand.rotation_conversions as geometry
 import random
 import pickle
 import os
@@ -158,7 +158,7 @@ class Dataset(torch.utils.data.Dataset):
             seq_y = self.seqs_y[data_index]
             with open(seq_y, 'rb') as f:
                 temp_data = pickle.load(f)
-            if temp_data["handedness"][0] != 0:
+            if temp_data["handedness"][0] != 0 and len(temp_data['frame_indices']) >= 10:
                 y_data = temp_data
                 break
             if self.split == 'train':

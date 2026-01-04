@@ -22,15 +22,34 @@ class ClassifierFreeSampleModel(nn.Module):
 
 
     def forward(self, x, timesteps, batch=None):
+        bs = x.shape[0]
+
+        # scale
         scale = batch.get('scale', 1.0)
         if isinstance(scale, torch.Tensor):
             scale = scale.view(-1, 1, 1, 1)
-            
-        batch_uncond = deepcopy(batch)
-        batch_uncond['uncond'] = True
-        out = self.model(x, timesteps, batch)
-        out_uncond = self.model(x, timesteps, batch_uncond)
-        return out_uncond + (scale * (out - out_uncond))
+
+        # input of both cond and uncond
+        x_combined = torch.cat([x, x], dim=0)
+        t_combined = torch.cat([timesteps, timesteps], dim=0)
+
+        # fist half is cond, second half is uncond    
+        combined_batch = {}
+        for k, v in batch.items():
+            if torch.is_tensor(v):
+                combined_batch[k] = torch.cat([v, v], dim=0)
+            else:
+                combined_batch[k] = v + v
+
+        uncond_mask = torch.zeros(2 * bs, dtype=torch.bool, device=x.device)
+        uncond_mask[bs:] = True
+        combined_batch['uncond'] = uncond_mask
+
+        output_combined = self.model(x_combined, t_combined, combined_batch)
+        out_cond = output_combined[:bs]
+        out_uncond = output_combined[bs:]
+        
+        return out_uncond + scale * (out_cond - out_uncond)
 
     def __getattr__(self, name, default=None):
         # this method is reached only if name is not in self.__dict__.

@@ -13,7 +13,7 @@ import blobfile as bf
 import torch
 from tqdm import tqdm
 from torch.optim import AdamW
-
+from torch.utils.data import Dataset, DataLoader
 
 from data_loaders.get_data import get_dataset_loader
 from data_loaders.humanml.networks.evaluator_wrapper import EvaluatorMDMWrapper
@@ -314,23 +314,39 @@ class TrainLoop:
         if not self.args.eval_during_training:
             return
         start_eval = time.time()
-       
-        if self.dataset == 'gigahands':
-            eval_dict = eval_gigahands.evaluate(
-                data=self.val_data, 
-                model=self.model_for_eval,
-                diffusion=self.diffusion,
-                device=self.device,    
-            )
+        assert self.dataset == 'gigahands'
 
-            for k, v in eval_dict.items():
-                self.train_platform.report_scalar(name=k, value=np.array(v).astype(float).mean(), iteration=self.step, group_name='Eval')
-        else:
-            raise NotImplementedError()
+        eval_dataset = eval_gigahands.HandGeneratedDataset(self.args, self.model_for_eval, self.diffusion, self.val_loader, scale=self.args.gen_guidance_param)
+
+        eval_loader = DataLoader(eval_dataset, batch_size=self.args.eval_batch_size, shuffle=False)
+
+        total_pa_mpjpe = []
+        total_auc = []
+        
+        self.model.eval()
+        with torch.no_grad():
+            for pred_pose, gt_pose, suffix_mask, gt_beta in tqdm(eval_loader, desc="Calculating Metrics"):
+
+                pred_xyz = self.model.rot2xyz(pose=pred_pose, pose_rep='rot6d', beta=gt_beta, glob=True, translation=False)
+                gt_xyz = self.model.rot2xyz(pose=gt_pose, pose_rep='rot6d', beta=gt_beta, glob=True, translation=False)
 
 
-        end_eval = time.time()
-        print(f'Evaluation time: {round(end_eval-start_eval)/60}min')
+                pa_mpjpe, auc = eval_gigahands.compute_batch_metrics(pred_xyz * 1000, gt_xyz * 1000, suffix_mask)
+                
+                total_pa_mpjpe.append(pa_mpjpe)
+                total_auc.append(auc)
+
+        avg_pa_mpjpe = np.mean(total_pa_mpjpe)
+        avg_auc = np.mean(total_auc)
+        eval_time = time.time() - start_eval
+
+        print(f"Eval Results: PA-MPJPE: {avg_pa_mpjpe:.2f}mm, AUC: {avg_auc:.4f} (Time: {(eval_time)/60:.2f}min)")
+
+        if self.train_platform:
+            self.train_platform.report_scalar(name='PA-MPJPE', value=avg_pa_mpjpe, iteration=self.step, group_name='Eval')
+            self.train_platform.report_scalar(name='AUC', value=avg_auc, iteration=self.step, group_name='Eval')
+
+        self.model.train()
 
   
     def generate_during_training(self):

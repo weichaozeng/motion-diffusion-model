@@ -7,7 +7,7 @@ import pickle
 from scipy.spatial.transform import Rotation as R
 import vis.camparam_utils as param_utils
 from pathlib import Path
-import utils.rotation_conversions as geometry
+import utils_hand.rotation_conversions as geometry
 
 MANO_HANDS_MEAN = [
     [ 0.1117, -0.0429,  0.4164],
@@ -145,7 +145,7 @@ class GigaHands(Dataset):
             # poses[:, :, 1] *= -1
             # poses[:, :, 2] *= -1
     
-        return poses, beta        
+        return poses, beta.squeeze(0)        
     
     # def _load_joints3D(self, ind, frame_ix, is_right, flip_left=True):
     #     joints_path = self.seqs_kp3d[ind]
