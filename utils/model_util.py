@@ -1,6 +1,5 @@
 import torch
 from model.mdm import MDM
-from model.mdm_hand import MDM_Hand
 from diffusion import gaussian_diffusion as gd
 from diffusion.respace import SpacedDiffusion, space_timesteps
 from utils.parser_util import get_cond_mode
@@ -17,8 +16,7 @@ def load_model_wo_clip(model, state_dict):
 
 
 def create_model_and_diffusion(args, data):
-    # model = MDM(**get_model_args(args, data))
-    model = MDM_Hand(**get_model_args(args, data))
+    model = MDM(**get_model_args(args, data))
     diffusion = create_gaussian_diffusion(args)
     return model, diffusion
 

@@ -3,14 +3,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from model.rotation2xyz import Rotation2xyz
-from model.BERT.BERT_encoder import load_bert
 from utils.misc import WeightedSum
 
 
 class MDM_Hand(nn.Module):
     def __init__(self, njoints, nfeats, translation, pose_rep, glob, glob_rot,
                  latent_dim=256, ff_size=1024, num_layers=8, num_heads=4, dropout=0.1,
-                 activation="gelu", data_rep='rot6d', arch='trans_enc', emb_trans_dec=False, **kargs):
+                 activation="gelu", data_rep='rot6d', arch='trans_enc', **kargs):
         super().__init__()
 
         self.njoints = njoints
@@ -30,17 +29,20 @@ class MDM_Hand(nn.Module):
         self.dropout = dropout
 
         self.activation = activation
-        self.input_feats = 2 * self.njoints * self.nfeats + 1
+        self.input_feats = self.njoints * self.nfeats
 
-        self.mask_frames = kargs.get('mask_frames', False)
+        self.suffix_mask = kargs.get('suffix_mask', False)
         self.arch = arch
-        self.gru_emb_dim = self.latent_dim if self.arch == 'gru' else 0
-        self.input_process = InputProcess(self.data_rep, self.input_feats+self.gru_emb_dim, self.latent_dim)
+        self.input_process = InputProcess(self.data_rep, self.input_feats * 2 + 1, self.latent_dim)
 
         self.sequence_pos_encoder = PositionalEncoding(self.latent_dim, self.dropout, max_len=kargs.get('pos_embed_max_len', 5000))
-        self.emb_trans_dec = emb_trans_dec
 
-        self.all_goal_joint_names = kargs.get('all_goal_joint_names', [])
+        self.embed_timestep = TimestepEmbedder(self.latent_dim, self.sequence_pos_encoder)
+
+        self.output_process = OutputProcess(self.data_rep, self.input_feats, self.latent_dim, self.njoints, self.nfeats)
+
+        self.rot2xyz = Rotation2xyz(device='cpu')
+
 
         if self.arch == 'trans_enc':
             print("TRANS_ENC init")
@@ -61,77 +63,60 @@ class MDM_Hand(nn.Module):
                                                               activation=activation)
             self.seqTransDecoder = nn.TransformerDecoder(seqTransDecoderLayer,
                                                          num_layers=self.num_layers)
-        elif self.arch == 'gru':
-            print("GRU init")
-            self.gru = nn.GRU(self.latent_dim, self.latent_dim, num_layers=self.num_layers, batch_first=True)
         else:
             raise ValueError('Please choose correct architecture [trans_enc, trans_dec, gru]')
 
-        self.embed_timestep = TimestepEmbedder(self.latent_dim, self.sequence_pos_encoder)
-
-        self.output_process = OutputProcess(self.data_rep, self.input_feats, self.latent_dim, self.njoints,
-                                            self.nfeats)
-
-        self.rot2xyz = Rotation2xyz(device='cpu')
 
     def parameters(self):
         return [p for name, p in self.named_parameters()]
 
 
-    def forward(self, x, timesteps, y=None):
+    def forward(self, x, timesteps, batch):
         """
         x: [batch_size, njoints, nfeats, max_frames], denoted x_t in the paper
         timesteps: [batch_size] (int)
         """
         bs, njoints, nfeats, nframes = x.shape
-        time_emb = self.embed_timestep(timesteps)  # [1, bs, d]
-        ref_motion = y['ref_motion']
-        inpaint_mask = y['inpaint_mask']
-        x = torch.cat([x, ref_motion, inpaint_mask], dim=2)
+        device = x.device
 
-        if self.arch == 'gru':
-            x_reshaped = x.reshape(bs, njoints*nfeats, 1, nframes)
-            emb_gru = time_emb.repeat(nframes, 1, 1)     #[#frames, bs, d]
-            emb_gru = emb_gru.permute(1, 2, 0)      #[bs, d, #frames]
-            emb_gru = emb_gru.reshape(bs, self.latent_dim, 1, nframes)  #[bs, d, 1, #frames]
-            x = torch.cat((x_reshaped, emb_gru), axis=1)  #[bs, d+joints*feat, 1, #frames]
+        # x: [bs, njoints, nfeats, nframes] -> [nframes, bs, njoints*nfeats]
+        x = x.transpose(3, 0, 1, 2).view(nframes, bs, njoints * nfeats) 
+       # y: [bs, njoints, nfeats, nframes] -> [nframes, bs, njoints*nfeats]
+        y_pose = batch['y_pose']                
+        y_pose = y_pose.transpose(3, 0, 1, 2).view(nframes, bs, njoints * nfeats)
+        # inpaint_mask: [bs, nframes] -> [nframes, bs, 1]
+        inpaint_mask = batch['inpaint_mask']      
+        inpaint_mask = inpaint_mask.transpose(1, 0).unsqueeze(-1)
 
-        x = self.input_process(x)
+        # for CFG
+        uncond = batch.get('uncond', False)
+        if isinstance(uncond, bool):
+            if uncond:
+                y_pose = torch.zeros_like(y_pose)
+                inpaint_mask = torch.zeros_like(inpaint_mask)
+        else:
+            keep_mask = (~uncond).float().to(x.device)
+            y_pose = y_pose * keep_mask.view(bs, 1, 1, 1)
+            inpaint_mask = inpaint_mask * keep_mask.view()
+        
+        # concat
+        x_full = torch.cat([x, y_pose, inpaint_mask], dim=2)
+        x_full = self.input_process(x_full)
+        # time
+        time_emb = self.embed_timestep(timesteps)   # [1, bs, d]
 
-        frames_mask = None
-        is_valid_mask = y['mask'].shape[-1] > 1  # Don't use mask with the generate script
-        if self.mask_frames and is_valid_mask:
-            frames_mask = torch.logical_not(y['mask'][..., :x.shape[0]]).to(device=x.device)
-            if self.emb_trans_dec or self.arch == 'trans_enc':
-                step_mask = torch.zeros((bs, 1), dtype=torch.bool, device=x.device)
-                frames_mask = torch.cat([step_mask, frames_mask], dim=1)
+        if self.suffix_mask:
+            # True will be masked
+            step_mask = torch.zeros((bs, 1), dtype=torch.bool, device=x.device)
+            frames_mask = torch.cat([step_mask, batch['suffix_mask']], dim=1)
 
         if self.arch == 'trans_enc':
             # adding the timestep embed
-            xseq = torch.cat((time_emb, x), axis=0)  # [seqlen+1, bs, d]
+            xseq = torch.cat((time_emb, x_full), axis=0)  # [seqlen+1, bs, d]
             xseq = self.sequence_pos_encoder(xseq)  # [seqlen+1, bs, d]
             output = self.seqTransEncoder(xseq, src_key_padding_mask=frames_mask)[1:]  # , src_key_padding_mask=~maskseq)  # [seqlen, bs, d]
-
-        elif self.arch == 'trans_dec':
-            if self.emb_trans_dec:
-                xseq = torch.cat((time_emb, x), axis=0)
-            else:
-                xseq = x
-            xseq = self.sequence_pos_encoder(xseq)  # [seqlen+1, bs, d]
-
-            if self.text_encoder_type == 'clip':
-                output = self.seqTransDecoder(tgt=xseq, memory=y, tgt_key_padding_mask=frames_mask)
-            else:
-                raise ValueError()
-
-            if self.emb_trans_dec:
-                output = output[1:] # [seqlen, bs, d]
-
-        elif self.arch == 'gru':
-            xseq = x
-            xseq = self.sequence_pos_encoder(xseq)  # [seqlen, bs, d]
-            output, _ = self.gru(xseq)
-        
+        else:
+            raise NotImplementedError()
         output = self.output_process(output)  # [bs, njoints, nfeats, nframes]
         return output
 

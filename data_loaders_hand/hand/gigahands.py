@@ -94,7 +94,7 @@ class GigaHands(Dataset):
         data_path = Path("/home/zvc/Project/VHand/test_dataset/GigaHands/vhand/hamer_out")
         anno_root = Path("/home/zvc/Data/GigaHands/hand_poses") 
         rgb_root = Path("/home/zvc/Data/GigaHands/video_aligned")    
-        outs = sorted(os.listdir(data_path))[:200]
+        outs = sorted(os.listdir(data_path))
 
         for out in outs:
             session = out.split('_')[0]
@@ -119,8 +119,8 @@ class GigaHands(Dataset):
                 
     
         
-        self._train = list(range(0, len(self.seqs_y)))
-        # self._test = list(range(0, 100))
+        self._train = list(range(100, len(self.seqs_y)))
+        self._val = list(range(0, 100))
 
     def _load_cam(self, ind):
         return self.seqs_cam[ind]

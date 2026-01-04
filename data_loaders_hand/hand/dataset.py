@@ -14,7 +14,7 @@ import json
 
 
 class Dataset(torch.utils.data.Dataset):
-    def __init__(self, num_frames=1, sampling="conseq", sampling_step=1, split="train", pose_rep="rot6d", translation=False, glob=True, **kwargs):
+    def __init__(self, num_frames=150, sampling="conseq", sampling_step=1, split="train", pose_rep="rot6d", translation=False, glob=True, **kwargs):
         super().__init__()
         self.num_frames = num_frames
         self.sampling = sampling 
@@ -40,8 +40,8 @@ class Dataset(torch.utils.data.Dataset):
     def __getitem__(self, index):
         if self.split == 'train':
             data_index = self._train[index]
-        else:
-            data_index = self._test[index]
+        elif self.split == 'val':
+            data_index = self._val[index]
         return self._get_item_data_index(data_index)
     
     def _load(self, ind, frame_ix, is_right, y_data, x_data, cam):
@@ -139,15 +139,15 @@ class Dataset(torch.utils.data.Dataset):
             'x_beta': x_beta.float(),
             'x_root_trans': x_orig_root.float(),
             'x_trans': x_trans.float(),
-            'x_ff_root_orient_rotmat': x_first_frame_root_pose_matrix,
+            'x_ff_root_orient_rotmat': x_first_frame_root_pose_matrix.float(),
             # y
             'y_pose': x_pose.float(),
             'y_root_trans': y_orig_root.float(),
             'y_trans': y_trans.float(),
-            'y_ff_root_orient_rotmat': y_first_frame_root_pose_matrix,
+            'y_ff_root_orient_rotmat': y_first_frame_root_pose_matrix.float(),
             # corr
-            'R_c2w': R_c2w,
-            'R_adj': R_adj,
+            'R_c2w': R_c2w.float(),
+            'R_adj': R_adj.float(),
         }
 
         return data_dict
@@ -185,7 +185,7 @@ class Dataset(torch.utils.data.Dataset):
 
         assert self.num_frames > 0
         num_frames = self.num_frames if self.num_frames != -1 else self.max_len
-        suffix_mask = torch.zeros(num_frames, dtype=torch.bool)
+        suffix_mask = torch.onse(num_frames, dtype=torch.bool)
 
         if num_frames > nframes:
             # adding the last frame until done
@@ -194,7 +194,7 @@ class Dataset(torch.utils.data.Dataset):
             lastframe = max_nframe
             padding = lastframe * np.ones(ntoadd, dtype=int)
             frame_indices = np.concatenate((np.arange(min_nframe, max_nframe + 1), padding))
-            suffix_mask[:nframes] = True
+            suffix_mask[:nframes] = False
 
         elif self.sampling in ["conseq"]:
             step_max = (nframes - 1) // (num_frames - 1)
@@ -204,12 +204,12 @@ class Dataset(torch.utils.data.Dataset):
                 else:
                     step = self.sampling_step
             else:
-                raise NotImplementedError
+                raise NotImplementedError()
             lastone = step * (num_frames - 1)
             shift_max = nframes - lastone - 1
             shift = random.randint(0, max(0, shift_max - 1))
             frame_indices = shift + np.arange(0, lastone + 1, step) + min_nframe
-            suffix_mask[:] = True
+            suffix_mask[:] = False
 
         data_dict = self._load(data_index, frame_indices, is_right, y_data, x_data, cam)
 
