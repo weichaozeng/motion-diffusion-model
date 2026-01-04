@@ -482,7 +482,7 @@ if __name__ == "__main__":
                 "poses": torch.cat([torch.zeros_like(x_pose_rotvec[idx, 0, :]).unsqueeze(0), x_pose_rotvec[idx, 1:, :]], dim=0).unsqueeze(0).reshape(1, -1).to(device), 
                 "Rh": x_pose_rotvec[idx, 0, :].unsqueeze(0).to(device),
                 "Th": x_trans[idx].unsqueeze(0).to(device),
-                "shapes": x_beta.to(device),
+                "shapes": x_beta.unsqueeze(0).to(device),
             }
             vertices_gt = hand_model(return_verts=True, return_tensor=False, **hand_param_gt)[0]
             faces = hand_model.faces
@@ -503,7 +503,7 @@ if __name__ == "__main__":
                 "poses": torch.cat([torch.zeros_like(y_pose_rotvec[idx, 0, :]).unsqueeze(0), y_pose_rotvec[idx, 1:, :]], dim=0).unsqueeze(0).reshape(1, -1).to(device), 
                 "Rh": y_pose_rotvec[idx, 0, :].unsqueeze(0).to(device),
                 "Th": x_trans[idx].unsqueeze(0).to(device),
-                "shapes": x_beta.to(device),
+                "shapes": x_beta.unsqueeze(0).to(device),
             }
             vertices_ref = hand_model(return_verts=True, return_tensor=False, **hand_param_ref)[0]
             faces = hand_model.faces
