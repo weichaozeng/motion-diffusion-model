@@ -436,7 +436,7 @@ if __name__ == "__main__":
         frame_indices = sample['frame_indices']
 
         # temporal mask
-        valid_indices = torch.nonzero(suffix_mask).squeeze()
+        valid_indices = torch.nonzero(~suffix_mask).squeeze()
         if valid_indices.numel() > 0:
             start_idx = valid_indices[0].item() 
             end_idx = valid_indices[-1].item()
