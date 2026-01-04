@@ -442,7 +442,7 @@ if __name__ == "__main__":
             end_idx = valid_indices[-1].item()
 
         # model
-        from data_loaders.hand.vis import load_model, Renderer
+        from data_loaders_hand.hand.vis import load_model, Renderer
         render = Renderer(height=720, width=1280, faces=None, extra_mesh=[])
         model_path = '/home/zvc/Project/motion-diffusion-model/body_models'
         if is_right:
