@@ -185,7 +185,7 @@ class Dataset(torch.utils.data.Dataset):
 
         assert self.num_frames > 0
         num_frames = self.num_frames if self.num_frames != -1 else self.max_len
-        suffix_mask = torch.onse(num_frames, dtype=torch.bool)
+        suffix_mask = torch.ones(num_frames, dtype=torch.bool)
 
         if num_frames > nframes:
             # adding the last frame until done
