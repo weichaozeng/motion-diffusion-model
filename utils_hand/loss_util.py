@@ -14,7 +14,7 @@ def masked_l2(a, b, mask, loss_fn=diff_l2, epsilon=1e-8, entries_norm=True):
     # assuming a.shape == b.shape == bs, J, Jdim, seqlen
     # assuming mask.shape == bs, 1, 1, seqlen
     if len(mask.shape) == 2:
-        mask.unsqueeze(1).unsqueeze(1)
+        mask = mask.unsqueeze(1).unsqueeze(1)
     loss = loss_fn(a, b)
     loss = sum_flat(loss * mask.float())  # gives \sigma_euclidean over unmasked elements
     n_entries = a.shape[1]
