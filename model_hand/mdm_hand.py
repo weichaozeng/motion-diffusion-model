@@ -81,10 +81,10 @@ class MDM_Hand(nn.Module):
         device = x.device
 
         # x: [bs, njoints, nfeats, nframes] -> [nframes, bs, njoints*nfeats]
-        x = x.transpose(3, 0, 1, 2).view(nframes, bs, njoints * nfeats) 
+        x = x.permute(3, 0, 1, 2).contiguous().view(nframes, bs, njoints * nfeats) 
        # y: [bs, njoints, nfeats, nframes] -> [nframes, bs, njoints*nfeats]
         y_pose = batch['y_pose']                
-        y_pose = y_pose.transpose(3, 0, 1, 2).view(nframes, bs, njoints * nfeats)
+        y_pose = y_pose.permute(3, 0, 1, 2).contiguous().view(nframes, bs, njoints * nfeats)
         # inpaint_mask: [bs, nframes] -> [nframes, bs, 1]
         inpaint_mask = batch['inpaint_mask']      
         inpaint_mask = inpaint_mask.transpose(1, 0).unsqueeze(-1)
