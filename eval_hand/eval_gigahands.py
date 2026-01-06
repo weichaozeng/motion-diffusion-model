@@ -31,7 +31,7 @@ class GigaHandsEvaluator(Dataset):
 
                 sample = self.sample_fn(
                     self.model,
-                    batch['x_pose'],
+                    batch['x_pose'].shape,
                     model_kwargs=batch,
                     progress=False
                 )
