@@ -315,7 +315,7 @@ class TrainLoop:
         start_eval = time.time()
         assert self.dataset == 'gigahands'
 
-        eval_dataset = eval_gigahands.HandGeneratedDataset(self.args, self.model_for_eval, self.diffusion, self.val_loader, scale=self.args.gen_guidance_param)
+        eval_dataset = eval_gigahands.GigaHandsEvaluator(self.args, self.model_for_eval, self.diffusion, self.val_loader, scale=self.args.gen_guidance_param)
 
         eval_loader = DataLoader(eval_dataset, batch_size=self.args.eval_batch_size, shuffle=False)
 
