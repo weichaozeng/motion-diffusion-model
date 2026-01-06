@@ -10,7 +10,7 @@ from utils_hand.fixseed import fixseed
 from utils_hand.parser_util import train_args
 from utils_hand import dist_util
 from train_hand.training_loop import TrainLoop
-from data_loaders.get_data import get_dataset_loader
+from data_loaders_hand.get_data import get_dataset_loader
 from utils_hand.model_util import create_model_and_diffusion
 from train_hand.train_platforms import WandBPlatform, ClearmlPlatform, TensorboardPlatform, NoPlatform  # required for the eval operation
 
