@@ -45,6 +45,8 @@ class ClassifierFreeSampleModel(nn.Module):
                 return v
         combined_batch = {}
         for k, v in batch.items():
+            print(f'k: {k}')
+            print(f'v: {v.shape}')
             combined_batch[k] = repeat_batch(v)
 
         uncond_mask = torch.zeros(2 * bs, dtype=torch.bool, device=x.device)
