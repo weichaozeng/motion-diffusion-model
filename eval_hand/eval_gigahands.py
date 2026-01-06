@@ -27,7 +27,7 @@ class GigaHandsEvaluator(Dataset):
                 batch = {k: v.to(dist_util.dev()) if torch.is_tensor(v) else v 
                                 for k, v in batch.items()}
                 if scale != 1.:
-                    batch['scale'] = torch.Tensor(scale).to(dist_util.dev())
+                    batch['scale'] = torch.tensor(scale, dtype=torch.float32).to(dist_util.dev())
 
                 sample = self.sample_fn(
                     self.model,
