@@ -12,13 +12,13 @@ class Rotation2xyz:
         x_rotations = pose
 
         x_rotations = x_rotations.permute(0, 3, 1, 2)
-        nsamples, time, njoints, feats = x_rotations.shape
+        nsamples, nframes, njoints, feats = x_rotations.shape
 
         # Compute rotations
         if pose_rep == "rotvec":
             rotations = geometry.axis_angle_to_matrix(x_rotations)
         elif pose_rep == "rotmat":
-            rotations = x_rotations.view(nsamples, time, njoints, 3, 3)
+            rotations = x_rotations.view(nsamples, nframes, njoints, 3, 3)
         elif pose_rep == "rotquat":
             rotations = geometry.quaternion_to_matrix(x_rotations)
         elif pose_rep == "rot6d":
@@ -28,8 +28,7 @@ class Rotation2xyz:
 
         if ff_rotmat is not None:
             all_root_pose_mat = rotations[:, :, 0]
-            print(all_root_pose_mat.shape)
-            print(ff_rotmat.shape)
+            ff_rotmat = ff_rotmat.unsqueeze(1).repeat(1, nframes, 1, 1)
             all_root_pose_mat = torch.matmul(ff_rotmat, all_root_pose_mat)
             rotations[:, :, 0] = all_root_pose_mat
 

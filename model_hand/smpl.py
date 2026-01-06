@@ -141,8 +141,6 @@ class MANO(nn.Module):
     def extend_hand(poses, use_pca, use_flat_mean, coeffs, mean):
         if use_pca:
             poses = poses @ coeffs
-        print(f'poses: {poses.shape}')
-        print(f'mean: {mean.shape}')
         if not use_flat_mean:
             poses = poses + mean
         return poses
