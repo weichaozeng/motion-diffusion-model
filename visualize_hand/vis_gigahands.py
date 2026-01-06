@@ -7,7 +7,10 @@ import numpy as np
 import imageio
 
 def render_video(verts, out_dir, rgb_video_paths, rgb_frame_indices, cams, suffix_masks):
-    breakpoint
+    print(verts.shape)
+    print(len(rgb_video_paths))
+    print(rgb_frame_indices.shape)
+    print(len(cams))
     assert len(verts) ==  len(rgb_video_paths) and len(verts) == len(rgb_frame_indices) and len(verts) == len(cams), f"Length of verts, rgb_video_paths, rgb_frame_indices and cams must be the same."
 
     model_path = '/home/zvc/Project/VHand/_DATA/data/mano/MANO_RIGHT.pkl'
