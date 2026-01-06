@@ -36,7 +36,7 @@ class Rotation2xyz:
         rotations = rotations[:, 1:]
 
             # import ipdb; ipdb.set_trace()
-        vertices, joints = self.hand_model(pose=rotations, Rh=global_orient, shapes=beta, Th=translation)
+        vertices, joints = self.hand_model(poses=rotations, shapes=beta, Rh=global_orient, Th=translation)
 
     
         x_xyz = torch.empty(nsamples, time, joints.shape[1], 3, device=pose.device, dtype=pose.dtype)
