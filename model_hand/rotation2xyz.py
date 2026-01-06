@@ -5,7 +5,7 @@ from model_hand.smpl import MANO
 class Rotation2xyz:
     def __init__(self, device):
         self.device = device
-        self.hand_model = MANO(device=device).eval().to(device)
+        self.hand_model = MANO(device=device, num_pca_comps=6, use_pca=False, use_flat_mean=False,).eval().to(device)
 
     def __call__(self, pose, pose_rep, beta, translation=None, ff_rotmat=None, return_vertices=False, **kwargs):
 
