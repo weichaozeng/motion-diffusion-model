@@ -296,7 +296,7 @@ class GaussianDiffusion:
         B, C = x.shape[:2]
         assert t.shape == (B,)
 
-        model_output = model(x, self._scale_timesteps(t), **model_kwargs)
+        model_output = model(x, self._scale_timesteps(t), model_kwargs)
 
 
         if self.model_var_type in [ModelVarType.LEARNED, ModelVarType.LEARNED_RANGE]:
@@ -415,7 +415,7 @@ class GaussianDiffusion:
 
         This uses the conditioning strategy from Sohl-Dickstein et al. (2015).
         """
-        gradient = cond_fn(x, self._scale_timesteps(t), **model_kwargs)
+        gradient = cond_fn(x, self._scale_timesteps(t), model_kwargs)
         new_mean = (
             p_mean_var["mean"].float() + p_mean_var["variance"] * gradient.float()
         )
@@ -430,7 +430,7 @@ class GaussianDiffusion:
 
         This uses the conditioning strategy from Sohl-Dickstein et al. (2015).
         """
-        gradient = cond_fn(x, t, p_mean_var, **model_kwargs)
+        gradient = cond_fn(x, t, p_mean_var, model_kwargs)
         new_mean = (
             p_mean_var["mean"].float() + p_mean_var["variance"] * gradient.float()
         )
@@ -446,7 +446,7 @@ class GaussianDiffusion:
             raise NotImplementedError(f"Strategy {self.strategy} not implemented.")
         
         eps = self._predict_eps_from_xstart(x, t, p_mean_var["pred_xstart"], model_kwargs=model_kwargs)
-        eps = eps - noise_coef * cond_fn(x, self._scale_timesteps(t), **model_kwargs)
+        eps = eps - noise_coef * cond_fn(x, self._scale_timesteps(t), model_kwargs)
 
         out = p_mean_var.copy()
         out["pred_xstart"] = self._predict_xstart_from_eps(x, t, eps, model_kwargs=model_kwargs)
@@ -464,7 +464,7 @@ class GaussianDiffusion:
             raise NotImplementedError(f"Strategy {self.strategy} not implemented.")
 
         eps = self._predict_eps_from_xstart(x, t, p_mean_var["pred_xstart"], model_kwargs=model_kwargs)
-        eps = eps - noise_coef * cond_fn(x, t, p_mean_var, **model_kwargs)
+        eps = eps - noise_coef * cond_fn(x, t, p_mean_var, model_kwargs)
 
         out = p_mean_var.copy()
         out["pred_xstart"] = self._predict_xstart_from_eps(x, t, eps, model_kwargs=model_kwargs)
@@ -981,7 +981,7 @@ class GaussianDiffusion:
                 terms["loss"] *= self.num_timesteps
         
         elif self.loss_type == LossType.MSE or self.loss_type == LossType.RESCALED_MSE:
-            model_output = model(x_t, self._scale_timesteps(t), **model_kwargs)
+            model_output = model(x_t, self._scale_timesteps(t), model_kwargs)
 
             if self.model_var_type in [ModelVarType.LEARNED, ModelVarType.LEARNED_RANGE]:
                 B, C = x_t.shape[:2]
