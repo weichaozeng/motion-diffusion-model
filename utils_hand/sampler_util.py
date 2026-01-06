@@ -38,6 +38,14 @@ class ClassifierFreeSampleModel(nn.Module):
         for k, v in batch.items():
             if torch.is_tensor(v):
                 combined_batch[k] = torch.cat([v, v], dim=0)
+            elif isinstance(v, dict):
+                new_dict = {}
+                for sub_k, sub_v in v.items():
+                    if torch.is_tensor(sub_v):
+                        new_dict[sub_k] = torch.cat([sub_v, sub_v], dim=0)
+                    else:
+                        new_dict[sub_k] = sub_v + sub_v
+                combined_batch[k] = new_dict
             else:
                 combined_batch[k] = v + v
 
