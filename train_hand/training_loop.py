@@ -15,8 +15,7 @@ from tqdm import tqdm
 from torch.optim import AdamW
 from torch.utils.data import Dataset, DataLoader
 
-from data_loaders.get_data import get_dataset_loader
-from data_loaders.humanml.networks.evaluator_wrapper import EvaluatorMDMWrapper
+from data_loaders_hand.get_data import get_dataset_loader
 
 from diffusion_hand import logger
 from diffusion_hand.fp16_util import MixedPrecisionTrainer
