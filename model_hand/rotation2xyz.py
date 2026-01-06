@@ -28,6 +28,8 @@ class Rotation2xyz:
 
         if ff_rotmat is not None:
             all_root_pose_mat = rotations[:, :, 0]
+            print(all_root_pose_mat.shape)
+            print(ff_rotmat.shape)
             all_root_pose_mat = torch.matmul(ff_rotmat, all_root_pose_mat)
             rotations[:, :, 0] = all_root_pose_mat
 
