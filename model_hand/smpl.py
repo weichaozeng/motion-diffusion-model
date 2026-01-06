@@ -26,7 +26,7 @@ REGRESSOR_PATH = '/home/zvc/Project/motion-diffusion-model/body_models/J_regress
 
 
 class MANO(nn.Module):
-    def __init__(self, device=None, use_pose_blending=True, use_shape_blending=True, use_joints=True, with_color=False, use_lbs=True, **kwargs) -> None:
+    def __init__(self, device=None, use_pose_blending=True, use_shape_blending=True, use_joints=True, with_color=False, use_lbs=True, num_pca_comps=6, use_pca=False, use_flat_mean=False, **kwargs) -> None:
         super().__init__()
 
 
