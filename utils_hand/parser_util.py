@@ -88,9 +88,9 @@ def add_training_options(parser):
     group.add_argument("--eval_batch_size", default=32, type=int,
                        help="Batch size during evaluation loop. Do not change this unless you know what you are doing. "
                             "T2m precision calculation is based on fixed batch size 32.")
-    group.add_argument("--eval_split", default='test', choices=['val', 'test'], type=str,
+    group.add_argument("--eval_split", default='val', choices=['val', 'test'], type=str,
                        help="Which split to evaluate on during training.")
-    group.add_argument("--eval_during_training", action='store_true',
+    group.add_argument("--eval_during_training", default=True,
                        help="If True, will run evaluation during training.")
     group.add_argument("--eval_rep_times", default=3, type=int,
                        help="Number of repetitions for evaluation loop during training.")
