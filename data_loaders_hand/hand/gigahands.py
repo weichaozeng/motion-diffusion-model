@@ -2,6 +2,7 @@ from .dataset import Dataset
 import torch
 import os
 import json
+import random
 import numpy as np
 import pickle
 from scipy.spatial.transform import Rotation as R
@@ -119,8 +120,13 @@ class GigaHands(Dataset):
                 
     
         
-        self._train = list(range(100, len(self.seqs_y)))
-        self._val = list(range(0, 100))
+        _all_indices = list(range(len(self.seqs_y)))
+        random.seed(42)
+        random.shuffle(_all_indices)
+
+        val_size = 128
+        self._val = _all_indices[:val_size]
+        self._train = _all_indices[val_size:]
 
     def _load_cam(self, ind):
         return self.seqs_cam[ind]
