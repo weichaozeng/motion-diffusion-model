@@ -18,7 +18,7 @@ class Rotation2xyz:
         if pose_rep == "rotvec":
             rotations = geometry.axis_angle_to_matrix(x_rotations)
         elif pose_rep == "rotmat":
-            rotations = x_rotations.view(-1, njoints, 3, 3)
+            rotations = x_rotations.view(nsamples, time, njoints, 3, 3)
         elif pose_rep == "rotquat":
             rotations = geometry.quaternion_to_matrix(x_rotations)
         elif pose_rep == "rot6d":
@@ -27,9 +27,9 @@ class Rotation2xyz:
             raise NotImplementedError("No geometry for this one.")
 
         if ff_rotmat is not None:
-            all_root_pose_mat = rotations[:, 0]
+            all_root_pose_mat = rotations[:, :, 0]
             all_root_pose_mat = torch.matmul(ff_rotmat, all_root_pose_mat)
-            rotations[:, 0] = all_root_pose_mat
+            rotations[:, :, 0] = all_root_pose_mat
 
         B, F, J, _, _ = rotations.shape
         rotmat_flat = rotations.view(-1, J, 3, 3)
