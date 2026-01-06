@@ -1,4 +1,9 @@
-
+import sys
+from pathlib import Path
+current_file = Path(__file__).resolve()
+root_dir = current_file.parent.parent
+if str(root_dir) not in sys.path:
+    sys.path.insert(0, str(root_dir))
 import os
 import json
 from utils_hand.fixseed import fixseed
