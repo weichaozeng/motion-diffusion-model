@@ -350,7 +350,7 @@ class TrainLoop:
             self.train_platform.report_scalar(name='PA-MPJPE', value=avg_pa_mpjpe, iteration=self.step, group_name='Eval')
             self.train_platform.report_scalar(name='AUC', value=avg_auc, iteration=self.step, group_name='Eval')
             if vis_sample is not None:
-                vis_out_dir = os.path.join(self.save_dir, 'eval_vis', f'step_{self.total_step}')
+                vis_out_dir = os.path.join(self.save_dir, 'eval_vis', f'step_{self.total_step()}')
                 os.makedirs(vis_out_dir, exist_ok=True)
 
                 rgb_video_paths = vis_sample['video_path']
