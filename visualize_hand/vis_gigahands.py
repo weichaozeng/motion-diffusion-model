@@ -7,11 +7,7 @@ import numpy as np
 import imageio
 
 def render_video(verts, out_dir, rgb_video_paths, rgb_frame_indices, cams, suffix_masks):
-    print(verts.shape)
-    print(len(rgb_video_paths))
-    print(rgb_frame_indices.shape)
-    print(len(cams))
-    assert len(verts) ==  len(rgb_video_paths) and len(verts) == len(rgb_frame_indices) and len(verts) == len(cams), f"Length of verts, rgb_video_paths, rgb_frame_indices and cams must be the same."
+    assert len(verts) ==  len(rgb_video_paths) and len(verts) == len(rgb_frame_indices) and len(verts) == len(cams['K']), f"Length of verts, rgb_video_paths, rgb_frame_indices and cams must be the same."
 
     model_path = '/home/zvc/Project/VHand/_DATA/data/mano/MANO_RIGHT.pkl'
     with open(model_path, 'rb') as mano_file:
@@ -24,7 +20,13 @@ def render_video(verts, out_dir, rgb_video_paths, rgb_frame_indices, cams, suffi
         video_path = rgb_video_paths[i]
         frame_indices = rgb_frame_indices[i]
         suffix_mask = suffix_masks[i]
-        cam = cams[i]
+        cam = {
+                'K': cams['K'][i],
+                'R': cams['R'][i],
+                'T': cams['T'][i],
+                "dist": cams['dist'][i],
+                'P': cams['P'][i],
+        }
         video_name = os.path.basename(video_path).split('.')[0]
         out_video_path = os.path.join(out_dir, f'{video_name}_rendered.mp4')
         
