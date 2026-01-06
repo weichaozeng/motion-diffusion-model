@@ -156,7 +156,7 @@ class GaussianDiffusion:
         self.lambda_vel_rcxyz = lambda_vel_rcxyz
 
         if self.lambda_rcxyz > 0. or self.lambda_vel > 0. or self.lambda_root_vel > 0. or \
-                self.lambda_vel_rcxyz > 0. or self.lambda_fc > 0. or self.lambda_target_loc > 0.:
+                self.lambda_vel_rcxyz > 0. or self.lambda_target_loc > 0.:
             assert self.loss_type == LossType.MSE, 'Geometric losses are supported by MSE loss type only!'
 
         # strategy
