@@ -188,7 +188,7 @@ class TrainLoop:
         mask = torch.rand(batch_size, device=device) < cond_mask_prob
         if mask.any():
             batch['y_pose'][mask] = 0.
-            batch['inpain_mask'][mask] = 0.
+            batch['inpaint_mask'][mask] = 0.
 
 
     def run_loop(self):
