@@ -45,8 +45,8 @@ def add_model_options(parser):
     group.add_argument("--cond_mask_prob", default=.1, type=float,
                        help="The probability of masking the condition during training."
                             " For classifier-free guidance learning.")
-    group.add_argument("--lambda_rcxyz", default=0.0, type=float, help="Joint positions loss.")
-    group.add_argument("--lambda_vel", default=0.0, type=float, help="Joint velocity loss.")
+    group.add_argument("--lambda_rcxyz", default=1.0, type=float, help="Joint positions loss.")
+    group.add_argument("--lambda_vel", default=1.0, type=float, help="Joint velocity loss.")
     # group.add_argument("--lambda_fc", default=0.0, type=float, help="Foot contact loss.")
     group.add_argument("--lambda_target_loc", default=0.0, type=float, help="For HumanML only, when . L2 with target location.")
 
@@ -95,7 +95,7 @@ def add_training_options(parser):
    
     group.add_argument("--log_interval", default=1_000, type=int,
                        help="Log losses each N steps")
-    group.add_argument("--save_interval", default=1_00, type=int,
+    group.add_argument("--save_interval", default=1_0, type=int,
                        help="Save checkpoints and run evaluation each N steps")
     group.add_argument("--num_steps", default=600_000, type=int,
                        help="Training will stop after the specified number of steps.")
@@ -103,13 +103,6 @@ def add_training_options(parser):
                        help="Limit for the maximal number of frames. In HumanML3D and KIT this field is ignored.")
     group.add_argument("--resume_checkpoint", default="", type=str,
                        help="If not empty, will start from the specified checkpoint (path to model###.pt file).")
-    
-    group.add_argument("--gen_during_training", action='store_true',
-                       help="If True, will generate motions during training, on each save interval.")
-    group.add_argument("--gen_num_samples", default=3, type=int,
-                       help="Number of samples to sample while generating")
-    group.add_argument("--gen_num_repetitions", default=2, type=int,
-                       help="Number of repetitions, per sample (text prompt/action)")
     group.add_argument("--gen_guidance_param", default=2.5, type=float,
                        help="For classifier-free sampling - specifies the s parameter, as defined in the paper.")
     
