@@ -146,14 +146,13 @@ class MANO(nn.Module):
         return poses
 
     def extend_pose(self, poses):
-        if self.model_type == 'mano' and poses.shape[-1] == 48 and self.use_flat_mean:
+        if poses.shape[-1] == 48 and self.use_flat_mean:
             return poses
-        # skip mano
-        if self.model_type == 'mano':
-            poses_hand = self.extend_hand(poses[..., 3:], self.use_pca, self.use_flat_mean,
-                self.mHandsComponents, self.mHandsMean)
-            poses = torch.cat([poses[..., :3], poses_hand], dim=-1)
-            return poses
+        
+        poses_hand = self.extend_hand(poses[..., 3:], self.use_pca, self.use_flat_mean,
+            self.mHandsComponents, self.mHandsMean)
+        poses = torch.cat([poses[..., :3], poses_hand], dim=-1)
+        return poses
 
     def forward(self, poses, shapes, Rh=None, Th=None, expression=None, 
         v_template=None,
@@ -194,8 +193,6 @@ class MANO(nn.Module):
         # process shapes
         if shapes.shape[0] < bn:
             shapes = shapes.expand(bn, -1)
-        if expression is not None and self.model_type == 'smplx':
-            shapes = torch.cat([shapes, expression], dim=1)
         # process poses
         if pose2rot: # if given rotation matrix, no need for this
             poses = self.extend_pose(poses)
@@ -240,12 +237,9 @@ class MANO(nn.Module):
         return params
 
     def check_params(self, body_params):
-        model_type = self.model_type
         nFrames = body_params['poses'].shape[0]
         if body_params['poses'].shape[1] != self.NUM_POSES:
             body_params['poses'] = np.hstack((body_params['poses'], np.zeros((nFrames, self.NUM_POSES - body_params['poses'].shape[1]))))
-        if model_type == 'smplx' and 'expression' not in body_params.keys():
-            body_params['expression'] = np.zeros((nFrames, NUM_EXPR))
         return body_params
 
     @staticmethod    
