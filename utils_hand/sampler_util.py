@@ -34,20 +34,18 @@ class ClassifierFreeSampleModel(nn.Module):
         t_combined = torch.cat([timesteps, timesteps], dim=0)
 
         # fist half is cond, second half is uncond    
+        def repeat_batch(v):
+            if torch.is_tensor(v):
+                return torch.cat([v, v], dim=0)
+            elif isinstance(v, dict):
+                return {k: repeat_batch(sub_v) for k, sub_v in v.items()}
+            elif isinstance(v, list):
+                return v + v
+            else:
+                return v
         combined_batch = {}
         for k, v in batch.items():
-            if torch.is_tensor(v):
-                combined_batch[k] = torch.cat([v, v], dim=0)
-            elif isinstance(v, dict):
-                new_dict = {}
-                for sub_k, sub_v in v.items():
-                    if torch.is_tensor(sub_v):
-                        new_dict[sub_k] = torch.cat([sub_v, sub_v], dim=0)
-                    else:
-                        new_dict[sub_k] = sub_v + sub_v
-                combined_batch[k] = new_dict
-            else:
-                combined_batch[k] = v + v
+            combined_batch[k] = repeat_batch(v)
 
         uncond_mask = torch.zeros(2 * bs, dtype=torch.bool, device=x.device)
         uncond_mask[bs:] = True
