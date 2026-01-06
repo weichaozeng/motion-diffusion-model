@@ -317,13 +317,16 @@ class GaussianDiffusion:
 
         else:
             if self.strategy == DiffusionStrategy.STANDARD:
-                model_variance, model_log_variance = {
+                raw_variance, raw_log_variance = {
                     ModelVarType.FIXED_LARGE: (np.append(self.posterior_variance[1], self.betas[1:]), np.log(np.append(self.posterior_variance[1], self.betas[1:]))),
                     ModelVarType.FIXED_SMALL: (self.posterior_variance, self.posterior_log_variance_clipped),
                 }[self.model_var_type]
             else:
-                model_variance = self.betas
-                model_log_variance = np.log(np.append(self.betas[1], self.betas[1:]))
+                raw_variance = self.betas
+                raw_log_variance = np.log(np.append(self.betas[1], self.betas[1:]))
+            model_variance = _extract_into_tensor(raw_variance, t, x.shape)
+            model_log_variance = _extract_into_tensor(raw_log_variance, t, x.shape)
+
 
         def process_xstart(x_in):
             if denoised_fn is not None:
