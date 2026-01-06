@@ -42,6 +42,7 @@ class Rotation2xyz:
 
         shapes = beta.unsqueeze(1).repeat(1, F, 1).view(-1, 10)
         if translation is not None:
+            print(f'translation: {translation.shape}')
             translation = translation.permute(0, 3, 1, 2).view(-1, 3)
         # import ipdb; ipdb.set_trace()
         vertices, joints = self.hand_model(poses=hand_pose, shapes=shapes, Rh=global_orient, Th=translation, pose2rot=True)
