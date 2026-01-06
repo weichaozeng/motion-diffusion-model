@@ -128,7 +128,7 @@ class MDM_Hand(nn.Module):
 
     def _apply(self, fn):
         super()._apply(fn)
-        self.rot2xyz.smpl_model._apply(fn)
+        self.rot2xyz.hand_model._apply(fn)
 
 
     def train(self, *args, **kwargs):
