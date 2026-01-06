@@ -45,8 +45,8 @@ def add_model_options(parser):
     group.add_argument("--cond_mask_prob", default=.1, type=float,
                        help="The probability of masking the condition during training."
                             " For classifier-free guidance learning.")
-    group.add_argument("--lambda_rcxyz", default=1.0, type=float, help="Joint positions loss.")
-    group.add_argument("--lambda_vel", default=1.0, type=float, help="Joint velocity loss.")
+    group.add_argument("--lambda_rcxyz", default=0.0, type=float, help="Joint positions loss.")
+    group.add_argument("--lambda_vel", default=0.0, type=float, help="Joint velocity loss.")
     # group.add_argument("--lambda_fc", default=0.0, type=float, help="Foot contact loss.")
     group.add_argument("--lambda_target_loc", default=0.0, type=float, help="For HumanML only, when . L2 with target location.")
 
