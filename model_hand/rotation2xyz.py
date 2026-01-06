@@ -31,19 +31,23 @@ class Rotation2xyz:
             all_root_pose_mat = torch.matmul(ff_rotmat, all_root_pose_mat)
             rotations[:, 0] = all_root_pose_mat
 
+        B, F, J, _, _ = rotations.shape
+        rotmat_flat = rotations.view(-1, J, 3, 3)
+        rotvec_flat = geometry.matrix_to_axis_angle(rotmat_flat)
 
-        global_orient_rotvec = geometry.matrix_to_axis_angle(rotations[:, 0])
-        rotations_rotvec = geometry.matrix_to_axis_angle(rotations[:, 1:])
+        global_orient = rotvec_flat[:, 0, :].reshape(-1, 3)
+        hand_pose = rotvec_flat[:, 1:, :].reshape(-1, 45)
+        hand_pose = torch.cat([torch.zeros_like(global_orient), hand_pose], dim=1)
 
             # import ipdb; ipdb.set_trace()
-        vertices, joints = self.hand_model(poses=rotations_rotvec, shapes=beta, Rh=global_orient_rotvec, Th=translation, pose2rot=True)
+        vertices, joints = self.hand_model(poses=hand_pose, shapes=beta, Rh=global_orient, Th=translation, pose2rot=True)
 
-    
-        x_xyz = torch.empty(nsamples, time, joints.shape[1], 3, device=pose.device, dtype=pose.dtype)
-        x_xyz[:] = joints
-        x_xyz = x_xyz.permute(0, 2, 3, 1).contiguous()
+        vertices = vertices.view(B, F, -1, 3)
+        joints = joints.view(B, F, -1, 3)
+
+        joints = joints.permute(0, 2, 3, 1).contiguous()
 
         if return_vertices:
-            return x_xyz, vertices
+            return joints, vertices
         else:
-            return x_xyz
+            return joints
