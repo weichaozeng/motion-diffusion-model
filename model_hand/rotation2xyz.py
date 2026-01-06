@@ -32,11 +32,11 @@ class Rotation2xyz:
             rotations[:, 0] = all_root_pose_mat
 
 
-        global_orient = rotations[:, 0]
-        rotations = rotations[:, 1:]
+        global_orient_rotvec = geometry.matrix_to_axis_angle(rotations[:, 0])
+        rotations_rotvec = geometry.matrix_to_axis_angle(rotations[:, 1:])
 
             # import ipdb; ipdb.set_trace()
-        vertices, joints = self.hand_model(poses=rotations, shapes=beta, Rh=global_orient, Th=translation)
+        vertices, joints = self.hand_model(poses=rotations_rotvec, shapes=beta, Rh=global_orient_rotvec, Th=translation, pose2rot=True)
 
     
         x_xyz = torch.empty(nsamples, time, joints.shape[1], 3, device=pose.device, dtype=pose.dtype)
