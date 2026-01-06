@@ -18,12 +18,12 @@ def train_args():
 
 def add_base_options(parser):
     group = parser.add_argument_group('base')
-    parser.add_argument("--name", required=True, type=str, help="Name of the experiment for WandB and saving.")
     group.add_argument("--cuda", default=True, type=bool, help="Use cuda device, otherwise use CPU.")
     group.add_argument("--device", default=0, type=int, help="Device id to use.")
     group.add_argument("--seed", default=42, type=int, help="For fixing random seed.")
     group.add_argument("--batch_size", default=64, type=int, help="Batch size during training.")
     group.add_argument("--train_platform_type", default='NoPlatform', choices=['NoPlatform', 'ClearmlPlatform', 'TensorboardPlatform', 'WandBPlatform'], type=str, help="Choose platform to log results. NoPlatform means no logging.")
+    parser.add_argument("--platform_name", required=True, type=str, help="Name of the experiment for WandB and saving.")
     group.add_argument("--external_mode", default=False, type=bool, help="For backward cometability, do not change or delete.")
 
 
