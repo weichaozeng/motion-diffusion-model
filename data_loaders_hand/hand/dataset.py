@@ -216,8 +216,8 @@ class Dataset(torch.utils.data.Dataset):
         data_dict = self._load(data_index, frame_indices, is_right, y_data, x_data, cam)
 
         output = {
-            'name': os.path.basename(os.path.dirname(os.path.dirname(os.path.dirname(seq_y)))), 
-            'video_path': self.seqs_video[data_index],
+            'name': str(os.path.basename(os.path.dirname(os.path.dirname(os.path.dirname(seq_y))))), 
+            'video_path': str(self.seqs_video[data_index]),
             'frame_indices': frame_indices,
             'inpaint_mask': data_dict['inpaint_mask'], 
             'suffix_mask': suffix_mask, 
