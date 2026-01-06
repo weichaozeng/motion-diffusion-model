@@ -42,6 +42,7 @@ def get_model_args(args):
 
         'activation': "gelu", 
 
+        'cond_mask_prob': args.cond_mask_prob,
         'suffix_mask': True,  # mask_frames,
         'arch': args.arch,
 
