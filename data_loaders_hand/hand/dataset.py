@@ -244,8 +244,10 @@ class Dataset(torch.utils.data.Dataset):
 
         if self.split == 'train':
             return min(len(self._train), num_seq_max)
+        elif self.split == 'val':
+            return min(len(self._val), num_seq_max)
         else:
-            return min(len(self._test), num_seq_max)
+            raise NotImplementedError()
 
     def shuffle(self):
         if self.split == 'train':
