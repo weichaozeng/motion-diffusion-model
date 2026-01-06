@@ -163,8 +163,10 @@ class Dataset(torch.utils.data.Dataset):
                 break
             if self.split == 'train':
                 data_index = random.choice(self._train)
+            elif self.split == 'val':
+                data_index = random.choice(self._val)
             else:
-                data_index = random.choice(self._test)
+                raise NotImplementedError()
         # cam
         if getattr(self, "_load_cam", None) is None:
             raise ValueError("No cam params.")
