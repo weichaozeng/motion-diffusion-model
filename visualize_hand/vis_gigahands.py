@@ -21,11 +21,11 @@ def render_video(verts, out_dir, rgb_video_paths, rgb_frame_indices, cams, suffi
         frame_indices = rgb_frame_indices[i]
         suffix_mask = suffix_masks[i]
         cam = {
-                'K': cams['K'][i],
-                'R': cams['R'][i],
-                'T': cams['T'][i],
-                "dist": cams['dist'][i],
-                'P': cams['P'][i],
+                'K': cams['K'][i].numpy(),
+                'R': cams['R'][i].numpy(),
+                'T': cams['T'][i].numpy(),
+                "dist": cams['dist'][i].numpy(),
+                'P': cams['P'][i].numpy(),
         }
         video_name = os.path.basename(video_path).split('.')[0]
         out_video_path = os.path.join(out_dir, f'{video_name}_rendered.mp4')
