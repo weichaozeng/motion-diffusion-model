@@ -18,6 +18,7 @@ def train_args():
 
 def add_base_options(parser):
     group = parser.add_argument_group('base')
+    parser.add_argument("--name", required=True, type=str, help="Name of the experiment for WandB and saving.")
     group.add_argument("--cuda", default=True, type=bool, help="Use cuda device, otherwise use CPU.")
     group.add_argument("--device", default=0, type=int, help="Device id to use.")
     group.add_argument("--seed", default=42, type=int, help="For fixing random seed.")
