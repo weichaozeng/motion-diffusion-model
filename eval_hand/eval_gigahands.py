@@ -53,7 +53,7 @@ class GigaHandsEvaluator(Dataset):
                         'gt_beta': batch['x_beta'][bs_i],
                         'video_path': batch['video_path'][bs_i],
                         'frame_indices': batch['frame_indices'][bs_i],
-                        'gt_trans': batch['x_trans'][bs_i],
+                        'gt_trans': batch['x_trans'][bs_i] + batch['x_root_trans'][bs_i],
                         'gt_ff_root_orient_rotmat': batch['x_ff_root_orient_rotmat'][bs_i],
                         'y_pose': batch['y_pose'][bs_i],
                         'y_ff_root_orient_rotmat': batch['y_ff_root_orient_rotmat'][bs_i],
