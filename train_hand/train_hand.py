@@ -1,7 +1,3 @@
-# This code is based on https://github.com/openai/guided-diffusion
-"""
-Train a diffusion model on images.
-"""
 
 import os
 import json

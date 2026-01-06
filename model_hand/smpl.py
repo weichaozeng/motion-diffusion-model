@@ -207,8 +207,6 @@ class MANO(nn.Module):
                                 self.J_regressor, self.parents,
                                 self.weights, pose2rot=pose2rot, dtype=self.dtype,
                                 use_pose_blending=self.use_pose_blending, use_shape_blending=self.use_shape_blending, J_shaped=self.J_shaped)
-            if not self.use_joints and not return_verts:
-                vertices = joints
         else:
             NotImplementedError()
             # vertices, joints = self.lbs(shapes, poses, self.j_v_template,

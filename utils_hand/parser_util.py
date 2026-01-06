@@ -60,6 +60,19 @@ def add_diffusion_options(parser):
     group.add_argument("--noise_schedule", default='cosine', choices=['linear', 'cosine'], type=str, help="Noise schedule type")
     group.add_argument("--diffusion_steps", default=1000, type=int, help="Number of diffusion steps (denoted T in the paper)")
     group.add_argument("--sigma_small", default=True, type=bool, help="Use smaller sigma values.")
+    group.add_argument(
+        "--strategy", 
+        default='standard', 
+        choices=['standard', 'residual'], 
+        type=str, 
+        help="Diffusion strategy: 'standard' for vanilla DDPM, 'residual' for Refinement."
+    )
+    group.add_argument(
+        "--kappa", 
+        default=0.1, 
+        type=float, 
+        help="The weight of noise/residual in RESIDUAL strategy. Lower values mean higher trust in y_pose."
+    )
 
 
 def add_training_options(parser):

@@ -7,14 +7,7 @@ class Rotation2xyz:
         self.device = device
         self.hand_model = MANO(device=device).eval().to(device)
 
-    def __call__(self, pose, pose_rep, beta, glob, translation=None, 
-                 glob_rot=None, return_vertices=False, **kwargs):
-
-
-
-        if not glob and glob_rot is None:
-            raise TypeError("You must specify global rotation if glob is False")
-        
+    def __call__(self, pose, pose_rep, beta, translation=None, ff_rotmat=None, return_vertices=False, **kwargs):
 
         x_rotations = pose
 
@@ -33,13 +26,14 @@ class Rotation2xyz:
         else:
             raise NotImplementedError("No geometry for this one.")
 
-        if not glob:
-            global_orient = torch.tensor(glob_rot, device=x.device)
-            global_orient = geometry.axis_angle_to_matrix(global_orient).view(1, 1, 3, 3)
-            global_orient = global_orient.repeat(len(rotations), 1, 1, 1)
-        else:
-            global_orient = rotations[:, 0]
-            rotations = rotations[:, 1:]
+        if ff_rotmat is not None:
+            all_root_pose_mat = rotations[:, 0]
+            all_root_pose_mat = torch.matmul(ff_rotmat, all_root_pose_mat)
+            rotations[:, 0] = all_root_pose_mat
+
+
+        global_orient = rotations[:, 0]
+        rotations = rotations[:, 1:]
 
             # import ipdb; ipdb.set_trace()
         vertices, joints = self.hand_model(pose=rotations, Rh=global_orient, shapes=beta, Th=translation)

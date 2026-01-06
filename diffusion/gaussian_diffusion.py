@@ -90,6 +90,8 @@ class ModelVarType(enum.Enum):
     LEARNED_RANGE = enum.auto()
 
 
+
+
 class LossType(enum.Enum):
     MSE = enum.auto()  # use raw MSE loss (and KL when learning variances)
     RESCALED_MSE = (

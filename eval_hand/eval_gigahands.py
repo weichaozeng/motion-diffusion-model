@@ -43,6 +43,12 @@ class GigaHandsEvaluator(Dataset):
                         'suffix_mask': batch['suffix_mask'][bs_i],
                         'cam': batch['cam'][bs_i],
                         'gt_beta': batch['x_beta'][bs_i],
+                        'video_path': batch['video_path'][bs_i],
+                        'frame_indices': batch['frame_indices'][bs_i],
+                        'gt_trans': batch['x_trans'][bs_i],
+                        'gt_ff_root_orient_rotmat': batch['x_ff_root_orient_rotmat'][bs_i],
+                        'y_pose': batch['y_pose'][bs_i],
+                        'y_ff_root_orient_rotmat': batch['y_ff_root_orient_rotmat'][bs_i],
                     }   
                     self.generated_data.append(entry)
         self.model.train()
@@ -55,8 +61,8 @@ class GigaHandsEvaluator(Dataset):
         
         pred = data['pred_pose']
         gt = data['gt_pose']
-
-        return pred, gt, data['suffix_mask'], data['gt_beta']
+        
+        return pred, gt, data['suffix_mask'], data['gt_beta'], data
     
 
 def compute_batch_metrics(pred_xyz, gt_xyz, suffix_mask):

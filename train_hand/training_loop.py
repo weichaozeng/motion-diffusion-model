@@ -23,13 +23,14 @@ from diffusion_hand.fp16_util import MixedPrecisionTrainer
 from diffusion_hand.resample import LossAwareSampler, UniformSampler
 from diffusion_hand.resample import create_named_schedule_sampler
 
-from sample_hand.generate import main as generate
 
 from utils_hand.model_util import load_model
 from utils_hand.sampler_util import ClassifierFreeSampleModel
 from utils_hand import dist_util
 
 from eval_hand import eval_gigahands
+
+from visualize_hand import vis_gigahands
 
 # For ImageNet experiments, this was a good default value.
 # We found that the lg_loss_scale quickly climbed to
@@ -220,7 +221,6 @@ class TrainLoop:
                     if self.args.use_ema:
                         self.model_avg.eval()
                     self.evaluate()
-                    self.generate_during_training()
                     self.model.train()
                     if self.args.use_ema:
                         self.model_avg.train()
@@ -322,19 +322,24 @@ class TrainLoop:
 
         total_pa_mpjpe = []
         total_auc = []
+
+        vis_sample = None 
+        vis_batch_idx = np.random.randint(len(eval_loader))
         
         self.model.eval()
         with torch.no_grad():
-            for pred_pose, gt_pose, suffix_mask, gt_beta in tqdm(eval_loader, desc="Calculating Metrics"):
+            for i, (pred_pose, gt_pose, suffix_mask, gt_beta, batch_data) in tqdm(enumerate(eval_loader), desc="Calculating Metrics"):
 
-                pred_xyz = self.model.rot2xyz(pose=pred_pose, pose_rep='rot6d', beta=gt_beta, glob=True, translation=False)
-                gt_xyz = self.model.rot2xyz(pose=gt_pose, pose_rep='rot6d', beta=gt_beta, glob=True, translation=False)
-
+                pred_xyz = self.model.rot2xyz(pose=pred_pose, pose_rep='rot6d', beta=gt_beta)
+                gt_xyz = self.model.rot2xyz(pose=gt_pose, pose_rep='rot6d', beta=gt_beta)
 
                 pa_mpjpe, auc = eval_gigahands.compute_batch_metrics(pred_xyz * 1000, gt_xyz * 1000, suffix_mask)
                 
                 total_pa_mpjpe.append(pa_mpjpe)
                 total_auc.append(auc)
+
+                if i == vis_batch_idx:
+                    vis_sample = batch_data
 
         avg_pa_mpjpe = np.mean(total_pa_mpjpe)
         avg_auc = np.mean(total_auc)
@@ -345,27 +350,51 @@ class TrainLoop:
         if self.train_platform:
             self.train_platform.report_scalar(name='PA-MPJPE', value=avg_pa_mpjpe, iteration=self.step, group_name='Eval')
             self.train_platform.report_scalar(name='AUC', value=avg_auc, iteration=self.step, group_name='Eval')
+            if vis_sample is not None:
+                vis_out_dir = os.path.join(self.save_dir, 'eval_vis', f'step_{self.total_step}')
+                os.makedirs(vis_out_dir, exist_ok=True)
+
+                rgb_video_paths = vis_sample['video_path']
+                rgb_frame_indices = vis_sample['frame_indices']
+                cams = vis_sample['cam']
+                suffix_masks = vis_sample['suffix_mask']
+
+                y_xyz, y_verts = self.model.rot2xyz(pose=vis_sample['y_pose'], pose_rep='rot6d', beta=vis_sample['gt_beta'], ff_rotmat=vis_sample['y_ff_root_orient_rotmat'], translation=vis_sample['gt_trans'], return_vertices=True)
+                y_video_dir = os.path.join(vis_out_dir, 'ori_video')
+                vis_gigahands.render_video(y_verts, y_video_dir, rgb_video_paths, rgb_frame_indices, cams, suffix_masks)
+
+                pred_xyz, pred_verts = self.model.rot2xyz(pose=vis_sample['pred_pose'], pose_rep='rot6d', beta=vis_sample['gt_beta'], ff_rotmat=vis_sample['gt_ff_root_orient_rotmat'], translation=vis_sample['gt_trans'], return_vertices=True)
+                pred_video_dir = os.path.join(vis_out_dir, 'pred_video')
+                vis_gigahands.render_video(pred_verts, pred_video_dir, rgb_video_paths, rgb_frame_indices, cams, suffix_masks)
+
+                gt_xyz, gt_verts = self.model.rot2xyz(pose=vis_sample['gt_pose'], pose_rep='rot6d', beta=vis_sample['gt_beta'], ff_rotmat=vis_sample['y_ff_root_orient_rotmat'], translation=vis_sample['gt_trans'], return_vertices=True)
+                gt_video_dir = os.path.join(vis_out_dir, 'gt_video')
+                vis_gigahands.render_video(gt_verts, gt_video_dir, rgb_video_paths, rgb_frame_indices, cams, suffix_masks)
+
+                self.train_platform.report_media(
+                    title='Eval_Visualization', 
+                    series='y', 
+                    iteration=self.step, 
+                    local_path=y_video_dir
+                )
+
+                self.train_platform.report_media(
+                    title='Eval_Visualization', 
+                    series='pred', 
+                    iteration=self.step, 
+                    local_path=pred_video_dir
+                )
+
+                self.train_platform.report_media(
+                    title='Eval_Visualization', 
+                    series='gt', 
+                    iteration=self.step, 
+                    local_path=gt_video_dir
+                )
+
 
         self.model.train()
 
-  
-    def generate_during_training(self):
-        if not self.args.gen_during_training:
-            return
-        gen_args = copy.deepcopy(self.args)
-        gen_args.model_path = os.path.join(self.save_dir, self.ckpt_file_name())
-        gen_args.output_dir = os.path.join(self.save_dir, f'{self.ckpt_file_name()}.samples')
-        gen_args.num_samples = self.args.gen_num_samples
-        gen_args.num_repetitions = self.args.gen_num_repetitions
-        gen_args.guidance_param = self.args.gen_guidance_param
-        gen_args.motion_length = 6  # fixed length
-        gen_args.input_text = gen_args.text_prompt = gen_args.action_file = gen_args.action_name = gen_args.dynamic_text_path = ''
-        if gen_args.multi_target_cond:
-            gen_args.sampling_mode = 'goal'
-            gen_args.target_joint_source = 'data'
-        all_sample_save_path = generate(gen_args)
-        self.train_platform.report_media(title='Motion', series='Predicted Motion', iteration=self.total_step(),
-                                         local_path=all_sample_save_path)        
 
     
     def find_resume_checkpoint(self) -> Optional[str]:

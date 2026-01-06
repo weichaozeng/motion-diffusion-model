@@ -73,9 +73,20 @@ def create_gaussian_diffusion(args):
     else:
         lambda_target_loc = 0.
 
+    STR_TO_STRATEGY = {
+        'standard': gd.DiffusionStrategy.STANDARD,
+        'residual': gd.DiffusionStrategy.RESIDUAL
+    }
+    strategy_str = getattr(args, 'strategy', 'standard')
+    strategy_enum = STR_TO_STRATEGY.get(strategy_str.lower(), gd.DiffusionStrategy.STANDARD)
+
+    kappa = getattr(args, 'kappa', 1.0)
+
     return SpacedDiffusion(
         use_timesteps=space_timesteps(steps, timestep_respacing),
         betas=betas,
+        strategy=strategy_enum,
+        kappa=kappa,
         model_mean_type=(
             gd.ModelMeanType.EPSILON if not predict_xstart else gd.ModelMeanType.START_X
         ),
@@ -92,7 +103,6 @@ def create_gaussian_diffusion(args):
         rescale_timesteps=rescale_timesteps,
         lambda_vel=args.lambda_vel,
         lambda_rcxyz=args.lambda_rcxyz,
-        lambda_fc=args.lambda_fc,
         lambda_target_loc=lambda_target_loc,
     )
 
