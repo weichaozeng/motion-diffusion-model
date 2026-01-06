@@ -31,6 +31,7 @@ class MDM_Hand(nn.Module):
         self.activation = activation
         self.input_feats = self.njoints * self.nfeats
 
+        self.cond_mask_prob = kargs.get('cond_mask_prob', 0.)
         self.suffix_mask = kargs.get('suffix_mask', False)
         self.arch = arch
         self.input_process = InputProcess(self.data_rep, self.input_feats * 2 + 1, self.latent_dim)

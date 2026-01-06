@@ -956,7 +956,7 @@ class GaussianDiffusion:
             model_kwargs = {}
 
         enc = model.model
-        mask = model_kwargs['suffix_mask']
+        mask = ~model_kwargs['suffix_mask']
         mano_beta = model_kwargs['beta']
 
         get_xyz = lambda sample: enc.rot2xyz(pose=sample, pose_rep=model.data_rep, beta=mano_beta)
