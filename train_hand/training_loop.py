@@ -118,7 +118,8 @@ class TrainLoop:
                 batch_size=args.eval_batch_size, 
                 num_frames=args.num_frames,
                 split=args.eval_split, # 'val'
-                device=self.device
+                device=self.device,
+                translation=True
             )
         
 
