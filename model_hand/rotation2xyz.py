@@ -41,6 +41,7 @@ class Rotation2xyz:
         hand_pose = torch.cat([torch.zeros_like(global_orient), hand_pose], dim=1)
 
         shapes = beta.unsqueeze(1).repeat(1, F, 1).view(-1, 10)
+        
         # import ipdb; ipdb.set_trace()
         vertices, joints = self.hand_model(poses=hand_pose, shapes=shapes, Rh=global_orient, Th=translation, pose2rot=True)
 
