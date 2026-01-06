@@ -134,7 +134,7 @@ class MDM_Hand(nn.Module):
 
     def train(self, *args, **kwargs):
         super().train(*args, **kwargs)
-        self.rot2xyz.smpl_model.train(*args, **kwargs)
+        self.rot2xyz.hand_model.train(*args, **kwargs)
 
 
 class PositionalEncoding(nn.Module):
