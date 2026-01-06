@@ -2,8 +2,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from model.rotation2xyz import Rotation2xyz
-from utils.misc import WeightedSum
+from model_hand.rotation2xyz import Rotation2xyz
+from utils_hand.misc import WeightedSum
 
 
 class MDM_Hand(nn.Module):
