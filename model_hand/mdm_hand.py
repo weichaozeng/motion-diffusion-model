@@ -187,10 +187,10 @@ class InputProcess(nn.Module):
     def forward(self, x_full):
         # x_full: [seqlen, bs, input_feats]; input_feats = njoints*nfeats*2 + 1
         if self.data_rep in ['rot6d', 'xyz']:
-            x = self.poseEmbedding(x)  # [seqlen, bs, d]
+            x = self.poseEmbedding(x_full)  # [seqlen, bs, d]
             return x
         elif self.data_rep == 'rot_vel':
-            first_pose = x[[0]]  # [1, bs, 150]
+            first_pose = x_full[[0]]  # [1, bs, 150]
             first_pose = self.poseEmbedding(first_pose)  # [1, bs, d]
             vel = x[1:]  # [seqlen-1, bs, 150]
             vel = self.velEmbedding(vel)  # [seqlen-1, bs, d]
