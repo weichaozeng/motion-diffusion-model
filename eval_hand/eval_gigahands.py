@@ -28,19 +28,20 @@ class GigaHandsEvaluator(Dataset):
                                 for k, v in batch.items()}
                 
                 if scale != 1.:
-                    B = batch['x_pose'].shape[0]
+                    B = batch['x_ret'].shape[0]
                     batch['scale'] = torch.tensor(scale, dtype=torch.float32).to(dist_util.dev()).repeat(B)
 
                 sample = self.sample_fn(
                     self.model,
-                    batch['x_pose'].shape,
+                    batch['x_ret'].shape,
                     model_kwargs=batch,
                     progress=False
                 )
 
-                for bs_i in range(batch['x_pose'].shape[0]):
+                for bs_i in range(batch['x_ret'].shape[0]):
                     entry = {
-                        'pred_pose': sample[bs_i],
+                        'pred_pose': sample[bs_i, :-1, :, :],
+                        'pred_trans': sample[bs_i, -1, :, :3],
                         'gt_pose': batch['x_pose'][bs_i],
                         'suffix_mask': batch['suffix_mask'][bs_i],
                         'cam': {

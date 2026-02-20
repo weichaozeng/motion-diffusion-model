@@ -14,7 +14,7 @@ import json
 
 
 class Dataset(torch.utils.data.Dataset):
-    def __init__(self, num_frames=150, sampling="conseq", sampling_step=1, split="train", pose_rep="rot6d", translation=False, glob=True, **kwargs):
+    def __init__(self, num_frames=150, sampling="conseq", sampling_step=1, split="train", pose_rep="rot6d", translation=True, glob=True, **kwargs):
         super().__init__()
         self.num_frames = num_frames
         self.sampling = sampling 
@@ -115,32 +115,38 @@ class Dataset(torch.utils.data.Dataset):
             x_orig_root = x_trans[0].clone()
             y_trans = torch.zeros((y_pose.shape[0], 3), dtype=y_pose.dtype)
             y_orig_root = y_trans[0].clone()
-        # if pose_rep != "xyz" and not self.translation:
-        #     ret_tr = torch.zeros((ret.shape[0], 3), dtype=ret.dtype)
-        #     # padded_tr = torch.zeros((ret.shape[0], ret.shape[2]), dtype=ret.dtype)
-        #     # padded_tr[:, :3] = ret_tr
-        #     # ret = torch.cat((ret, padded_tr[:, None]), 1)
-        #     # # y 
-        #     ret_tr_y = torch.zeros((ret.shape[0], 3), dtype=ret.dtype)
-            # padded_tr_y = torch.zeros((ret_y.shape[0], ret_y.shape[2]), dtype=ret_y.dtype)
-            # padded_tr_y[:, :3] = ret_tr_y
-            # ret_y = torch.cat((ret_y, padded_tr_y[:, None]), 1)
+
+        # padding
+        # x
+        x_padded_tr = torch.zeros((x_pose.shape[0], x_pose.shape[2]), dtype=x_pose.dtype)
+        x_padded_tr[:, :3] = x_trans
+        x_ret = torch.cat((x_pose, x_padded_tr[:, None]), 1)
+        # y
+        y_padded_tr = torch.zeros((y_pose.shape[0], y_pose.shape[2]), dtype=y_pose.dtype)
+        y_padded_tr[:, :3] = y_trans
+        y_ret = torch.cat((y_pose, y_padded_tr[:, None]), 1)
+
         
-        x_pose = x_pose.permute(1, 2, 0).contiguous()         # J, 6, T
+        x_pose = x_pose.permute(1, 2, 0).contiguous()     # J, 6, T
         x_trans = x_trans.permute(1, 0).contiguous()      # 3, T
+        x_ret = x_ret.permute(1, 2, 0).contiguous()       # J+1, 6, T
         y_pose = y_pose.permute(1, 2, 0).contiguous()     # J, 6, T
-        y_trans = y_trans.permute(1, 0).contiguous()  # 3, T
+        y_trans = y_trans.permute(1, 0).contiguous()      # 3, T
+        y_ret = y_ret.permute(1, 2, 0).contiguous()       # J+1, 6, T
         inpaint_mask = torch.from_numpy(inpaint_mask)
+        
         
         data_dict = {
             'inpaint_mask': inpaint_mask.float(),
             # x
+            'x_ret': x_ret.float(),
             'x_pose': x_pose.float(),
             'x_beta': x_beta.float(),
             'x_root_trans': x_orig_root.float(),
             'x_trans': x_trans.float(),
             'x_ff_root_orient_rotmat': x_first_frame_root_pose_matrix.float(),
             # y
+            'y_ret': y_ret.float(),
             'y_pose': x_pose.float(),
             'y_root_trans': y_orig_root.float(),
             'y_trans': y_trans.float(),
@@ -224,12 +230,14 @@ class Dataset(torch.utils.data.Dataset):
             'is_right': is_right, 
             'cam': cam, 
             # x
+            'x_ret': data_dict['x_ret'],
             'x_pose': data_dict['x_pose'], 
             'x_beta': data_dict['x_beta'], 
             'x_trans': data_dict['x_trans'],
             'x_root_trans': data_dict['x_root_trans'], 
             'x_ff_root_orient_rotmat': data_dict['x_ff_root_orient_rotmat'], 
             # y
+            'y_ret': data_dict['y_ret'],
             'y_pose': data_dict['y_pose'], 
             'y_trans': data_dict['y_trans'],
             'y_root_trans': data_dict['y_root_trans'], 

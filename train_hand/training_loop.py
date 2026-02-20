@@ -204,7 +204,8 @@ class TrainLoop:
                 # Modify in-place for efficiency
                 self.cond_modifiers(self.cond_mask_prob, batch) 
 
-                self.run_step(batch['x_pose'], batch)
+                # self.run_step(batch['x_pose'], batch)
+                self.run_step(batch['x_ret'], batch)
                 if self.total_step() % self.log_interval == 0:
                     for k,v in logger.get_current().dumpkvs().items():
                         if k == 'loss':
@@ -256,15 +257,15 @@ class TrainLoop:
                 avg_param.data.mul_(self.args.avg_model_beta).add_(
                     param.data, alpha=1 - self.args.avg_model_beta)
 
-    def forward_backward(self, x_pose, batch):
+    def forward_backward(self, x_ret, batch):
         self.mp_trainer.zero_grad()
-        for i in range(0, x_pose.shape[0], self.microbatch):
+        for i in range(0, x_ret.shape[0], self.microbatch):
             # Eliminates the microbatch feature
             assert i == 0
             assert self.microbatch == self.batch_size
-            micro = x_pose
+            micro = x_ret
             micro_cond = batch
-            last_batch = (i + self.microbatch) >= x_pose.shape[0]
+            last_batch = (i + self.microbatch) >= x_ret.shape[0]
             t, weights = self.schedule_sampler.sample(micro.shape[0], dist_util.dev())
 
             compute_losses = functools.partial(
@@ -363,7 +364,7 @@ class TrainLoop:
                 y_video_dir = os.path.join(vis_out_dir, 'ori_video')
                 vis_gigahands.render_video(y_verts, y_video_dir, rgb_video_paths, rgb_frame_indices, cams, suffix_masks)
 
-                pred_xyz, pred_verts = self.model.rot2xyz(pose=vis_sample['pred_pose'], pose_rep='rot6d', beta=vis_sample['gt_beta'], ff_rotmat=vis_sample['gt_ff_root_orient_rotmat'], translation=vis_sample['gt_trans'], return_vertices=True)
+                pred_xyz, pred_verts = self.model.rot2xyz(pose=vis_sample['pred_pose'], pose_rep='rot6d', beta=vis_sample['gt_beta'], ff_rotmat=vis_sample['y_ff_root_orient_rotmat'], translation=vis_sample['pred_trans'], return_vertices=True)
                 pred_video_dir = os.path.join(vis_out_dir, 'pred_video')
                 vis_gigahands.render_video(pred_verts, pred_video_dir, rgb_video_paths, rgb_frame_indices, cams, suffix_masks)
 

@@ -83,8 +83,8 @@ class MDM_Hand(nn.Module):
         # x: [bs, njoints, nfeats, nframes] -> [nframes, bs, njoints*nfeats]
         x = x.permute(3, 0, 1, 2).contiguous().view(nframes, bs, njoints * nfeats) 
        # y: [bs, njoints, nfeats, nframes] -> [nframes, bs, njoints*nfeats]
-        y_pose = batch['y_pose']                
-        y_pose = y_pose.permute(3, 0, 1, 2).contiguous().view(nframes, bs, njoints * nfeats)
+        y_ret = batch['y_ret']                
+        y_ret = y_ret.permute(3, 0, 1, 2).contiguous().view(nframes, bs, njoints * nfeats)
         # inpaint_mask: [bs, nframes] -> [nframes, bs, 1]
         inpaint_mask = batch['inpaint_mask']      
         inpaint_mask = inpaint_mask.transpose(1, 0).unsqueeze(-1)
@@ -93,16 +93,16 @@ class MDM_Hand(nn.Module):
         uncond = batch.get('uncond', False)
         if isinstance(uncond, bool):
             if uncond:
-                y_pose = torch.zeros_like(y_pose)
+                y_ret = torch.zeros_like(y_ret)
                 inpaint_mask = torch.zeros_like(inpaint_mask)
         else:
             # if uncond is a tensor of shape [bs]
             keep_mask = (~uncond).float().to(x.device).view(1, bs, 1)
-            y_pose = y_pose * keep_mask
+            y_ret = y_ret * keep_mask
             inpaint_mask = inpaint_mask * keep_mask
         
         # concat: [nframes, bs, njoints*nfeats*2 + 1]
-        x_full = torch.cat([x, y_pose, inpaint_mask], dim=2)
+        x_full = torch.cat([x, y_ret, inpaint_mask], dim=2)
         
         # x_full: [nframes, bs, latent_dim]; time_emb: [1, bs, latent_dim]
         x_full = self.input_process(x_full)

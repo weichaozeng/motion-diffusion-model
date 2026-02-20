@@ -224,7 +224,7 @@ class GaussianDiffusion:
             variance = 1.0 - alphas_cumprod
             log_variance = th.log(variance)
         elif self.strategy == DiffusionStrategy.RESIDUAL:
-            y = model_kwargs['y_pose']
+            y = model_kwargs['y_ret']
             eta = _extract_into_tensor(self.eta, t, x_start.shape)
             mean = x_start + eta * (y - x_start)
             variance = (self.kappa ** 2) * eta
@@ -248,7 +248,7 @@ class GaussianDiffusion:
             return sqrt_alpha_bar * x_start + sqrt_one_minus_alphas_cumprod * noise
 
         elif self.strategy == DiffusionStrategy.RESIDUAL:
-            y = model_kwargs['y_pose']
+            y = model_kwargs['y_ret']
             eta = _extract_into_tensor(self.eta, t, x_start.shape)
             return x_start + eta * (y - x_start) + self.kappa * th.sqrt(eta) * noise
         else:
@@ -270,7 +270,7 @@ class GaussianDiffusion:
                 self.posterior_log_variance_clipped, t, x_t.shape
             )
         elif self.strategy == DiffusionStrategy.RESIDUAL:
-            y = model_kwargs['y_pose']
+            y = model_kwargs['y_ret']
             eta_prev = _extract_into_tensor(self.eta_prev, t, x_start.shape)
             posterior_mean = x_start + eta_prev * (y - x_start)
             posterior_variance = _extract_into_tensor(self.betas, t, x_t.shape)
@@ -297,7 +297,6 @@ class GaussianDiffusion:
         assert t.shape == (B,)
 
         model_output = model(x, self._scale_timesteps(t), model_kwargs)
-
 
         if self.model_var_type in [ModelVarType.LEARNED, ModelVarType.LEARNED_RANGE]:
             assert model_output.shape == (B, C * 2, *x.shape[2:])
@@ -368,7 +367,7 @@ class GaussianDiffusion:
                 - _extract_into_tensor(self.sqrt_recipm1_alphas_cumprod, t, x_t.shape) * eps
             )
         elif self.strategy == DiffusionStrategy.RESIDUAL:
-            y = model_kwargs['y_pose']
+            y = model_kwargs['y_ret']
             eta = _extract_into_tensor(self.eta, t, x_t.shape)
             return (x_t - eta * y - self.kappa * th.sqrt(eta) * eps) / (1 - eta).clamp(min=1e-5)
         else:
@@ -384,7 +383,7 @@ class GaussianDiffusion:
                 ) * x_t
             )
         elif self.strategy == DiffusionStrategy.RESIDUAL:
-            y = model_kwargs['y_pose']
+            y = model_kwargs['y_ret']
             eta_prev = _extract_into_tensor(self.eta_prev, t, x_t.shape)
             return (xprev - eta_prev * y) / (1 - eta_prev).clamp(min=1e-5)
         else:
@@ -397,7 +396,7 @@ class GaussianDiffusion:
                 - pred_xstart
             ) / _extract_into_tensor(self.sqrt_recipm1_alphas_cumprod, t, x_t.shape)
         elif self.strategy == DiffusionStrategy.RESIDUAL:
-            y = model_kwargs['y_pose']
+            y = model_kwargs['y_ret']
             eta = _extract_into_tensor(self.eta, t, x_t.shape)
             denom = (self.kappa * th.sqrt(eta)).clamp(min=1e-5)
             return (x_t - pred_xstart - eta * (y - pred_xstart)) / denom
@@ -607,7 +606,7 @@ class GaussianDiffusion:
                 img = th.randn(*shape, device=device)
             elif self.strategy == DiffusionStrategy.RESIDUAL:
                 # RESIDUAL： y_pose + kappa * noise 
-                y = model_kwargs['y_pose']
+                y = model_kwargs['y_ret']
                 img = y + self.kappa * th.randn_like(y)
         
         if skip_timesteps and init_image is None:
@@ -754,7 +753,7 @@ class GaussianDiffusion:
                 + th.sqrt(1 - alpha_bar_prev - sigma ** 2) * eps
             )
         elif self.strategy == DiffusionStrategy.RESIDUAL:
-            y = model_kwargs['y_pose']
+            y = model_kwargs['y_ret']
             eta_n = _extract_into_tensor(self.eta, t, x.shape)
             eta_prev = _extract_into_tensor(self.eta_prev, t, x.shape)
             
@@ -811,7 +810,7 @@ class GaussianDiffusion:
                 + th.sqrt(1 - alpha_bar_next) * eps
             )
         else:
-            y = model_kwargs['y_pose']
+            y = model_kwargs['y_ret']
             eta_next = _extract_into_tensor(self.eta_next, t, x.shape)
             # x_{t+1} = x0 + eta_next * (y - x0) + kappa * sqrt(eta_next) * eps
             mean_pred = (
