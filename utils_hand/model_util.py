@@ -18,7 +18,7 @@ def get_model_args(args):
     if args.dataset == 'gigahands':
         data_rep = 'rot6d'
         njoints = 16
-        nfeats = 6
+        nfeats = 7 #6
         all_goal_joint_names = []
     else:
         raise NotImplementedError()
