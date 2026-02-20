@@ -111,8 +111,8 @@ class GigaHands(Dataset):
             cam_params = read_params(camera_path)
             cam = get_projections(cam_params, cam, n_Frames=1)
 
-            for track in os.listdir(data_path / out / 'results' / 'track_500.0'):
-                self.seqs_y.append(data_path / out / 'results' / 'track_500.0' / track)
+            for track in os.listdir(data_path / out / 'results' / 'track'):
+                self.seqs_y.append(data_path / out / 'results' / 'track' / track)
                 self.seqs_kp3d.append(kp3d_path)
                 self.seqs_mano.append(mano_path)
                 self.seqs_cam.append(cam)
