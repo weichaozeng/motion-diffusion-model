@@ -71,6 +71,8 @@ class Dataset(torch.utils.data.Dataset):
             if not self.glob:
                 y_pose = y_pose[:, 1:, :]
             y_pose = to_torch(y_pose)
+            R_c2w = to_torch(R_c2w)
+            R_adj = to_torch(R_adj)
             if self.align_pose_frontview:
                 y_first_frame_root_pose_matrix = geometry.axis_angle_to_matrix(y_pose[0][0])
                 y_all_root_poses_matrix = geometry.axis_angle_to_matrix(y_pose[:, 0, :])
