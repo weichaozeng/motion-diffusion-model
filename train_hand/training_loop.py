@@ -395,11 +395,25 @@ class TrainLoop:
                 )
 
                 # add cam space vis
-                R_total = vis_sample['R_c2w'] @ vis_sample['R_adj']
-                pred_t_world = torch.matmul(vis_sample['pred_trans'], vis_sample['y_ff_root_orient_rotmat'])
-                pred_t_y_cam = torch.matmul(pred_t_world, R_total)
+                # [B, 1, 3, 3] @ [B, 120, 3, 3] -> [B, 120, 3, 3]
+                R_total = vis_sample['R_c2w'].unsqueeze(1) @ vis_sample['R_adj']
+                # (B, 120, 3)
+                pred_t_world = torch.matmul(
+                    vis_sample['pred_trans'].unsqueeze(-2), 
+                    vis_sample['y_ff_root_orient_rotmat'].unsqueeze(1)
+                ).squeeze(-2) 
+                # (B, 120, 3)
+                pred_t_y_cam = torch.matmul(
+                    pred_t_world.unsqueeze(-2), 
+                    R_total.transpose(-1, -2)
+                ).squeeze(-2)
+                # [B, 120, 3] + [B, 1, 3] -> [B, 120, 3]
                 pred_t_y_final = pred_t_y_cam + vis_sample['y_root_trans']
-                ff_rotmat_y_cam = torch.matmul(R_total.transpose(-1, -2), vis_sample['y_ff_root_orient_rotmat'])
+                # [B, 120, 3, 3] @ [B, 1, 3, 3] -> [B, 120, 3, 3]
+                ff_rotmat_y_cam = torch.matmul(
+                    R_total.transpose(-1, -2), 
+                    vis_sample['y_ff_root_orient_rotmat'].unsqueeze(1)
+                )
 
                 _, pred_verts_y = self.model.rot2xyz(
                     pose=vis_sample['pred_pose'], 
