@@ -53,7 +53,7 @@ class GigaHandsEvaluator(Dataset):
                         'gt_pose': batch['x_pose'][bs_i],
                         'gt_beta': batch['x_beta'][bs_i],
                         'gt_trans': batch['x_trans'][bs_i].permute(1, 0),
-                        'gt_root_trans': batch['x_root_trans'][bs_i].unsqueeze(1),
+                        'gt_root_trans': batch['x_root_trans'][bs_i].unsqueeze(0),
                         'gt_ff_root_orient_rotmat': batch['x_ff_root_orient_rotmat'][bs_i],
                         'gt_cam': {
                             'K': batch['cam']['K'][bs_i],
@@ -69,7 +69,7 @@ class GigaHandsEvaluator(Dataset):
                         # y
                         'y_pose': batch['y_pose'][bs_i],
                         'y_trans': batch['y_trans'][bs_i].permute(1, 0),
-                        'y_root_trans': batch['y_root_trans'][bs_i].unsqueeze(1),
+                        'y_root_trans': batch['y_root_trans'][bs_i].unsqueeze(0),
                         'y_ff_root_orient_rotmat': batch['y_ff_root_orient_rotmat'][bs_i],
                        'y_cam': {
                             'K': virtual_K, 
