@@ -213,7 +213,7 @@ class GigaHands(Dataset):
 
         full_pose, inpaint_mask = self._slerp_y(
             chunk_indices, 
-            global_orient_corrected[start_idx:end_idx+1] 
+            global_orient_corrected[start_idx:end_idx+1],
             hand_pose_corrected[start_idx:end_idx+1]
         )
 
