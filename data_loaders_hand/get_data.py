@@ -10,9 +10,10 @@ def get_dataset_loader(
     pose_rep="rot6d", 
     device=None,
     translation=False,
-    glob=True
+    glob=True,
+    align_pose_frontview=True,
 ):
-    dataset = get_dataset(name, num_frames, split=split, pose_rep=pose_rep, device=device, translation=translation, glob=glob)
+    dataset = get_dataset(name, num_frames, split=split, pose_rep=pose_rep, device=device, translation=translation, glob=glob, align_pose_frontview=align_pose_frontview)
     collate = get_collate_fn(name, batch_size)
     loader = DataLoader(
         dataset, batch_size=batch_size, shuffle=True,
@@ -29,10 +30,11 @@ def get_dataset(
     pose_rep="rot6d", 
     device=None,
     translation=False,
-    glob=True
+    glob=True,
+    align_pose_frontview=True,
 ): 
     DATA = get_dataset_class(name)
-    dataset = DATA(split=split, num_frames=num_frames, pose_rep=pose_rep, translation=translation, glob=glob)
+    dataset = DATA(split=split, num_frames=num_frames, pose_rep=pose_rep, translation=translation, glob=glob, align_pose_frontview=align_pose_frontview)
     return dataset
 
 

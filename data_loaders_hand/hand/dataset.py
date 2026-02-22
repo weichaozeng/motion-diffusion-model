@@ -14,7 +14,7 @@ import json
 
 
 class Dataset(torch.utils.data.Dataset):
-    def __init__(self, num_frames=150, sampling="conseq", sampling_step=1, split="train", pose_rep="rot6d", translation=True, glob=True, **kwargs):
+    def __init__(self, num_frames=150, sampling="conseq", sampling_step=1, split="train", pose_rep="rot6d", translation=True, glob=True, align_pose_frontview=True, **kwargs):
         super().__init__()
         self.num_frames = num_frames
         self.sampling = sampling 
@@ -23,8 +23,7 @@ class Dataset(torch.utils.data.Dataset):
         self.pose_rep = pose_rep
         self.translation = translation
         self.glob = glob
-
-        self.align_pose_frontview = kwargs.get('align_pose_frontview', False)
+        self.align_pose_frontview = align_pose_frontview
 
         if self.split not in ["train", "val", "test"]:
             raise ValueError(f"{self.split} is not a valid split")
@@ -104,12 +103,18 @@ class Dataset(torch.utils.data.Dataset):
             x_trans = self._load_translation_x(ind, frame_ix, x_data, is_right)
             x_orig_root = to_torch(x_trans[0]).clone()
             x_trans = to_torch(x_trans - x_trans[0])
+            if self.align_pose_frontview:
+                x_trans = torch.matmul(x_trans, x_first_frame_root_pose_matrix)
             # y
             if getattr(self, "_load_translation_y") is None:
                 raise ValueError("Can't extract translations y.")
-            y_trans, _= self._load_translation_y(ind, frame_ix, y_data)
-            y_orig_root = to_torch(y_trans[0]).clone()
-            y_trans = to_torch(y_trans - y_trans[0])
+            y_trans_cam, _= self._load_translation_y(ind, frame_ix, y_data)
+            y_orig_root = to_torch(y_trans_cam[0]).clone()
+            y_trans_cam = to_torch(y_trans_cam - y_trans_cam[0])
+            R_total = R_c2w @ R_adj
+            y_trans = torch.matmul(y_trans_cam, R_total.t())
+            if self.align_pose_frontview:
+                y_trans = torch.matmul(y_trans, y_first_frame_root_pose_matrix)
         else:
             x_trans = torch.zeros((x_pose.shape[0], 3), dtype=x_pose.dtype)
             x_orig_root = x_trans[0].clone()
@@ -147,7 +152,7 @@ class Dataset(torch.utils.data.Dataset):
             'x_ff_root_orient_rotmat': x_first_frame_root_pose_matrix.float(),
             # y
             'y_ret': y_ret.float(),
-            'y_pose': x_pose.float(),
+            'y_pose': y_pose.float(),
             'y_root_trans': y_orig_root.float(),
             'y_trans': y_trans.float(),
             'y_ff_root_orient_rotmat': y_first_frame_root_pose_matrix.float(),
@@ -242,6 +247,9 @@ class Dataset(torch.utils.data.Dataset):
             'y_trans': data_dict['y_trans'],
             'y_root_trans': data_dict['y_root_trans'], 
             'y_ff_root_orient_rotmat': data_dict['y_ff_root_orient_rotmat'],
+            # corr
+            'R_c2w': data_dict['R_c2w'].float(),
+            'R_adj': data_dict['R_adj'].float(),
         }
         
         return output

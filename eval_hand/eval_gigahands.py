@@ -18,6 +18,12 @@ class GigaHandsEvaluator(Dataset):
         self.generated_data = []
         self.model.eval()
 
+        virtual_K = torch.eye(3)
+        virtual_K[0, 0] = 500.0  # fx
+        virtual_K[1, 1] = 500.0  # fy
+        virtual_K[0, 2] = 640.0  # cx (1280/2)
+        virtual_K[1, 2] = 360.0  # cy (720/2)
+
         with torch.no_grad():
             for i, batch in tqdm(enumerate(dataloader), desc="Generating Eval Samples"):
                 
@@ -40,24 +46,41 @@ class GigaHandsEvaluator(Dataset):
 
                 for bs_i in range(batch['x_ret'].shape[0]):
                     entry = {
+                        # pred_sample
                         'pred_pose': sample[bs_i, :-1, :, :],
-                        'pred_trans': sample[bs_i, -1, :3, :] + batch['y_root_trans'][bs_i],
+                        'pred_trans': sample[bs_i, -1, :3, :],
+                        # x
                         'gt_pose': batch['x_pose'][bs_i],
-                        'suffix_mask': batch['suffix_mask'][bs_i],
-                        'cam': {
+                        'gt_beta': batch['x_beta'][bs_i],
+                        'gt_trans': batch['x_trans'][bs_i].permute(1, 0),
+                        'gt_root_trans': batch['x_root_trans'][bs_i],
+                        'gt_ff_root_orient_rotmat': batch['x_ff_root_orient_rotmat'][bs_i],
+                        'gt_cam': {
                             'K': batch['cam']['K'][bs_i],
                             'R': batch['cam']['R'][bs_i],
                             'T': batch['cam']['T'][bs_i],
                             "dist": batch['cam']['dist'][bs_i],
                             'P': batch['cam']['P'][bs_i],
                         },
-                        'gt_beta': batch['x_beta'][bs_i],
+                        # misc
                         'video_path': batch['video_path'][bs_i],
                         'frame_indices': batch['frame_indices'][bs_i],
-                        'gt_trans': batch['x_trans'][bs_i].permute(1, 0) + batch['x_root_trans'][bs_i],
-                        'gt_ff_root_orient_rotmat': batch['x_ff_root_orient_rotmat'][bs_i],
+                        'suffix_mask': batch['suffix_mask'][bs_i],
+                        # y
                         'y_pose': batch['y_pose'][bs_i],
+                        'y_trans': batch['y_trans'][bs_i].permute(1, 0),
+                        'y_root_trans': batch['y_root_trans'][bs_i],
                         'y_ff_root_orient_rotmat': batch['y_ff_root_orient_rotmat'][bs_i],
+                       'y_cam': {
+                            'K': virtual_K, 
+                            'R': torch.eye(3), 
+                            'T': torch.zeros(3),
+                            'dist': torch.zeros(5),
+                            'P': torch.zeros(3, 4),
+                        },
+                        # corr
+                        'R_c2w': batch['R_cw2'][bs_i],
+                        'R_adj': batch['R_adj'][bs_i]
                     }   
                     self.generated_data.append(entry)
         self.model.train()

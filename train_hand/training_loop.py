@@ -357,20 +357,21 @@ class TrainLoop:
 
                 rgb_video_paths = vis_sample['video_path']
                 rgb_frame_indices = vis_sample['frame_indices']
-                cams = vis_sample['cam']
+                gt_cam = vis_sample['gt_cam']
+                y_cam = vis_sample['y_cam']
                 suffix_masks = vis_sample['suffix_mask']
 
-                y_xyz, y_verts = self.model.rot2xyz(pose=vis_sample['y_pose'], pose_rep='rot6d', beta=vis_sample['gt_beta'], ff_rotmat=vis_sample['y_ff_root_orient_rotmat'], translation=vis_sample['gt_trans'], return_vertices=True)
+                y_xyz, y_verts = self.model.rot2xyz(pose=vis_sample['y_pose'], pose_rep='rot6d', beta=vis_sample['gt_beta'], ff_rotmat=vis_sample['y_ff_root_orient_rotmat'], translation=vis_sample['y_trans'] + vis_sample['gt_root_trans'], return_vertices=True)
                 y_video_dir = os.path.join(vis_out_dir, 'ori_video')
-                vis_gigahands.render_video(y_verts, y_video_dir, rgb_video_paths, rgb_frame_indices, cams, suffix_masks)
+                vis_gigahands.render_video(y_verts, y_video_dir, rgb_video_paths, rgb_frame_indices, gt_cam, suffix_masks)
 
-                pred_xyz, pred_verts = self.model.rot2xyz(pose=vis_sample['pred_pose'], pose_rep='rot6d', beta=vis_sample['gt_beta'], ff_rotmat=vis_sample['y_ff_root_orient_rotmat'], translation=vis_sample['pred_trans'], return_vertices=True)
+                pred_xyz, pred_verts = self.model.rot2xyz(pose=vis_sample['pred_pose'], pose_rep='rot6d', beta=vis_sample['gt_beta'], ff_rotmat=vis_sample['y_ff_root_orient_rotmat'], translation=vis_sample['pred_trans'] + vis_sample['gt_root_trans'], return_vertices=True)
                 pred_video_dir = os.path.join(vis_out_dir, 'pred_video')
-                vis_gigahands.render_video(pred_verts, pred_video_dir, rgb_video_paths, rgb_frame_indices, cams, suffix_masks)
+                vis_gigahands.render_video(pred_verts, pred_video_dir, rgb_video_paths, rgb_frame_indices, gt_cam, suffix_masks)
 
-                gt_xyz, gt_verts = self.model.rot2xyz(pose=vis_sample['gt_pose'], pose_rep='rot6d', beta=vis_sample['gt_beta'], ff_rotmat=vis_sample['y_ff_root_orient_rotmat'], translation=vis_sample['gt_trans'], return_vertices=True)
+                gt_xyz, gt_verts = self.model.rot2xyz(pose=vis_sample['gt_pose'], pose_rep='rot6d', beta=vis_sample['gt_beta'], ff_rotmat=vis_sample['gt_ff_root_orient_rotmat'], translation=vis_sample['gt_trans'] + vis_sample['gt_root_trans'], return_vertices=True)
                 gt_video_dir = os.path.join(vis_out_dir, 'gt_video')
-                vis_gigahands.render_video(gt_verts, gt_video_dir, rgb_video_paths, rgb_frame_indices, cams, suffix_masks)
+                vis_gigahands.render_video(gt_verts, gt_video_dir, rgb_video_paths, rgb_frame_indices, gt_cam, suffix_masks)
 
                 self.train_platform.report_media(
                     title='Eval_Visualization', 
@@ -392,6 +393,32 @@ class TrainLoop:
                     iteration=self.step, 
                     local_path=gt_video_dir
                 )
+
+                # add cam space vis
+                R_total = vis_sample['R_c2w'] @ vis_sample['R_adj']
+                pred_t_world = torch.matmul(vis_sample['pred_trans'], vis_sample['y_ff_root_orient_rotmat'])
+                pred_t_y_cam = torch.matmul(pred_t_world, R_total)
+                pred_t_y_final = pred_t_y_cam + vis_sample['y_root_trans']
+                ff_rotmat_y_cam = torch.matmul(R_total.transpose(-1, -2), vis_sample['y_ff_root_orient_rotmat'])
+
+                _, pred_verts_y = self.model.rot2xyz(
+                    pose=vis_sample['pred_pose'], 
+                    pose_rep='rot6d', 
+                    beta=vis_sample['gt_beta'], 
+                    ff_rotmat=ff_rotmat_y_cam, 
+                    translation=pred_t_y_final, 
+                    return_vertices=True
+                )
+                pred_y_video_dir = os.path.join(vis_out_dir, 'pred_video_cam_space')
+                vis_gigahands.render_video(pred_verts_y, pred_y_video_dir, rgb_video_paths, rgb_frame_indices, y_cam, suffix_masks)
+
+                self.train_platform.report_media(
+                    title='Eval_Visualization', 
+                    series='pred_y_space', 
+                    iteration=self.step, 
+                    local_path=pred_y_video_dir
+                )
+
 
 
         self.model.train()
