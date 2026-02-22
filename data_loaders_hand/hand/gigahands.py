@@ -6,6 +6,7 @@ import random
 import numpy as np
 import pickle
 from scipy.spatial.transform import Rotation as R
+from scipy.spatial.transform import Slerp
 from .vis import camparam_utils as param_utils
 from pathlib import Path
 import utils_hand.rotation_conversions as geometry
@@ -206,13 +207,28 @@ class GigaHands(Dataset):
         indices = np.searchsorted(frame_indices, [frame_ix[0], frame_ix[-1]])
         start_idx = indices[0]
         end_idx = indices[1]
-        full_pose_rotvec, inpaint_mask = self._slerp_y(frame_indices[start_idx:end_idx+1], global_orient_corrected[start_idx:end_idx+1], hand_pose_corrected[start_idx:end_idx+1])
 
-        relative_indices = frame_ix - frame_indices[start_idx]
-        max_relative_idx = full_pose_rotvec.shape[0] - 1
-        relative_indices = np.clip(relative_indices, 0, max_relative_idx)
+        chunk_indices = frame_indices[start_idx:end_idx+1]
+        target_times = np.arange(chunk_indices[0], chunk_indices[-1] + 1)
 
-        return full_pose_rotvec[relative_indices], inpaint_mask[relative_indices], R_c2w, R_adj
+        full_pose, inpaint_mask = self._slerp_y(
+            chunk_indices, 
+            global_orient_corrected[start_idx:end_idx+1].cpu().numpy(), 
+            hand_pose_corrected[start_idx:end_idx+1].cpu().numpy()
+        )
+
+        full_R_adj = self.interpolate_R_adj(
+            chunk_indices, 
+            R_adj[start_idx:end_idx+1].cpu().numpy(), 
+            target_times
+        )
+
+        relative_indices = frame_ix - chunk_indices[0]
+        max_idx = full_pose.shape[0] - 1
+        target_idx = np.clip(relative_indices, 0, max_idx)
+        R_adj_sampled = torch.from_numpy(full_R_adj[target_idx])
+
+        return full_pose[target_idx], inpaint_mask[target_idx], R_c2w, R_adj_sampled
 
 
 
@@ -234,39 +250,23 @@ class GigaHands(Dataset):
 
     
     def _interpolate_y(self, frame_indices, cam_trans):
-        """
-        Args:
-            frame_indices: (N,)
-            cam_trans: (N, 3)
-        
-        Returns:
-            full_trans: (Total_N, 3)
-            mask: (Total_N, )
-        """
         frame_indices = np.asarray(frame_indices)
         cam_trans = np.asarray(cam_trans)
 
         min_t, max_t = frame_indices[0], frame_indices[-1]
         total_N = max_t - min_t + 1
         target_times = np.arange(min_t, max_t + 1)
+        target_times_clipped = np.clip(target_times, min_t, max_t)
 
-        mask = np.zeros(total_N, dtype=np.float32)
-        relative_indices = frame_indices - min_t
-        mask[relative_indices] = 1.0
+        mask = np.zeros(total_N, dtype=np.bool_)
+        mask[frame_indices - min_t] = True
 
-        idx_right = np.searchsorted(frame_indices, target_times, side='left')
-        idx_right = np.clip(idx_right, 1, len(frame_indices) - 1)
-        idx_left = idx_right - 1
-        t_left = frame_indices[idx_left]
-        t_right = frame_indices[idx_right]
-        val_left = cam_trans[idx_left]
-        val_right = cam_trans[idx_right]
-        dt = t_right - t_left
-        alpha = (target_times - t_left) / dt
-        alpha = alpha[:, np.newaxis]
+        full_trans = np.stack([
+            np.interp(target_times_clipped, frame_indices, cam_trans[:, i]) 
+            for i in range(3)
+        ], axis=-1)
 
-        full_trans = val_left + alpha * (val_right - val_left)    
-        return full_trans.astype(np.float32), mask.astype(np.bool_)
+        return full_trans.astype(np.float32), mask
 
 
     def _slerp_y(self, frame_indices, global_orient, hand_pose):
@@ -281,58 +281,26 @@ class GigaHands(Dataset):
             mask: (Total_N,)
         """
         frame_indices = np.asarray(frame_indices)
-        global_orient = np.asarray(global_orient)
-        hand_pose = np.asarray(hand_pose)
-
-        N = len(frame_indices)
+        # global_orient: (N, 1, 3, 3), hand_pose: (N, 15, 3, 3)
         full_pose_mat = np.concatenate([global_orient, hand_pose], axis=1) # (N, 16, 3, 3)
-        flat_mat = full_pose_mat.reshape(-1, 3, 3)
-        quats = R.from_matrix(flat_mat).as_quat()
-        quats = quats.reshape(N, 16, 4)
+        N, J = full_pose_mat.shape[:2]
 
         min_t, max_t = frame_indices[0], frame_indices[-1]
         total_N = max_t - min_t + 1
         target_times = np.arange(min_t, max_t + 1)
-        mask = np.zeros(total_N, dtype=np.float32)
-        relative_indices = frame_indices - min_t
-        mask[relative_indices] = 1.0
+        target_times_clipped = np.clip(target_times, min_t, max_t)
 
-        idx_right = np.searchsorted(frame_indices, target_times, side='left')
-        idx_right = np.clip(idx_right, 1, N-1)
-        idx_left = idx_right - 1
-        t_left = frame_indices[idx_left]
-        t_right = frame_indices[idx_right]
-        dt = t_right - t_left
-        alpha = (target_times - t_left) / dt
-        alpha = alpha[:, np.newaxis, np.newaxis]
-        
-        # q(t) = (sin((1-a)θ)/sinθ) * q0 + (sin(aθ)/sinθ) * q1
-        q0 = quats[idx_left]
-        q1 = quats[idx_right]
-        dot = np.sum(q0 * q1, axis=-1, keepdims=True)
-        q1 = np.where(dot < 0, -q1, q1)
-        dot = np.abs(dot)
-        dot = np.clip(dot, -1.0, 1.0)
-        theta = np.arccos(dot)
-        sin_theta = np.sin(theta)
+        mask = np.zeros(total_N, dtype=np.bool_)
+        mask[frame_indices - min_t] = True
 
-        epsilon = 1e-6
-        use_slerp = sin_theta > epsilon
-        scale0 = 1.0 - alpha
-        scale1 = alpha
-        sin_theta_safe = np.where(use_slerp, sin_theta, 1.0)
-        k0 = np.sin((1 - alpha) * theta) / sin_theta_safe
-        k1 = np.sin(alpha * theta) / sin_theta_safe
-        scale0 = np.where(use_slerp, k0, scale0)
-        scale1 = np.where(use_slerp, k1, scale1)
+        full_pose_rotvecs = []
+        for j in range(J):
+            rots = R.from_matrix(full_pose_mat[:, j])
+            slerp = Slerp(frame_indices, rots)
+            full_pose_rotvecs.append(slerp(target_times_clipped).as_rotvec())
 
-        q_interp = scale0 * q0 + scale1 * q1
-        q_interp = q_interp / np.linalg.norm(q_interp, axis=-1, keepdims=True)
-        q_final_flat = q_interp.reshape(-1, 4)
-        r_final = R.from_quat(q_final_flat)
-        full_pose = r_final.as_rotvec().reshape(total_N, 16, 3)
-
-        return full_pose.astype(np.float32), mask.astype(np.bool_)
+        full_pose = np.stack(full_pose_rotvecs, axis=1)
+        return full_pose.astype(np.float32), mask
 
     def get_hamer_to_world_orient(self, y_global_orient, cam_extrinsic, crop_center, cam_intrinsics):
         N = y_global_orient.shape[0]
@@ -380,7 +348,15 @@ class GigaHands(Dataset):
         y_global_orient_world = R_c2w.unsqueeze(0) @ R_adj @ y_global_orient.squeeze(1)
         
         return y_global_orient_world.unsqueeze(1), R_c2w, R_adj
-
+    
+    def interpolate_R_adj(self, frame_indices, R_adj, target_times):
+        frame_indices = np.asarray(frame_indices)
+        rotations = R.from_matrix(R_adj)
+        slerp = Slerp(frame_indices, rotations)
+        
+        target_times_clipped = np.clip(target_times, frame_indices[0], frame_indices[-1])
+        interp_rots = slerp(target_times_clipped)
+        return interp_rots.as_matrix().astype(np.float32)   
 
 # # vis
 # def visualize_batch(dataset_item):
