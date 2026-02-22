@@ -113,8 +113,8 @@ class Dataset(torch.utils.data.Dataset):
             y_trans_cam, _= self._load_translation_y(ind, frame_ix, y_data)
             y_orig_root = to_torch(y_trans_cam[0]).clone()
             y_trans_cam = to_torch(y_trans_cam - y_trans_cam[0])
-            R_total = R_c2w @ R_adj
-            y_trans = torch.matmul(y_trans_cam, R_total.t())
+            R_total = R_c2w.unsqueeze(0) @ R_adj
+            y_trans = torch.matmul(R_total, y_trans_cam.unsqueeze(-1)).squeeze(-1) # [T, 3]
             if self.align_pose_frontview:
                 y_trans = torch.matmul(y_trans, y_first_frame_root_pose_matrix)
         else:
