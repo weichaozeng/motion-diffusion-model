@@ -213,20 +213,20 @@ class GigaHands(Dataset):
 
         full_pose, inpaint_mask = self._slerp_y(
             chunk_indices, 
-            global_orient_corrected[start_idx:end_idx+1].cpu().numpy(), 
-            hand_pose_corrected[start_idx:end_idx+1].cpu().numpy()
+            global_orient_corrected[start_idx:end_idx+1] 
+            hand_pose_corrected[start_idx:end_idx+1]
         )
 
         full_R_adj = self.interpolate_R_adj(
             chunk_indices, 
-            R_adj[start_idx:end_idx+1].cpu().numpy(), 
+            R_adj[start_idx:end_idx+1], 
             target_times
         )
 
         relative_indices = frame_ix - chunk_indices[0]
         max_idx = full_pose.shape[0] - 1
         target_idx = np.clip(relative_indices, 0, max_idx)
-        R_adj_sampled = torch.from_numpy(full_R_adj[target_idx])
+        R_adj_sampled = full_R_adj[target_idx]
 
         return full_pose[target_idx], inpaint_mask[target_idx], R_c2w, R_adj_sampled
 
