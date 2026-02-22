@@ -48,7 +48,7 @@ class GigaHandsEvaluator(Dataset):
                     entry = {
                         # pred_sample
                         'pred_pose': sample[bs_i, :-1, :, :],
-                        'pred_trans': sample[bs_i, -1, :3, :],
+                        'pred_trans': sample[bs_i, -1, :3, :].permute(1, 0),
                         # x
                         'gt_pose': batch['x_pose'][bs_i],
                         'gt_beta': batch['x_beta'][bs_i],
