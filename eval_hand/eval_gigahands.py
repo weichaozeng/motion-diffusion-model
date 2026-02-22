@@ -79,7 +79,7 @@ class GigaHandsEvaluator(Dataset):
                             'P': torch.zeros(3, 4),
                         },
                         # corr
-                        'R_c2w': batch['R_cw2'][bs_i],
+                        'R_c2w': batch['R_c2w'][bs_i],
                         'R_adj': batch['R_adj'][bs_i]
                     }   
                     self.generated_data.append(entry)
