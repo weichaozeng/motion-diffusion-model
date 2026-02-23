@@ -114,7 +114,7 @@ class Dataset(torch.utils.data.Dataset):
             y_trans_cam = to_torch(y_trans_cam) * scale_factor 
             # cam2world       
             R_total = R_c2w.unsqueeze(0) @ R_adj
-            T_c2w = to_torch(cam['T'][0])
+            T_c2w = to_torch(cam['T'][0]).float()
             y_trans = torch.matmul(R_total, y_trans_cam.unsqueeze(-1)).squeeze(-1) + T_c2w # [T, 3]
             y_orig_root = to_torch(y_trans[0]).clone()
             y_trans = to_torch(y_trans - y_trans[0])
