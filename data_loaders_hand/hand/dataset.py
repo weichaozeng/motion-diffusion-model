@@ -271,7 +271,7 @@ class Dataset(torch.utils.data.Dataset):
             # corr
             'R_c2w': data_dict['R_c2w'].float(),
             'R_adj': data_dict['R_adj'].float(),
-            'f_scale_factor': data_dict['f_scale_factor'].float(),
+            'f_scale': data_dict['f_scale'].float(),
         }
         
         return output
