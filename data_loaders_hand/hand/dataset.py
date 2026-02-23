@@ -107,7 +107,7 @@ class Dataset(torch.utils.data.Dataset):
             if getattr(self, "_load_translation_y") is None:
                 raise ValueError("Can't extract translations y.")
             y_trans_cam, _= self._load_translation_y(ind, frame_ix, y_data)
-            
+            y_trans_cam = to_torch(y_trans_cam)
             R_total = R_c2w.unsqueeze(0) @ R_adj
             y_trans = torch.matmul(R_total, y_trans_cam.unsqueeze(-1)).squeeze(-1) # [T, 3]
             y_orig_root = to_torch(y_trans[0]).clone()
