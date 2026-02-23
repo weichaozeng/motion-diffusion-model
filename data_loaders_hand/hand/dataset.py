@@ -120,11 +120,15 @@ class Dataset(torch.utils.data.Dataset):
             #Cx = crop_centers[:, 0]
             #tx = y_trans_cam[:, 0] - (y_trans_cam[:, 2] * (Cx - 640.0) / f_hamer)
             #x_real = z_real * (Cx - cx_real) / f_real + tx * f_scale
-            x_real = y_trans_cam[:, 0] * f_scale + (640.0 - cx_real) * y_trans_cam[:, 2] / f_hamer
+            # x_real = y_trans_cam[:, 0] * f_scale + (640.0 - cx_real) * y_trans_cam[:, 2] / f_hamer
+            pixel_x_hamer = (y_trans_cam[:, 0] * f_hamer / y_trans_cam[:, 2]) + 640.0
+            x_real = (pixel_x_hamer - cx_real) * z_real / f_real
             #Cy = crop_centers[:, 1]           
             #ty = y_trans_cam[:, 1] - (y_trans_cam[:, 2] * (Cy - 360.0) / f_hamer)
             # y_real = z_real * (Cy - cy_real) / f_real + ty * f_scale
-            y_real = y_trans_cam[:, 1] * f_scale + (360.0 - cy_real) * y_trans_cam[:, 2] / f_hamer
+            # y_real = y_trans_cam[:, 1] * f_scale + (360.0 - cy_real) * y_trans_cam[:, 2] / f_hamer
+            pixel_y_hamer = (y_trans_cam[:, 1] * f_hamer / y_trans_cam[:, 2]) + 360.0
+            y_real = (pixel_y_hamer - cy_real) * z_real / f_real
             y_trans_cam_real = torch.stack([
                 to_torch(x_real),
                 to_torch(y_real),
