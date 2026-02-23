@@ -203,7 +203,7 @@ class GigaHands(Dataset):
         target_idx = relative_indices
 
 
-        return full_pose[target_idx], inpaint_mask[target_idx], R_c2w, full_R_adj[target_idx]
+        return full_pose[target_idx], inpaint_mask[target_idx], R_c2w, full_R_adj[target_idx], crop_centers
 
 
 

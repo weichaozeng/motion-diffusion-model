@@ -65,7 +65,7 @@ class Dataset(torch.utils.data.Dataset):
                 x_first_frame_root_pose_matrix = torch.eye(3).float()
 
             # y
-            y_pose, inpaint_mask, R_c2w, R_adj = self._load_rotvec_y(ind, frame_ix, y_data, cam)
+            y_pose, inpaint_mask, R_c2w, R_adj, crop_centers = self._load_rotvec_y(ind, frame_ix, y_data, cam)
             if not self.glob:
                 y_pose = y_pose[:, 1:, :]
             y_pose = to_torch(y_pose)
@@ -113,10 +113,16 @@ class Dataset(torch.utils.data.Dataset):
             # f_scale_factor = torch.tensor(f_real / f_hamer).to(y_trans_cam.device).float()
             # y_trans_cam = to_torch(y_trans_cam) * f_scale_factor
             f_real = (cam['K'][0][0, 0] + cam['K'][0][1, 1]) / 2 
-            f_scale = f_real / 500.0 * (256 / 1280)
+            cx_real, cy_real = cam['K'][0, 0, 2], cam['K'][0, 1, 2]
+            f_hamer = 500.0 / 256 * 1280
+            f_scale = f_real / f_hamer
             z_real = y_trans_cam[:, 2] * f_scale
-            x_real = y_trans_cam[:, 0]
-            y_real = y_trans_cam[:, 1]
+            Cx = crop_centers[:, 0]
+            tx = y_trans_cam[:, 0] - (y_trans_cam[:, 2] * (Cx - 640.0) / f_hamer)
+            x_real = z_real * (Cx - cx_real) / f_real + tx * f_scale
+            Cy = crop_centers[:, 1]           
+            ty = y_trans_cam[:, 1] - (y_trans_cam[:, 2] * (Cy - 360.0) / f_hamer)
+            y_real = z_real * (Cy - cy_real) / f_real + ty * f_scale
             y_trans_cam_real = torch.stack([
                 to_torch(x_real),
                 to_torch(y_real),
