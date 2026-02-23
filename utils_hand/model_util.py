@@ -32,6 +32,7 @@ def get_model_args(args):
         'pose_rep': 'rot6d', 
         'glob': True, 
         'glob_rot': True,
+        'align_pose_frontview': True,
 
         'latent_dim': args.latent_dim, 
         
