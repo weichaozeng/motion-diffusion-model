@@ -110,8 +110,8 @@ class Dataset(torch.utils.data.Dataset):
              # revise focal
             f_hamer = 500.0 / 256 * 1280
             f_real = (cam['K'][0][0, 0] + cam['K'][0][1, 1]) / 2 
-            f_scale_factor = f_real / f_hamer
-            y_trans_cam = to_torch(y_trans_cam) * to_torch(f_scale_factor) 
+            f_scale_factor = torch.Tensor(f_real / f_hamer)
+            y_trans_cam = to_torch(y_trans_cam) * f_scale_factor
             # cam2world       
             R_total = R_c2w.unsqueeze(0) @ R_adj
             R_w2c = to_torch(cam['R'][0]) # [3, 3]
