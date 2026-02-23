@@ -10,6 +10,7 @@ from scipy.spatial.transform import Slerp
 from .vis import camparam_utils as param_utils
 from pathlib import Path
 import utils_hand.rotation_conversions as geometry
+from scipy.interpolate import interp1d
 
 MANO_HANDS_MEAN = [
     [ 0.1117, -0.0429,  0.4164],
@@ -199,11 +200,17 @@ class GigaHands(Dataset):
             target_times
         )
 
+        full_crop_centers = self._interpolate_linear(
+            chunk_indices,
+            crop_centers[start_idx:end_idx+1],
+            target_times
+        )
+
         relative_indices = frame_ix - chunk_indices[0]
         target_idx = relative_indices
 
 
-        return full_pose[target_idx], inpaint_mask[target_idx], R_c2w, full_R_adj[target_idx], crop_centers
+        return full_pose[target_idx], inpaint_mask[target_idx], R_c2w, full_R_adj[target_idx], full_crop_centers[target_idx]
 
 
 
@@ -328,6 +335,16 @@ class GigaHands(Dataset):
         slerp = Slerp(frame_indices, rotations)
         interp_rots = slerp(target_times)
         return interp_rots.as_matrix().astype(np.float32)   
+    
+    def _interpolate_linear(self, source_indices, values, target_indices):
+        v_np = values.numpy() if torch.is_tensor(values) else values
+        t_np = source_indices.numpy() if torch.is_tensor(source_indices) else source_indices
+        target_np = target_indices.numpy() if torch.is_tensor(target_indices) else target_indices
+
+        f = interp1d(t_np, v_np, axis=0, kind='linear', fill_value="extrapolate")
+        interpolated_values = f(target_np)
+        
+        return torch.from_numpy(interpolated_values).float()
 
 # # vis
 # def visualize_batch(dataset_item):
