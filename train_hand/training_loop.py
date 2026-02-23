@@ -396,7 +396,8 @@ class TrainLoop:
                     return_vertices=True,
                     R_cam2world=vis_sample['R_c2w'],
                     R_adj=vis_sample['R_adj'],
-                    f_scale=vis_sample['f_scale']
+                    f_scale=vis_sample['f_scale'],
+                    C_world=vis_sample['C_world'],
                 )
                 pred_y_video_dir = os.path.join(vis_out_dir, 'pred_video_cam_space')
                 vis_gigahands.render_video(pred_verts_y, pred_y_video_dir, rgb_video_paths, rgb_frame_indices, y_cam, suffix_masks)
@@ -420,7 +421,8 @@ class TrainLoop:
                     return_vertices=True,
                     R_cam2world=vis_sample['R_c2w'],
                     R_adj=vis_sample['R_adj'],
-                    f_scale=vis_sample['f_scale']
+                    f_scale=vis_sample['f_scale'],
+                    C_world=vis_sample['C_world'],
                     )
                 y_cam_video_dir = os.path.join(vis_out_dir, 'ori_video_cam_space')
                 vis_gigahands.render_video(y_cam_verts, y_cam_video_dir, rgb_video_paths, rgb_frame_indices, y_cam, suffix_masks)

@@ -199,6 +199,7 @@ class Dataset(torch.utils.data.Dataset):
             # corr
             'R_c2w': R_c2w.float(),
             'R_adj': R_adj.float(),
+            'C_world': C_world.float(),
             'f_scale': torch.tensor(f_scale).to(y_pose.device).float().unsqueeze(0),
         }
 
@@ -291,6 +292,7 @@ class Dataset(torch.utils.data.Dataset):
             # corr
             'R_c2w': data_dict['R_c2w'].float(),
             'R_adj': data_dict['R_adj'].float(),
+            'C_world': data_dict['C_world'].float(),
             'f_scale': data_dict['f_scale'].float(),
         }
         
