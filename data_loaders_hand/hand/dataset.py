@@ -115,8 +115,8 @@ class Dataset(torch.utils.data.Dataset):
             f_real = (cam['K'][0][0, 0] + cam['K'][0][1, 1]) / 2 
             f_scale = f_real / 500.0 * (1280 / 256.0)
             z_real = y_trans_cam[:, 2] * f_scale
-            x_real = y_trans_cam[:, 0] * z_real
-            y_real = y_trans_cam[:, 1] * z_real
+            x_real = y_trans_cam[:, 0]
+            y_real = y_trans_cam[:, 1]
             y_trans_cam_real = torch.stack([
                 to_torch(x_real),
                 to_torch(y_real),
