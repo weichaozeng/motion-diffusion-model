@@ -62,7 +62,7 @@ class Rotation2xyz:
                 else:
                     translation = translation_world
             if f_scale_factor is not None:
-                translation = translation / f_scale_factor
+                translation = translation / f_scale_factor.unsqueeze(-1).unsqueeze(-1)
             translation = translation.reshape(-1, 3)
 
         # shapes
