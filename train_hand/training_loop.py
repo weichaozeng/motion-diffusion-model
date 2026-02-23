@@ -362,34 +362,16 @@ class TrainLoop:
                 suffix_masks = vis_sample['suffix_mask']
 
                 # pred cam space vis
-                # [B, 1, 3, 3] @ [B, 120, 3, 3] -> [B, 120, 3, 3]
-                R_total = vis_sample['R_c2w'].unsqueeze(1) @ vis_sample['R_adj']
-                # (B, 120, 3)
-                pred_t_world = torch.matmul(
-                    vis_sample['pred_trans'].unsqueeze(-2), 
-                    vis_sample['y_ff_root_orient_rotmat'].unsqueeze(1)
-                ).squeeze(-2) 
-                # (B, 120, 3)
-                pred_t_y_cam = torch.matmul(
-                    pred_t_world.unsqueeze(-2), 
-                    R_total.transpose(-1, -2)
-                ).squeeze(-2)
-                # [B, 120, 3] + [B, 1, 3] -> [B, 120, 3]
-                pred_t_y_final = pred_t_y_cam + vis_sample['y_root_trans']
-                # [B, 120, 3, 3] @ [B, 1, 3, 3] -> [B, 120, 3, 3]
-                ff_rotmat_y_cam = torch.matmul(
-                    R_total.transpose(-1, -2), 
-                    vis_sample['y_ff_root_orient_rotmat'].unsqueeze(1)
-                )
-
                 _, pred_verts_y = self.model.rot2xyz(
                     pose=vis_sample['pred_pose'], 
                     pose_rep='rot6d', 
                     beta=vis_sample['gt_beta'], 
-                    ff_rotmat=ff_rotmat_y_cam, 
-                    translation=pred_t_y_final,
+                    ff_rotmat=vis_sample['y_ff_root_orient_rotmat'], 
+                    translation=vis_sample['pred_trans'],
                     root_translation=vis_sample['y_root_trans'],
-                    return_vertices=True
+                    return_vertices=True,
+                    R_cam2world=vis_sample['R_c2w'],
+                    R_adj=vis_sample['R_adj'],
                 )
                 pred_y_video_dir = os.path.join(vis_out_dir, 'pred_video_cam_space')
                 vis_gigahands.render_video(pred_verts_y, pred_y_video_dir, rgb_video_paths, rgb_frame_indices, y_cam, suffix_masks)
