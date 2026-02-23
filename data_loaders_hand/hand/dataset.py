@@ -106,7 +106,7 @@ class Dataset(torch.utils.data.Dataset):
             # y
             if getattr(self, "_load_translation_y") is None:
                 raise ValueError("Can't extract translations y.")
-            y_trans_cam_real, _= self._load_translation_y(ind, frame_ix, y_data)
+            y_trans_cam_real, _= self._load_translation_y(ind, frame_ix, y_data, cam)
              # revise focal
             # y_trans_cam = to_torch(y_trans_cam)
             # f_real = (cam['K'][0][0, 0] + cam['K'][0][1, 1]) / 2
