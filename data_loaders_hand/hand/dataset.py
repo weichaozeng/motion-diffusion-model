@@ -116,7 +116,7 @@ class Dataset(torch.utils.data.Dataset):
             cx_real, cy_real = cam['K'][0, 0, 2], cam['K'][0, 1, 2]
             f_hamer = 500.0 / 256 * 1280
             f_scale = f_real / f_hamer
-            z_real = y_trans_cam[:, 2] * f_real / 500.0 #f_scale
+            z_real = y_trans_cam[:, 2] * f_scale
             Cx = crop_centers[:, 0]
             tx = y_trans_cam[:, 0] - (y_trans_cam[:, 2] * (Cx - 640.0) / f_hamer)
             x_real = z_real * (Cx - cx_real) / f_real + tx #* f_scale
