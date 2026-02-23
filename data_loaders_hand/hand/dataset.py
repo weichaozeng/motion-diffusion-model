@@ -145,7 +145,11 @@ class Dataset(torch.utils.data.Dataset):
             y_orig_root = y_trans[0].clone()
         
 
-        print(f"Movement distance (Meters): X_GT={x_trans[-1].norm():.3f}, Y_HaMeR={y_trans[-1].norm():.3f}")
+        # print(f"Movement distance (Meters): X_GT={x_trans[-1].norm():.3f}, Y_HaMeR={y_trans[-1].norm():.3f}")
+        p0_gt = x_orig_root  
+        p0_pred = y_orig_root  
+        bias = p0_gt - p0_pred
+        print(f"Constant Bias (meters): {bias}")
 
         # 3. padding pose with trans
         # x
