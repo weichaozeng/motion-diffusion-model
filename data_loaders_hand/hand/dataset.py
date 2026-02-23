@@ -113,7 +113,7 @@ class Dataset(torch.utils.data.Dataset):
             # f_scale_factor = torch.tensor(f_real / f_hamer).to(y_trans_cam.device).float()
             # y_trans_cam = to_torch(y_trans_cam) * f_scale_factor
             f_real = (cam['K'][0][0, 0] + cam['K'][0][1, 1]) / 2 
-            f_scale = f_real / 500.0 * (1280 / 256.0)
+            f_scale = f_real / 500.0 * (256 / 1280)
             z_real = y_trans_cam[:, 2] * f_scale
             x_real = y_trans_cam[:, 0]
             y_real = y_trans_cam[:, 1]
