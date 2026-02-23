@@ -28,7 +28,7 @@ def get_model_args(args):
         'nfeats': nfeats, 
         'data_rep': data_rep,
 
-        'translation': False, 
+        'translation': True, 
         'pose_rep': 'rot6d', 
         'glob': True, 
         'glob_rot': True,
