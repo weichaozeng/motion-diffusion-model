@@ -179,7 +179,7 @@ class Dataset(torch.utils.data.Dataset):
             # corr
             'R_c2w': R_c2w.float(),
             'R_adj': R_adj.float(),
-            'f_scale': f_scale.float().unsqueeze(0),
+            'f_scale': to_torch(f_scale).float().unsqueeze(0),
         }
 
         return data_dict
