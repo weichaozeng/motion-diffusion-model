@@ -137,6 +137,9 @@ class Dataset(torch.utils.data.Dataset):
             # y_real = y_trans_cam[:, 1] * f_scale
             v = (y_trans_cam[:, 1] / y_trans_cam[:, 2]) * f_hamer + (720.0 / 2.0)
             y_real = (v - cy_real) * z_real / fy_real
+            Cx = crop_centers[:, 0]
+            Cy = crop_centers[:, 1]
+            print(f"Projected U,V: {u[0].item():.1f}, {v[0].item():.1f} | Actual Crop Center: {Cx[0].item():.1f}, {Cy[0].item():.1f}")
             y_trans_cam_real = torch.stack([
                 to_torch(x_real),
                 to_torch(y_real),
