@@ -59,7 +59,7 @@ class Rotation2xyz:
                 translation_world = translation_world_rel + root_translation
                 if R_cam2world is not None:
                     if C_world is not None:
-                        translation_world = translation_world - C_world.unsqueeze(-1).unsqueeze(-1)
+                        translation_world = translation_world - C_world.unsqueeze(0).unsqueeze(0)
                     translation = torch.matmul(R_cam2world.transpose(-1, -2), translation_world.unsqueeze(-1)).squeeze(-1)
                 else:
                     translation = translation_world
