@@ -202,6 +202,8 @@ class GigaHands(Dataset):
         relative_indices = frame_ix - chunk_indices[0]
         target_idx = relative_indices
 
+        R_adj = torch.eye(3).to(R_adj.device).unsqueeze(0).repeat(R_adj.shape[0], 1, 1)
+
         return full_pose[target_idx], inpaint_mask[target_idx], R_c2w, full_R_adj[target_idx]
 
 
