@@ -110,11 +110,18 @@ class Renderer(object):
             np.radians(angle), [1, 0, 0])
         output_images, output_colors, output_depths = [], [], []
         for nv, img_ in enumerate(images):
+            K = cameras['K'][nv].copy()
+            R = cameras['R'][nv]
+            T = cameras['T'][nv]
+            dist = cameras['dist'][nv]
+
             if use_white:
                 img = np.zeros_like(img_, dtype=np.uint8) + 255
             else:
-                img = img_.copy()
-            K, R, T = cameras['K'][nv].copy(), cameras['R'][nv], cameras['T'][nv]
+                if dist is not None and np.linalg.norm(dist) > 1e-5:
+                    img = cv2.undistort(img_, K, dist)
+                else:
+                    img = img_.copy()
             # down scale the image to speed up rendering
             img = cv2.resize(img, None, fx=1/self.down_scale, fy=1/self.down_scale)
             K[:2, :] /= self.down_scale
