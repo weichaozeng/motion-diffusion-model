@@ -26,11 +26,12 @@ class Rotation2xyz:
         else:
             raise NotImplementedError("No geometry for this one.")
 
-        if len(ff_rotmat.shape) == 3:
-            ff_rotmat = ff_rotmat.unsqueeze(1).repeat(1, nframes, 1, 1)
+
 
         # pose
         if ff_rotmat is not None:
+            if len(ff_rotmat.shape) == 3:
+                ff_rotmat = ff_rotmat.unsqueeze(1).repeat(1, nframes, 1, 1)
             all_root_pose_mat = rotations[:, :, 0]
             all_root_pose_mat = torch.matmul(ff_rotmat, all_root_pose_mat)
             if R_cam2world is not None and R_adj is not None:
@@ -57,7 +58,7 @@ class Rotation2xyz:
                 translation_world_rel = torch.matmul(ff_rotmat, translation.unsqueeze(-1)).squeeze(-1)
                 translation_world = translation_world_rel + root_translation.unsqueeze(1)
                 if R_cam2world is not None and R_adj is not None:
-                    translation = torch.matmul(R_total_inv, translation_world_rel.unsqueeze(-1)).squeeze(-1)
+                    translation = torch.matmul(R_total_inv, translation_world.unsqueeze(-1)).squeeze(-1)
                 else:
                     translation = translation_world
             translation = translation.reshape(-1, 3)
