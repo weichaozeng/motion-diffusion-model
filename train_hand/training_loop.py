@@ -363,8 +363,8 @@ class TrainLoop:
 
                 test_cam = copy.deepcopy(gt_cam)
                 print(test_cam['K'].shape)
-                test_cam['K'][:, 0, 2] = 1280 / 2.0
-                test_cam['K'][:, 1, 2] = 720 / 2.0
+                test_cam['K'][:, 0, 0, 2] = 1280 / 2.0
+                test_cam['K'][:, 0, 1, 2] = 720 / 2.0
 
                 # orig y vis
                 y_xyz, y_verts = self.model.rot2xyz(
