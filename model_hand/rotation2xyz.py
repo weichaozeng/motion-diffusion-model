@@ -62,9 +62,9 @@ class Rotation2xyz:
                 else:
                     translation = translation_world
             if f_scale is not None:
-                translation[:, :, 0] = translation[:, :, 0] / f_scale.unsqueeze(-1)
-                translation[:, :, 1] = translation[:, :, 1] / f_scale.unsqueeze(-1)
-                translation[:, :, 2] = translation[:, :, 2] / f_scale.unsqueeze(-1)
+                translation[:, :, 0] = translation[:, :, 0] / f_scale
+                translation[:, :, 1] = translation[:, :, 1] / f_scale
+                translation[:, :, 2] = translation[:, :, 2] / f_scale
             translation = translation.reshape(-1, 3)
 
         # shapes
