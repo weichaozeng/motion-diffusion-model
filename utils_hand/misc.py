@@ -46,7 +46,7 @@ def to_numpy(tensor):
 
 def to_torch(ndarray):
     if type(ndarray).__module__ == 'numpy':
-        return torch.from_numpy(ndarray)
+        return torch.from_numpy(ndarray).float()
     elif not torch.is_tensor(ndarray):
         raise ValueError("Cannot convert {} to torch tensor".format(
             type(ndarray)))
