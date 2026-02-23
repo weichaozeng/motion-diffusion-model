@@ -112,7 +112,9 @@ class Dataset(torch.utils.data.Dataset):
             # f_real = (cam['K'][0][0, 0] + cam['K'][0][1, 1]) / 2 
             # f_scale_factor = torch.tensor(f_real / f_hamer).to(y_trans_cam.device).float()
             y_trans_cam = to_torch(y_trans_cam)
-            f_real = (cam['K'][0][0, 0] + cam['K'][0][1, 1]) / 2 
+            f_real = (cam['K'][0][0, 0] + cam['K'][0][1, 1]) / 2
+            fx_real = cam['K'][0][0, 0] 
+            fy_real = cam['K'][0][1, 1]
             cx_real, cy_real = cam['K'][0, 0, 2], cam['K'][0, 1, 2]
             f_hamer = 500.0 / 256 * 1280
             f_scale = f_real / f_hamer
@@ -121,14 +123,16 @@ class Dataset(torch.utils.data.Dataset):
             #tx = y_trans_cam[:, 0] - (y_trans_cam[:, 2] * (Cx - 640.0) / f_hamer)
             #x_real = z_real * (Cx - cx_real) / f_real + tx * f_scale
             # x_real = y_trans_cam[:, 0] * f_scale + (640.0 - cx_real) * y_trans_cam[:, 2] / f_hamer
-            pixel_x_hamer = (y_trans_cam[:, 0] * f_hamer / y_trans_cam[:, 2]) + 640.0
-            x_real = (pixel_x_hamer - cx_real) * z_real / f_real
+            # pixel_x_hamer = (y_trans_cam[:, 0] * f_hamer / y_trans_cam[:, 2]) + 640.0
+            # x_real = (pixel_x_hamer - cx_real) * z_real / fx_real
+            x_real = y_trans_cam[:, 0] * f_scale
             #Cy = crop_centers[:, 1]           
             #ty = y_trans_cam[:, 1] - (y_trans_cam[:, 2] * (Cy - 360.0) / f_hamer)
             # y_real = z_real * (Cy - cy_real) / f_real + ty * f_scale
             # y_real = y_trans_cam[:, 1] * f_scale + (360.0 - cy_real) * y_trans_cam[:, 2] / f_hamer
-            pixel_y_hamer = (y_trans_cam[:, 1] * f_hamer / y_trans_cam[:, 2]) + 360.0
-            y_real = (pixel_y_hamer - cy_real) * z_real / f_real
+            # pixel_y_hamer = (y_trans_cam[:, 1] * f_hamer / y_trans_cam[:, 2]) + 360.0
+            # y_real = (pixel_y_hamer - cy_real) * z_real / fy_real
+            y_real = y_trans_cam[:, 1] * f_scale
             y_trans_cam_real = torch.stack([
                 to_torch(x_real),
                 to_torch(y_real),

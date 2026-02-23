@@ -57,13 +57,13 @@ class Rotation2xyz:
             if ff_rotmat is not None:
                 translation_world_rel = torch.matmul(ff_rotmat, translation.unsqueeze(-1)).squeeze(-1)
                 translation_world = translation_world_rel + root_translation
-                if R_cam2world is not None and R_adj is not None:
-                    translation = torch.matmul(R_total_inv, translation_world.unsqueeze(-1)).squeeze(-1)
+                if R_cam2world is not None:
+                    translation = torch.matmul(R_cam2world.transpose(-1, -2), translation_world.unsqueeze(-1)).squeeze(-1)
                 else:
                     translation = translation_world
             if f_scale is not None:
-                translation[:, :, 0] = translation[:, :, 0] / translation[:, :, 2]
-                translation[:, :, 1] = translation[:, :, 1] / translation[:, :, 2]
+                translation[:, :, 0] = translation[:, :, 0] / f_scale.unsqueeze(-1)
+                translation[:, :, 1] = translation[:, :, 1] / f_scale.unsqueeze(-1)
                 translation[:, :, 2] = translation[:, :, 2] / f_scale.unsqueeze(-1)
             translation = translation.reshape(-1, 3)
 
