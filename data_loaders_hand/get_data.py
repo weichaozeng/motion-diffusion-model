@@ -9,7 +9,7 @@ def get_dataset_loader(
     split='train',
     pose_rep="rot6d", 
     device=None,
-    translation=False,
+    translation=True,
     glob=True,
     align_pose_frontview=True,
 ):
@@ -29,7 +29,7 @@ def get_dataset(
     split='train',
     pose_rep="rot6d", 
     device=None,
-    translation=False,
+    translation=True,
     glob=True,
     align_pose_frontview=True,
 ): 
