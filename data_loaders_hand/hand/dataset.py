@@ -107,9 +107,15 @@ class Dataset(torch.utils.data.Dataset):
             if getattr(self, "_load_translation_y") is None:
                 raise ValueError("Can't extract translations y.")
             y_trans_cam, _= self._load_translation_y(ind, frame_ix, y_data)
-            y_trans_cam = to_torch(y_trans_cam)
+             # revise focal
+            f_hamer = 500.0 / 256 * 1280
+            f_real = (cam['K'][0][0, 0] + cam['K'][0][1, 1]) / 2 
+            scale_factor = f_real / f_hamer
+            y_trans_cam = to_torch(y_trans_cam) * scale_factor 
+            # cam2world       
             R_total = R_c2w.unsqueeze(0) @ R_adj
-            y_trans = torch.matmul(R_total, y_trans_cam.unsqueeze(-1)).squeeze(-1) # [T, 3]
+            T_c2w = to_torch(cam['T'][0])
+            y_trans = torch.matmul(R_total, y_trans_cam.unsqueeze(-1)).squeeze(-1) + T_c2w # [T, 3]
             y_orig_root = to_torch(y_trans[0]).clone()
             y_trans = to_torch(y_trans - y_trans[0])
             if self.align_pose_frontview:
