@@ -390,7 +390,7 @@ class TrainLoop:
                     beta=vis_sample['gt_beta'], 
                     ff_rotmat=vis_sample['y_ff_root_orient_rotmat'], 
                     translation=vis_sample['pred_trans'], 
-                    root_translation=vis_sample['gt_root_trans'], 
+                    root_translation=vis_sample['y_root_trans'], 
                     return_vertices=True)
                 pred_video_dir = os.path.join(vis_out_dir, 'pred_video')
                 vis_gigahands.render_video(pred_verts, pred_video_dir, rgb_video_paths, rgb_frame_indices, gt_cam, suffix_masks)
