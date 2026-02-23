@@ -106,26 +106,23 @@ class Dataset(torch.utils.data.Dataset):
             # y
             if getattr(self, "_load_translation_y") is None:
                 raise ValueError("Can't extract translations y.")
-            y_trans_cam, _= self._load_translation_y(ind, frame_ix, y_data)
+            y_trans_cam_real, _= self._load_translation_y(ind, frame_ix, y_data)
              # revise focal
+            # y_trans_cam = to_torch(y_trans_cam)
+            # f_real = (cam['K'][0][0, 0] + cam['K'][0][1, 1]) / 2
+            # fx_real = cam['K'][0][0, 0] 
+            # fy_real = cam['K'][0][1, 1]
+            # cx_real, cy_real = cam['K'][0, 0, 2], cam['K'][0, 1, 2]
             # f_hamer = 500.0 / 256 * 1280
-            # f_real = (cam['K'][0][0, 0] + cam['K'][0][1, 1]) / 2 
-            # f_scale_factor = torch.tensor(f_real / f_hamer).to(y_trans_cam.device).float()
-            y_trans_cam = to_torch(y_trans_cam)
-            f_real = (cam['K'][0][0, 0] + cam['K'][0][1, 1]) / 2
-            fx_real = cam['K'][0][0, 0] 
-            fy_real = cam['K'][0][1, 1]
-            cx_real, cy_real = cam['K'][0, 0, 2], cam['K'][0, 1, 2]
-            f_hamer = 500.0 / 256 * 1280
-            f_scale = f_real / f_hamer
-            z_real = y_trans_cam[:, 2] * f_scale
-            x_real = y_trans_cam[:, 0] + (640 - cx_real) * z_real / fx_real
-            y_real = y_trans_cam[:, 1] + (360 - cy_real) * z_real / fy_real
-            y_trans_cam_real = torch.stack([
-                to_torch(x_real),
-                to_torch(y_real),
-                to_torch(z_real)
-            ], dim=-1)
+            # f_scale = f_real / f_hamer
+            # z_real = y_trans_cam[:, 2] * f_scale
+            # x_real = y_trans_cam[:, 0] + (640 - cx_real) * z_real / fx_real
+            # y_real = y_trans_cam[:, 1] + (360 - cy_real) * z_real / fy_real
+            # y_trans_cam_real = torch.stack([
+            #     to_torch(x_real),
+            #     to_torch(y_real),
+            #     to_torch(z_real)
+            # ], dim=-1)
             # cam2world       
             R_total = R_c2w.unsqueeze(0)
             R_w2c = to_torch(cam['R'][0]) # [3, 3]

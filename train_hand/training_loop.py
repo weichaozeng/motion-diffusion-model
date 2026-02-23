@@ -361,11 +361,6 @@ class TrainLoop:
                 y_cam = vis_sample['y_cam']
                 suffix_masks = vis_sample['suffix_mask']
 
-                test_cam = copy.deepcopy(gt_cam)
-                print(test_cam['K'].shape)
-                test_cam['K'][:, 0, 0, 2] = 1280 / 2.0
-                test_cam['K'][:, 0, 1, 2] = 720 / 2.0
-
                 # orig y vis
                 y_xyz, y_verts = self.model.rot2xyz(
                     pose=vis_sample['y_pose'], 

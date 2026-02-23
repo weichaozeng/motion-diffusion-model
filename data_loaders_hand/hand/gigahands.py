@@ -5,6 +5,7 @@ import json
 import random
 import numpy as np
 import pickle
+from utils_hand.misc import to_torch
 from scipy.spatial.transform import Rotation as R
 from scipy.spatial.transform import Slerp
 from .vis import camparam_utils as param_utils
@@ -214,20 +215,69 @@ class GigaHands(Dataset):
 
 
 
-    def _load_translation_y(self, ind, frame_ix, y_data):
+    # def _load_translation_y(self, ind, frame_ix, y_data):
+    #     frame_indices = y_data['frame_indices']
+    #     cam_trans = y_data['cam_trans']
+
+    #     indices = np.searchsorted(frame_indices, [frame_ix[0], frame_ix[-1]])
+    #     start_idx = max(0, indices[0] - 1)
+    #     end_idx = indices[1]
+
+    #     full_trans, inpaint_mask = self._interpolate_y(frame_indices[start_idx:end_idx+1], cam_trans[start_idx:end_idx+1])
+
+    #     relative_indices = frame_ix - frame_indices[start_idx]
+    #     target_idx = relative_indices
+
+    #     return full_trans[target_idx], inpaint_mask[target_idx]
+
+    def _load_translation_y(self, ind, frame_ix, y_data, cam):
         frame_indices = y_data['frame_indices']
-        cam_trans = y_data['cam_trans']
+        # pred_cam: [s, tx_local, ty_local]
+        # boxes: [cx, cy, box_size]
+        pred_cam = np.asarray(y_data['pred_cam'])
+        boxes = np.asarray(y_data['boxes'])
 
         indices = np.searchsorted(frame_indices, [frame_ix[0], frame_ix[-1]])
         start_idx = max(0, indices[0] - 1)
         end_idx = indices[1]
 
-        full_trans, inpaint_mask = self._interpolate_y(frame_indices[start_idx:end_idx+1], cam_trans[start_idx:end_idx+1])
+        full_pred_cam, inpaint_mask = self._interpolate_y(frame_indices[start_idx:end_idx+1], pred_cam[start_idx:end_idx+1])
+        full_boxes, _ = self._interpolate_y(frame_indices[start_idx:end_idx+1], boxes[start_idx:end_idx+1])
 
         relative_indices = frame_ix - frame_indices[start_idx]
         target_idx = relative_indices
 
-        return full_trans[target_idx], inpaint_mask[target_idx]
+        target_pred_cam = to_torch(full_pred_cam[target_idx])
+        target_boxes = to_torch(full_boxes[target_idx])
+        mask = inpaint_mask[target_idx]
+
+
+        fx_real = cam['K'][0][0, 0]
+        fy_real = cam['K'][0][1, 1]
+        f_real = (fx_real + fy_real) / 2.0
+        cx_real = cam['K'][0][0, 2]
+        cy_real = cam['K'][0][1, 2]
+
+        s = target_pred_cam[:, 0]
+        tx_local = target_pred_cam[:, 1]
+        ty_local = target_pred_cam[:, 2]
+
+        Cx = target_boxes[:, 0]
+        Cy = target_boxes[:, 1]
+        b = target_boxes[:, 2]  # box_size
+
+        # Z_real = 2 * f_real / (box_size * scale)
+        z_real = (2.0 * f_real) / (b * s + 1e-6)
+
+        u = Cx + tx_local * (b / 2.0)
+        v = Cy + ty_local * (b / 2.0)
+
+        x_real = (u - cx_real) * z_real / fx_real
+        y_real = (v - cy_real) * z_real / fy_real
+
+        y_trans_cam_real = torch.stack([x_real, y_real, z_real], dim=-1)
+
+        return y_trans_cam_real, mask
 
     
     def _interpolate_y(self, frame_indices, cam_trans):
