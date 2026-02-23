@@ -118,9 +118,9 @@ class Dataset(torch.utils.data.Dataset):
             x_real = y_trans_cam[:, 0] * z_real
             y_real = y_trans_cam[:, 1] * z_real
             y_trans_cam_real = torch.stack([
-                x_real,
-                y_real,
-                z_real
+                to_torch(x_real),
+                to_torch(y_real),
+                to_torch(z_real)
             ], dim=-1)
             # cam2world       
             R_total = R_c2w.unsqueeze(0)
