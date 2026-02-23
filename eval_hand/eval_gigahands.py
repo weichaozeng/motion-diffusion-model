@@ -82,6 +82,7 @@ class GigaHandsEvaluator(Dataset):
                         'R_c2w': batch['R_c2w'][bs_i],
                         'R_adj': batch['R_adj'][bs_i]
                     }   
+                    breakpoint()
                     self.generated_data.append(entry)
         self.model.train()
 
