@@ -72,11 +72,11 @@ class GigaHandsEvaluator(Dataset):
                         'y_root_trans': batch['y_root_trans'][bs_i].unsqueeze(0),
                         'y_ff_root_orient_rotmat': batch['y_ff_root_orient_rotmat'][bs_i],
                        'y_cam': {
-                            'K': virtual_K, 
-                            'R': torch.eye(3), 
-                            'T': torch.zeros(3),
-                            'dist': torch.zeros(5),
-                            'P': torch.zeros(3, 4),
+                            'K': virtual_K.unsqueeze(0), 
+                            'R': torch.eye(3).unsqueeze(0), 
+                            'T': torch.zeros(3).unsqueeze(0),
+                            'dist': torch.zeros(5).unsqueeze(0),
+                            'P': torch.zeros(3, 4).unsqueeze(0),
                         },
                         # corr
                         'R_c2w': batch['R_c2w'][bs_i],
