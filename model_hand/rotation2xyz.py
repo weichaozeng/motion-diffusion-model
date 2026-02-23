@@ -7,7 +7,7 @@ class Rotation2xyz:
         self.device = device
         self.hand_model = MANO(device=device, num_pca_comps=6, use_pca=False, use_flat_mean=False,).eval().to(device)
 
-    def __call__(self, pose, pose_rep, beta, translation=None, root_translation=None, ff_rotmat=None, return_vertices=False, R_cam2world=None, R_adj=None, f_scale_factor=None, **kwargs):
+    def __call__(self, pose, pose_rep, beta, translation=None, root_translation=None, ff_rotmat=None, return_vertices=False, R_cam2world=None, R_adj=None, f_scale=None, **kwargs):
 
         x_rotations = pose
 
@@ -61,8 +61,10 @@ class Rotation2xyz:
                     translation = torch.matmul(R_total_inv, translation_world.unsqueeze(-1)).squeeze(-1)
                 else:
                     translation = translation_world
-            if f_scale_factor is not None:
-                translation = translation / f_scale_factor.unsqueeze(-1)
+            if f_scale is not None:
+                translation[:, :, 0] = translation[:, :, 0] / translation[:, :, 2]
+                translation[:, :, 1] = translation[:, :, 1] / translation[:, :, 2]
+                translation[:, :, 2] = translation[:, :, 2] / f_scale.unsqueeze(-1)
             translation = translation.reshape(-1, 3)
 
         # shapes
