@@ -109,12 +109,12 @@ class Dataset(torch.utils.data.Dataset):
             y_trans_cam_real, _= self._load_translation_y(ind, frame_ix, y_data, cam)
              # revise focal
             # y_trans_cam = to_torch(y_trans_cam)
-            # f_real = (cam['K'][0][0, 0] + cam['K'][0][1, 1]) / 2
+            f_real = (cam['K'][0][0, 0] + cam['K'][0][1, 1]) / 2
             # fx_real = cam['K'][0][0, 0] 
             # fy_real = cam['K'][0][1, 1]
             # cx_real, cy_real = cam['K'][0, 0, 2], cam['K'][0, 1, 2]
-            # f_hamer = 500.0 / 256 * 1280
-            # f_scale = f_real / f_hamer
+            f_hamer = 500.0 / 256 * 1280
+            f_scale = f_real / f_hamer
             # z_real = y_trans_cam[:, 2] * f_scale
             # x_real = y_trans_cam[:, 0] + (640 - cx_real) * z_real / fx_real
             # y_real = y_trans_cam[:, 1] + (360 - cy_real) * z_real / fy_real
