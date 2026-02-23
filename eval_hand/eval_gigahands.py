@@ -19,8 +19,8 @@ class GigaHandsEvaluator(Dataset):
         self.model.eval()
 
         virtual_K = torch.eye(3)
-        virtual_K[0, 0] = 500.0  # fx
-        virtual_K[1, 1] = 500.0  # fy
+        virtual_K[0, 0] = 500.0 / 256 * 1280   # hamer fx for gigahands
+        virtual_K[1, 1] = 500.0 / 256 * 1280  # hamer fy for gigahands
         virtual_K[0, 2] = 640.0  # cx (1280/2)
         virtual_K[1, 2] = 360.0  # cy (720/2)
 

@@ -133,10 +133,6 @@ class GigaHands(Dataset):
         return self.seqs_cam[ind]
 
     def _load_rotvec_x(self, ind, frame_ix, x_data, is_right, flip_left=True):
-        # mano_params_path = self.seqs_mano[ind]
-        # with open(mano_params_path, 'r') as f:
-        #     mano_data = json.load(f)
-
         if is_right:
             full_poses = torch.tensor(x_data["right"]["poses"], dtype=torch.float32)
             Rh = torch.tensor(x_data["right"]["Rh"], dtype=torch.float32)
@@ -149,29 +145,10 @@ class GigaHands(Dataset):
         poses = full_poses[frame_ix].reshape(-1, 16, 3)  # (num_frames, 16, 3)
         if not is_right and flip_left:
             raise NotImplementedError
-            # poses[:, :, 1] *= -1
-            # poses[:, :, 2] *= -1
-    
         return poses, beta.squeeze(0)        
     
-    # def _load_joints3D(self, ind, frame_ix, is_right, flip_left=True):
-    #     joints_path = self.seqs_kp3d[ind]
-    #     with open(joints_path, 'r') as f:
-    #         joints_data = json.load(f)
-    #     full_joints = torch.tensor(joints_data, dtype=torch.float32)
-    #     batch_joints = full_joints[frame_ix]  # (num_frames, 42, 3)
-
-    #     if is_right:
-    #         joints3D = batch_joints[:, 21:]  # (num_frames, 21, 3)
-    #     else:
-    #         joints3D = batch_joints[:, :21]  # (num_frames, 21, 3)
-           
-    #     if not is_right and flip_left:
-    #         joints3D[:, 0] *= -1
-    #     return joints3D
     
     def _load_translation_x(self, ind, frame_ix, x_data, is_right, flip_left=True):
-
         if is_right:
             Th = torch.tensor(x_data["right"]["Th"], dtype=torch.float32)
         else:
@@ -182,7 +159,6 @@ class GigaHands(Dataset):
         return Th[frame_ix]  
     
     def _load_rotvec_y(self, ind, frame_ix, y_data, cam):
-        # seq_y_path = self.seqs_y[ind]
         frame_indices = y_data['frame_indices']
         hand_pose = torch.from_numpy(np.asarray([mano['hand_pose'] for mano in y_data['mano']]))
         global_orient = torch.from_numpy(np.asarray([mano['global_orient'] for mano in y_data['mano']]))
@@ -205,7 +181,7 @@ class GigaHands(Dataset):
 
         # slerp
         indices = np.searchsorted(frame_indices, [frame_ix[0], frame_ix[-1]])
-        start_idx = indices[0]
+        start_idx = max(0, indices[0] - 1)
         end_idx = indices[1]
 
         chunk_indices = frame_indices[start_idx:end_idx+1]
@@ -224,11 +200,9 @@ class GigaHands(Dataset):
         )
 
         relative_indices = frame_ix - chunk_indices[0]
-        max_idx = full_pose.shape[0] - 1
-        target_idx = np.clip(relative_indices, 0, max_idx)
-        R_adj_sampled = full_R_adj[target_idx]
+        target_idx = relative_indices
 
-        return full_pose[target_idx], inpaint_mask[target_idx], R_c2w, R_adj_sampled
+        return full_pose[target_idx], inpaint_mask[target_idx], R_c2w, full_R_adj[target_idx]
 
 
 
@@ -237,16 +211,15 @@ class GigaHands(Dataset):
         cam_trans = y_data['cam_trans']
 
         indices = np.searchsorted(frame_indices, [frame_ix[0], frame_ix[-1]])
-        start_idx = indices[0]
+        start_idx = max(0, indices[0] - 1)
         end_idx = indices[1]
 
         full_trans, inpaint_mask = self._interpolate_y(frame_indices[start_idx:end_idx+1], cam_trans[start_idx:end_idx+1])
 
         relative_indices = frame_ix - frame_indices[start_idx]
-        max_relative_idx = full_trans.shape[0] - 1
-        relative_indices = np.clip(relative_indices, 0, max_relative_idx)
+        target_idx = relative_indices
 
-        return full_trans[relative_indices], inpaint_mask[relative_indices]
+        return full_trans[target_idx], inpaint_mask[target_idx]
 
     
     def _interpolate_y(self, frame_indices, cam_trans):
@@ -288,7 +261,6 @@ class GigaHands(Dataset):
         min_t, max_t = frame_indices[0], frame_indices[-1]
         total_N = max_t - min_t + 1
         target_times = np.arange(min_t, max_t + 1)
-        target_times_clipped = np.clip(target_times, min_t, max_t)
 
         mask = np.zeros(total_N, dtype=np.bool_)
         mask[frame_indices - min_t] = True
@@ -297,7 +269,7 @@ class GigaHands(Dataset):
         for j in range(J):
             rots = R.from_matrix(full_pose_mat[:, j])
             slerp = Slerp(frame_indices, rots)
-            full_pose_rotvecs.append(slerp(target_times_clipped).as_rotvec())
+            full_pose_rotvecs.append(slerp(target_times).as_rotvec())
 
         full_pose = np.stack(full_pose_rotvecs, axis=1)
         return full_pose.astype(np.float32), mask
@@ -353,9 +325,7 @@ class GigaHands(Dataset):
         frame_indices = np.asarray(frame_indices)
         rotations = R.from_matrix(R_adj)
         slerp = Slerp(frame_indices, rotations)
-        
-        target_times_clipped = np.clip(target_times, frame_indices[0], frame_indices[-1])
-        interp_rots = slerp(target_times_clipped)
+        interp_rots = slerp(target_times)
         return interp_rots.as_matrix().astype(np.float32)   
 
 # # vis

@@ -47,6 +47,7 @@ class Dataset(torch.utils.data.Dataset):
         pose_rep = self.pose_rep
         assert pose_rep != "xyz"
 
+        # 1. pose
         if getattr(self, "_load_rotvec_x", None) is None or getattr(self, "_load_rotvec_y", None) is None :
             raise ValueError("This representation is not possible.")
         else:
@@ -62,10 +63,7 @@ class Dataset(torch.utils.data.Dataset):
                 x_pose[:, 0, :] = geometry.matrix_to_axis_angle(x_aligned_root_poses_matrix)
             else:
                 x_first_frame_root_pose_matrix = torch.eye(3).float()
-                # if self.translation:
-                #     ret_tr = torch.matmul(torch.transpose(first_frame_root_pose_matrix, 0, 1).float(),
-                #                         torch.transpose(ret_tr, 0, 1))
-                #     ret_tr = torch.transpose(ret_tr, 0, 1)
+
             # y
             y_pose, inpaint_mask, R_c2w, R_adj = self._load_rotvec_y(ind, frame_ix, y_data, cam)
             if not self.glob:
@@ -80,10 +78,7 @@ class Dataset(torch.utils.data.Dataset):
                 y_pose[:, 0, :] = geometry.matrix_to_axis_angle(y_aligned_root_poses_matrix)
             else:
                 y_first_frame_root_pose_matrix = torch.eye(3).float()
-                # if self.translation:
-                #     ret_tr_y = torch.matmul(torch.transpose(first_frame_root_pose_matrix_y, 0, 1).float(),
-                #                         torch.transpose(ret_tr_y, 0, 1))
-                #     ret_tr_y = torch.transpose(ret_tr_y, 0, 1)
+
 
             if pose_rep == "rotvec":
                 x_pose = x_pose
@@ -98,6 +93,7 @@ class Dataset(torch.utils.data.Dataset):
                 x_pose = geometry.matrix_to_rotation_6d(geometry.axis_angle_to_matrix(x_pose))
                 y_pose = geometry.matrix_to_rotation_6d(geometry.axis_angle_to_matrix(y_pose))
         
+        # 2. trans
         if self.translation:
             # x
             if getattr(self, "_load_translation_x") is None:
@@ -111,10 +107,11 @@ class Dataset(torch.utils.data.Dataset):
             if getattr(self, "_load_translation_y") is None:
                 raise ValueError("Can't extract translations y.")
             y_trans_cam, _= self._load_translation_y(ind, frame_ix, y_data)
-            y_orig_root = to_torch(y_trans_cam[0]).clone()
-            y_trans_cam = to_torch(y_trans_cam - y_trans_cam[0])
+            
             R_total = R_c2w.unsqueeze(0) @ R_adj
             y_trans = torch.matmul(R_total, y_trans_cam.unsqueeze(-1)).squeeze(-1) # [T, 3]
+            y_orig_root = to_torch(y_trans[0]).clone()
+            y_trans = to_torch(y_trans - y_trans[0])
             if self.align_pose_frontview:
                 y_trans = torch.matmul(y_trans, y_first_frame_root_pose_matrix)
         else:
@@ -123,7 +120,7 @@ class Dataset(torch.utils.data.Dataset):
             y_trans = torch.zeros((y_pose.shape[0], 3), dtype=y_pose.dtype)
             y_orig_root = y_trans[0].clone()
 
-        # padding
+        # 3. padding pose with trans
         # x
         x_padded_tr = torch.zeros((x_pose.shape[0], x_pose.shape[2]), dtype=x_pose.dtype)
         x_padded_tr[:, :3] = x_trans
@@ -133,7 +130,7 @@ class Dataset(torch.utils.data.Dataset):
         y_padded_tr[:, :3] = y_trans
         y_ret = torch.cat((y_pose, y_padded_tr[:, None]), 1)
 
-        
+        # 4. permute        
         x_pose = x_pose.permute(1, 2, 0).contiguous()     # J, 6, T
         x_trans = x_trans.permute(1, 0).contiguous()      # 3, T
         x_ret = x_ret.permute(1, 2, 0).contiguous()       # J+1, 6, T
@@ -141,8 +138,8 @@ class Dataset(torch.utils.data.Dataset):
         y_trans = y_trans.permute(1, 0).contiguous()      # 3, T
         y_ret = y_ret.permute(1, 2, 0).contiguous()       # J+1, 6, T
         inpaint_mask = torch.from_numpy(inpaint_mask)
-        
-        
+                
+        # 5, return
         data_dict = {
             'inpaint_mask': inpaint_mask.float(),
             # x
