@@ -48,8 +48,7 @@ class Rotation2xyz:
 
         global_orient = rotvec_flat[:, 0, :].reshape(-1, 3)
         hand_pose = rotvec_flat[:, 1:, :].reshape(-1, 45)
-        hand_pose = torch.cat([torch.zeros_like(global_orient), hand_pose], dim=1)
-
+        # hand_pose = torch.cat([torch.zeros_like(global_orient), hand_pose], dim=1)
         hand_pose = torch.cat([global_orient, hand_pose], dim=1)
 
         # shapes
