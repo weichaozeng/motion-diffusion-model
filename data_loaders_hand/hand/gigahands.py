@@ -267,23 +267,17 @@ class GigaHands(Dataset):
         w = target_boxes[:, 2]
         h = target_boxes[:, 3]
         b = torch.max(w, h)
-        b = 256
 
         # Z_real = 2 * f_real / (box_size * scale)
         z_real = (2.0 * f_real) / (b * s + 1e-6)
 
-        u = bx + tx_local * (b * s / 2.0)
-        v = by + ty_local * (b * s / 2.0)
+        u = bx + tx_local * (b / 2.0)
+        v = by + ty_local * (b / 2.0)
 
         x_real = (u - cx_real) * z_real / fx_real
         y_real = (v - cy_real) * z_real / fy_real
 
         y_trans_cam_real = torch.stack([x_real, y_real, z_real], dim=-1)
-
-        P_offset = torch.stack([-tx_local / s, -ty_local / s, torch.zeros_like(s)], dim=-1)
-
-        # y_trans_cam_real += P_offset
-
         return y_trans_cam_real, mask
 
     
