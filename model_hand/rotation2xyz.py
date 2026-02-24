@@ -35,7 +35,6 @@ class Rotation2xyz:
             all_root_pose_mat = rotations[:, :, 0]
             all_root_pose_mat = torch.matmul(ff_rotmat, all_root_pose_mat)
             if R_cam2world is not None:
-                # R_total_T (B, F, 3, 3) = (R_c2w @ R_adj)^T = R_adj^T @ R_c2w^T
                 if len(R_cam2world.shape) == 3:
                     R_cam2world = R_cam2world.unsqueeze(1).repeat(1, nframes, 1, 1)
                 R_total = R_cam2world
@@ -79,7 +78,7 @@ class Rotation2xyz:
                 rot_matrix = rotmat_flat[:, 0]  # Shape: (B*F, 3, 3)
                 rot_J0 = torch.matmul(rot_matrix, J0.unsqueeze(-1)).squeeze(-1) # Shape: (B*F, 3)
 
-                translation = translation + J0 - rot_J0
+                translation = translation + rot_J0
         
         # import ipdb; ipdb.set_trace()
         vertices, joints = self.hand_model(poses=hand_pose, Rh=global_orient, Th=translation, shapes=shapes, pose2rot=True)

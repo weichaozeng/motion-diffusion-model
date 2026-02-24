@@ -368,7 +368,7 @@ class TrainLoop:
                     beta=vis_sample['gt_beta'], 
                     ff_rotmat=vis_sample['y_ff_root_orient_rotmat'], 
                     translation=vis_sample['y_trans'], 
-                    root_translation=vis_sample['y_root_trans'], 
+                    root_translation=vis_sample['gt_root_trans'], 
                     return_vertices=True,
                     root_revise=True,
                 )
