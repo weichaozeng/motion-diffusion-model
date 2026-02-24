@@ -4,6 +4,7 @@ import cv2
 import pyrender
 import trimesh
 import copy
+import trimesh.creation
 # 这个顺序是BGR的。虽然render的使用的是RGB的，但是由于和图像拼接了，所以又变成BGR的了
 colors = [
     # (0.5, 0.2, 0.2, 1.),  # Defalut BGR
@@ -159,7 +160,7 @@ class Renderer(object):
                 vert = data['vertices'].copy()
                 faces = data['faces']
                 # debug
-                import trimesh.creation
+                
                 axis_trimesh = trimesh.creation.axis(origin_size=0.008, axis_radius=0.005, axis_length=0.15)
                 root_pos = vert[0] 
                 axis_trimesh.apply_translation(root_pos)
