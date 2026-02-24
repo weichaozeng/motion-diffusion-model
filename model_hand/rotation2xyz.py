@@ -74,11 +74,12 @@ class Rotation2xyz:
                         poses=zero_pose, Rh=zero_glob, Th=zero_trans, 
                         shapes=shapes, pose2rot=True
                     )
-                    J0 = joints_rest[:, 0]  # Shape: (B*F, 3) 动态精准的 J0
+                    J0 = joints_rest[:, 0]  # Shape: (B*F, 3)
+                    print(J0)
                 rot_matrix = rotmat_flat[:, 0]  # Shape: (B*F, 3, 3)
                 rot_J0 = torch.matmul(rot_matrix, J0.unsqueeze(-1)).squeeze(-1) # Shape: (B*F, 3)
 
-                translation = translation + rot_J0
+                translation = translation - rot_J0
         
         # import ipdb; ipdb.set_trace()
         vertices, joints = self.hand_model(poses=hand_pose, Rh=global_orient, Th=translation, shapes=shapes, pose2rot=True)
