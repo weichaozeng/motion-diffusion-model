@@ -7,7 +7,7 @@ class Rotation2xyz:
         self.device = device
         self.hand_model = MANO(device=device, num_pca_comps=6, use_pca=False, use_flat_mean=False,).eval().to(device)
 
-    def __call__(self, pose, pose_rep, beta, translation=None, root_translation=None, ff_rotmat=None, return_vertices=False, R_cam2world=None, C_world=None, **kwargs):
+    def __call__(self, pose, pose_rep, beta, translation=None, root_translation=None, ff_rotmat=None, return_vertices=False, R_cam2world=None, C_world=None, root_revise=False, **kwargs):
 
         x_rotations = pose
 
@@ -62,12 +62,13 @@ class Rotation2xyz:
                     translation = torch.matmul(R_cam2world.transpose(-1, -2), translation_world.unsqueeze(-1)).squeeze(-1)
                 else:
                     translation = translation_world
-            translation = translation.reshape(-1, 3)     
-            J_rest = torch.matmul(self.hand_model.J_regressor, self.hand_model.v_template)
-            J0 = J_rest[0]
-            rot_matrix = rotmat_flat[:, 0]  # Shape: (B*F, 3, 3)
-            rot_J0 = torch.matmul(rot_matrix, J0.unsqueeze(-1)).squeeze(-1) # Shape: (B*F, 3)
-            translation = translation + J0.unsqueeze(0) - rot_J0
+            translation = translation.reshape(-1, 3)    
+            if root_revise: 
+                J_rest = torch.matmul(self.hand_model.J_regressor, self.hand_model.v_template)
+                J0 = J_rest[0]
+                rot_matrix = rotmat_flat[:, 0]  # Shape: (B*F, 3, 3)
+                rot_J0 = torch.matmul(rot_matrix, J0.unsqueeze(-1)).squeeze(-1) # Shape: (B*F, 3)
+                translation = translation + J0.unsqueeze(0) - rot_J0
 
 
         # shapes
