@@ -172,8 +172,8 @@ class GigaHands(Dataset):
         
         virtual_K[0, 0] = cam['K'][0][0, 0]
         virtual_K[1, 1] = cam['K'][0][1, 1]
-        cx_real = cam['K'][0][0, 2]
-        cy_real = cam['K'][0][1, 2]
+        virtual_K[0, 2] = cam['K'][0][0, 2]
+        virtual_K[1, 2] = cam['K'][0][1, 2]
         
         # virtual_K[0, 0] = 500 * 1280 / 256 #= cam['K'][0, 0, 0]
         # virtual_K[1, 1] = 500 * 1280 / 256 # = cam['K'][0, 1, 1]
