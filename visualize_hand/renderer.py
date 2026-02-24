@@ -158,6 +158,18 @@ class Renderer(object):
             for trackId, data in render_data.items():
                 vert = data['vertices'].copy()
                 faces = data['faces']
+                # debug
+                import trimesh.creation
+                axis_trimesh = trimesh.creation.axis(origin_size=0.008, axis_radius=0.005, axis_length=0.15)
+                root_pos = vert[0] 
+                axis_trimesh.apply_translation(root_pos)
+                axis_vert = np.asarray(axis_trimesh.vertices)
+                axis_vert = axis_vert @ R.T + T.T
+                axis_trimesh.vertices = axis_vert
+                axis_trimesh.apply_transform(rot)
+                axis_mesh = pyrender.Mesh.from_trimesh(axis_trimesh, smooth=False)
+                scene.add(axis_mesh, name=f'axis_{trackId}')
+                # debug end
                 vert = vert @ R.T + T.T
                 if 'colors' not in data.keys():
                     # 如果使用了vid这个键，那么可视化的颜色使用vid的颜色
