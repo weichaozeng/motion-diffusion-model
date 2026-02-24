@@ -7,7 +7,7 @@ class Rotation2xyz:
         self.device = device
         self.hand_model = MANO(device=device, num_pca_comps=6, use_pca=False, use_flat_mean=False,).eval().to(device)
 
-    def __call__(self, pose, pose_rep, beta, translation=None, root_translation=None, ff_rotmat=None, return_vertices=False, R_cam2world=None, R_adj=None, C_world=None, **kwargs):
+    def __call__(self, pose, pose_rep, beta, translation=None, root_translation=None, ff_rotmat=None, return_vertices=False, R_cam2world=None, C_world=None, **kwargs):
 
         x_rotations = pose
 
@@ -34,12 +34,11 @@ class Rotation2xyz:
                 ff_rotmat = ff_rotmat.unsqueeze(1).repeat(1, nframes, 1, 1)
             all_root_pose_mat = rotations[:, :, 0]
             all_root_pose_mat = torch.matmul(ff_rotmat, all_root_pose_mat)
-            if R_cam2world is not None and R_adj is not None:
+            if R_cam2world is not None:
                 # R_total_T (B, F, 3, 3) = (R_c2w @ R_adj)^T = R_adj^T @ R_c2w^T
                 if len(R_cam2world.shape) == 3:
                     R_cam2world = R_cam2world.unsqueeze(1).repeat(1, nframes, 1, 1)
-                # R_adj (B, F, 3, 3)
-                R_total = torch.matmul(R_cam2world, R_adj)
+                R_total = R_cam2world
                 R_total_inv = R_total.transpose(-1, -2) 
                 all_root_pose_mat = torch.matmul(R_total_inv, all_root_pose_mat)
             rotations[:, :, 0] = all_root_pose_mat

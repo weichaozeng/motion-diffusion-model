@@ -390,7 +390,6 @@ class TrainLoop:
                 #     root_translation=vis_sample['y_root_trans'], 
                 #     return_vertices=True,
                 #     R_cam2world=vis_sample['R_c2w'],
-                #     R_adj=vis_sample['R_adj'],
                 #     C_world=vis_sample['C_world'],
                 #     )
                 # y_cam_video_dir = os.path.join(vis_out_dir, 'ori_video_cam_space')
@@ -413,7 +412,6 @@ class TrainLoop:
                 #     root_translation=vis_sample['y_root_trans'],
                 #     return_vertices=True,
                 #     R_cam2world=vis_sample['R_c2w'],
-                #     R_adj=vis_sample['R_adj'],
                 #     C_world=vis_sample['C_world'],
                 # )
                 # pred_y_video_dir = os.path.join(vis_out_dir, 'pred_video_cam_space')

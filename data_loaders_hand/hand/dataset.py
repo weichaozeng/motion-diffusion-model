@@ -65,12 +65,11 @@ class Dataset(torch.utils.data.Dataset):
                 x_first_frame_root_pose_matrix = torch.eye(3).float()
 
             # y
-            y_pose, inpaint_mask, R_c2w, R_adj, crop_centers = self._load_rotvec_y(ind, frame_ix, y_data, cam)
+            y_pose, inpaint_mask, R_c2w = self._load_rotvec_y(ind, frame_ix, y_data, cam)
             if not self.glob:
                 y_pose = y_pose[:, 1:, :]
             y_pose = to_torch(y_pose)
             R_c2w = to_torch(R_c2w)
-            R_adj = to_torch(R_adj)
             if self.align_pose_frontview:
                 y_first_frame_root_pose_matrix = geometry.axis_angle_to_matrix(y_pose[0][0])
                 y_all_root_poses_matrix = geometry.axis_angle_to_matrix(y_pose[:, 0, :])
@@ -167,7 +166,6 @@ class Dataset(torch.utils.data.Dataset):
             'y_ff_root_orient_rotmat': y_first_frame_root_pose_matrix.float(),
             # corr
             'R_c2w': R_c2w.float(),
-            'R_adj': R_adj.float(),
             'C_world': C_world.float(),
         }
 
@@ -259,7 +257,6 @@ class Dataset(torch.utils.data.Dataset):
             'y_ff_root_orient_rotmat': data_dict['y_ff_root_orient_rotmat'],
             # corr
             'R_c2w': data_dict['R_c2w'].float(),
-            'R_adj': data_dict['R_adj'].float(),
             'C_world': data_dict['C_world'].float(),
         }
         

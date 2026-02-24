@@ -167,7 +167,7 @@ class GigaHands(Dataset):
         # corret
         boxes = torch.from_numpy(np.asarray(y_data['boxes']))
         crop_centers = boxes[:, 0:2] # [cx, cy, bbox_size, bbox_size]
-        global_orient_corrected, R_c2w, R_adj = self.get_hamer_to_world_orient(
+        global_orient_corrected, R_c2w = self.get_hamer_to_world_orient(
             global_orient, 
             cam['R'][0], 
             crop_centers,        
@@ -195,23 +195,23 @@ class GigaHands(Dataset):
             hand_pose_corrected[start_idx:end_idx+1]
         )
 
-        full_R_adj = self.interpolate_R_adj(
-            chunk_indices, 
-            R_adj[start_idx:end_idx+1], 
-            target_times
-        )
+        # full_R_adj = self.interpolate_R_adj(
+        #     chunk_indices, 
+        #     R_adj[start_idx:end_idx+1], 
+        #     target_times
+        # )
 
-        full_crop_centers = self._interpolate_linear(
-            chunk_indices,
-            crop_centers[start_idx:end_idx+1],
-            target_times
-        )
+        # full_crop_centers = self._interpolate_linear(
+        #     chunk_indices,
+        #     crop_centers[start_idx:end_idx+1],
+        #     target_times
+        # )
 
         relative_indices = frame_ix - chunk_indices[0]
         target_idx = relative_indices
 
 
-        return full_pose[target_idx], inpaint_mask[target_idx], R_c2w, full_R_adj[target_idx], full_crop_centers[target_idx]
+        return full_pose[target_idx], inpaint_mask[target_idx], R_c2w
 
 
 
@@ -360,31 +360,31 @@ class GigaHands(Dataset):
         theta_y = torch.atan((ux - cx) / fx)   
         theta_x = -torch.atan((uy - cy) / fy)  
 
-        # R_adj (N, 3, 3)
-        cos_y, sin_y = torch.cos(theta_y), torch.sin(theta_y)
-        cos_x, sin_x = torch.cos(theta_x), torch.sin(theta_x)
-        ones = torch.ones_like(theta_y)
-        zeros = torch.zeros_like(theta_y)
+        # # R_adj (N, 3, 3)
+        # cos_y, sin_y = torch.cos(theta_y), torch.sin(theta_y)
+        # cos_x, sin_x = torch.cos(theta_x), torch.sin(theta_x)
+        # ones = torch.ones_like(theta_y)
+        # zeros = torch.zeros_like(theta_y)
 
-        Ry = torch.stack([
-            torch.stack([cos_y,  zeros, sin_y], dim=-1),
-            torch.stack([zeros,  ones,  zeros], dim=-1),
-            torch.stack([-sin_y, zeros, cos_y], dim=-1)
-        ], dim=-2)
+        # Ry = torch.stack([
+        #     torch.stack([cos_y,  zeros, sin_y], dim=-1),
+        #     torch.stack([zeros,  ones,  zeros], dim=-1),
+        #     torch.stack([-sin_y, zeros, cos_y], dim=-1)
+        # ], dim=-2)
 
-        Rx = torch.stack([
-            torch.stack([ones,  zeros,  zeros], dim=-1),
-            torch.stack([zeros, cos_x, -sin_x], dim=-1),
-            torch.stack([zeros, sin_x,  cos_x], dim=-1)
-        ], dim=-2)
+        # Rx = torch.stack([
+        #     torch.stack([ones,  zeros,  zeros], dim=-1),
+        #     torch.stack([zeros, cos_x, -sin_x], dim=-1),
+        #     torch.stack([zeros, sin_x,  cos_x], dim=-1)
+        # ], dim=-2)
 
-        R_adj = Ry @ Rx 
+        # R_adj = Ry @ Rx 
 
         # R_world = R_c2w @ R_adj @ R_hamer
         # y_global_orient_world = R_c2w.unsqueeze(0) @ R_adj @ y_global_orient.squeeze(1)
         y_global_orient_world = R_c2w.unsqueeze(0) @ y_global_orient.squeeze(1)
         
-        return y_global_orient_world.unsqueeze(1), R_c2w, R_adj
+        return y_global_orient_world.unsqueeze(1), R_c2w #, R_adj
     
     def interpolate_R_adj(self, frame_indices, R_adj, target_times):
         frame_indices = np.asarray(frame_indices)
