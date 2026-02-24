@@ -370,7 +370,7 @@ class TrainLoop:
                     translation=vis_sample['y_trans'], 
                     root_translation=vis_sample['y_root_trans'], 
                     return_vertices=True,
-                    root_revise=False,
+                    root_revise=True,
                     hamer_style=False,
                 )
                 y_video_dir = os.path.join(vis_out_dir, 'ori_video')
