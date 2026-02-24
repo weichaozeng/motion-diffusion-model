@@ -157,7 +157,7 @@ class MANO(nn.Module):
     def forward(self, poses, shapes, Rh=None, Th=None, expression=None, 
         v_template=None,
         return_verts=True, return_tensor=True, return_smpl_joints=True, 
-        only_shape=False, pose2rot=True, **kwargs):
+        only_shape=False, pose2rot=True, hamer_style=False, **kwargs):
         """ Forward pass for SMPL model
 
         Args:
@@ -215,8 +215,12 @@ class MANO(nn.Module):
             #     vertices = vertices[:, :self.J_regressor.shape[0], :]
             # else:
             #     vertices = vertices[:, self.J_regressor.shape[0]:, :]
-        vertices = torch.matmul(vertices, rot.transpose(1, 2)) + transl
-        joints = torch.matmul(joints, rot.transpose(1, 2)) + transl
+        if hamer_style:
+            vertices = vertices + transl
+            joints = joints + transl
+        else:
+            vertices = torch.matmul(vertices, rot.transpose(1, 2)) + transl
+            joints = torch.matmul(joints, rot.transpose(1, 2)) + transl
         if not return_tensor:
             vertices = vertices.detach().cpu().numpy()
         if return_smpl_joints:
