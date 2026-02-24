@@ -30,7 +30,7 @@ def render_video(verts, xyzs, out_dir, rgb_video_paths, rgb_frame_indices, cams,
         }
         video_name = os.path.basename(video_path).split('.')[0]
         os.makedirs(out_dir, exist_ok=True)
-        out_video_path = os.path.join(out_dir, f'{video_name}_rendered.mp4')
+        out_video_path = os.path.join(out_dir, f'{str(i)}_{video_name}_rendered.mp4')
         
         valid_indices = torch.nonzero(~suffix_mask).squeeze()
         if valid_indices.numel() > 0:
