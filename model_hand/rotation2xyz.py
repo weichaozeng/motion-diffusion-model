@@ -48,8 +48,8 @@ class Rotation2xyz:
 
         global_orient = rotvec_flat[:, 0, :].reshape(-1, 3)
         hand_pose = rotvec_flat[:, 1:, :].reshape(-1, 45)
-        # hand_pose = torch.cat([torch.zeros_like(global_orient), hand_pose], dim=1)
-        hand_pose = torch.cat([global_orient, hand_pose], dim=1)
+        hand_pose = torch.cat([torch.zeros_like(global_orient), hand_pose], dim=1)
+
 
         # shapes
         shapes = beta.unsqueeze(1).repeat(1, F, 1).view(-1, 10)
@@ -66,23 +66,20 @@ class Rotation2xyz:
                 else:
                     translation = translation_world
             translation = translation.reshape(-1, 3)    
-            # if root_revise: 
-            #     with torch.no_grad():
-            #         zero_pose = torch.zeros_like(hand_pose)
-            #         zero_glob = torch.zeros_like(global_orient)
-            #         zero_trans = torch.zeros_like(translation)
-            #         _, joints_rest = self.hand_model(
-            #             poses=zero_pose, Rh=zero_glob, Th=zero_trans, 
-            #             shapes=shapes, pose2rot=True
-            #         )
-            #         J0 = joints_rest[:, 0]  # Shape: (B*F, 3) 动态精准的 J0
-            #     rot_matrix = rotmat_flat[:, 0]  # Shape: (B*F, 3, 3)
-            #     rot_J0 = torch.matmul(rot_matrix, J0.unsqueeze(-1)).squeeze(-1) # Shape: (B*F, 3)
+            if root_revise: 
+                with torch.no_grad():
+                    zero_pose = torch.zeros_like(hand_pose)
+                    zero_glob = torch.zeros_like(global_orient)
+                    zero_trans = torch.zeros_like(translation)
+                    _, joints_rest = self.hand_model(
+                        poses=zero_pose, Rh=zero_glob, Th=zero_trans, 
+                        shapes=shapes, pose2rot=True
+                    )
+                    J0 = joints_rest[:, 0]  # Shape: (B*F, 3) 动态精准的 J0
+                rot_matrix = rotmat_flat[:, 0]  # Shape: (B*F, 3, 3)
+                rot_J0 = torch.matmul(rot_matrix, J0.unsqueeze(-1)).squeeze(-1) # Shape: (B*F, 3)
 
-            #     translation = translation + J0 - rot_J0
-
-
-        
+                translation = translation + J0 - rot_J0
         
         # import ipdb; ipdb.set_trace()
         vertices, joints = self.hand_model(poses=hand_pose, Rh=global_orient, Th=translation, shapes=shapes, pose2rot=True)
