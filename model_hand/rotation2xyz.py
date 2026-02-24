@@ -50,6 +50,8 @@ class Rotation2xyz:
         hand_pose = rotvec_flat[:, 1:, :].reshape(-1, 45)
         hand_pose = torch.cat([torch.zeros_like(global_orient), hand_pose], dim=1)
 
+        # shapes
+        shapes = beta.unsqueeze(1).repeat(1, F, 1).view(-1, 10)
 
         # trans
         if translation is not None:
@@ -79,8 +81,7 @@ class Rotation2xyz:
                 translation = translation + J0 - rot_J0
 
 
-        # shapes
-        shapes = beta.unsqueeze(1).repeat(1, F, 1).view(-1, 10)
+        
         
         # import ipdb; ipdb.set_trace()
         vertices, joints = self.hand_model(poses=hand_pose, Rh=global_orient, Th=translation, shapes=shapes, pose2rot=True)
