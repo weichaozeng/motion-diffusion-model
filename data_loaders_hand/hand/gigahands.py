@@ -167,11 +167,21 @@ class GigaHands(Dataset):
         # corret
         boxes = torch.from_numpy(np.asarray(y_data['boxes']))
         crop_centers = boxes[:, 0:2] # [cx, cy, bbox_size, bbox_size]
+        
+        virtual_K = torch.eye(3)
+        virtual_K[0, 0] = cam['K'][0, 0, 0]
+        virtual_K[1, 1] = cam['K'][0, 1, 1]
+        virtual_K[0, 2] = cam['K'][0, 0, 2]
+        virtual_K[1, 2] = cam['K'][0, 1, 2]
+        virtual_R = torch.eye(3)
+        
         global_orient_corrected, R_c2w = self.get_hamer_to_world_orient(
             global_orient, 
-            cam['R'][0], 
-            crop_centers,        
-            cam['K'][0]
+            # cam['R'][0],
+            virtual_R, 
+            crop_centers,  
+            # cam['K'][0],
+            virtual_K,      
         )
         pose_mean = torch.tensor(np.asarray(MANO_HANDS_MEAN), dtype=torch.float32)
         hand_pose_rotvec = geometry.matrix_to_axis_angle(hand_pose)

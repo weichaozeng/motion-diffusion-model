@@ -18,11 +18,7 @@ class GigaHandsEvaluator(Dataset):
         self.generated_data = []
         self.model.eval()
 
-        virtual_K = torch.eye(3)
-        virtual_K[0, 0] = 500.0 / 256 * 1280   # hamer fx for gigahands
-        virtual_K[1, 1] = 500.0 / 256 * 1280  # hamer fy for gigahands
-        virtual_K[0, 2] = 640.0  # cx (1280/2)
-        virtual_K[1, 2] = 360.0  # cy (720/2)
+
 
         with torch.no_grad():
             for i, batch in tqdm(enumerate(dataloader), desc="Generating Eval Samples"):
@@ -46,6 +42,11 @@ class GigaHandsEvaluator(Dataset):
 
                 for bs_i in range(batch['x_ret'].shape[0]):
                     print(f'gt_root_trans: {batch["x_root_trans"][bs_i]}, y_root_trans: {batch["y_root_trans"][bs_i]}, dist: {batch["x_root_trans"][bs_i] - batch["y_root_trans"][bs_i]}')
+                    virtual_K = torch.eye(3)
+                    virtual_K[0, 0] = batch['cam']['K'][bs_i][0, 0, 0]
+                    virtual_K[1, 1] = batch['cam']['K'][bs_i][0, 1, 1]
+                    virtual_K[0, 2] = batch['cam']['K'][bs_i][0, 0, 2]
+                    virtual_K[1, 2] = batch['cam']['K'][bs_i][0, 1, 2]
                     entry = {
                         # pred_sample
                         'pred_pose': sample[bs_i, :-1, :, :],
