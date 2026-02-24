@@ -80,7 +80,7 @@ class Rotation2xyz:
                 print(rot_matrix[:5])
                 rot_J0 = torch.matmul(rot_matrix, J0.unsqueeze(-1)).squeeze(-1) # Shape: (B*F, 3)
 
-                translation = translation + J0 - rot_J0
+                translation = translation + 2* J0 - rot_J0
         
         # import ipdb; ipdb.set_trace()
         vertices, joints = self.hand_model(poses=hand_pose, Rh=global_orient, Th=translation, shapes=shapes, pose2rot=True)
