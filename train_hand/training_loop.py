@@ -371,7 +371,7 @@ class TrainLoop:
                     root_translation=vis_sample['y_root_trans'], 
                     return_vertices=True,
                     root_revise=False,
-                    hamer_style=True,
+                    hamer_style=False,
                 )
                 y_video_dir = os.path.join(vis_out_dir, 'ori_video')
                 vis_gigahands.render_video(y_verts, y_xyz, y_video_dir, rgb_video_paths, rgb_frame_indices, y_cam, suffix_masks)
