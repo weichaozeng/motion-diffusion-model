@@ -7,9 +7,9 @@ class Rotation2xyz:
         self.device = device
         self.hand_model = MANO(device=device, num_pca_comps=6, use_pca=False, use_flat_mean=False,).eval().to(device)
 
-    def __call__(self, pose, pose_rep, beta, translation=None, root_translation=None, ff_rotmat=None, return_vertices=False, R_cam2world=None, C_world=None, root_revise=False, hamer_style=False, **kwargs):
+    def __call__(self, pose, pose_rep, beta, translation=None, root_translation=None, ff_rotmat=None, return_vertices=False, R_cam2world=None, C_world=None, root_revise=True, **kwargs):
 
-        assert root_revise != hamer_style, "root_revise and hamer_style should not be the same."
+
         x_rotations = pose
 
         x_rotations = x_rotations.permute(0, 3, 1, 2)
@@ -48,10 +48,7 @@ class Rotation2xyz:
 
         global_orient = rotvec_flat[:, 0, :].reshape(-1, 3)
         hand_pose = rotvec_flat[:, 1:, :].reshape(-1, 45)
-        if hamer_style:
-            hand_pose = torch.cat([global_orient, hand_pose], dim=1)
-        else:
-            hand_pose = torch.cat([torch.zeros_like(global_orient), hand_pose], dim=1)
+        hand_pose = torch.cat([torch.zeros_like(global_orient), hand_pose], dim=1)
         
 
 
@@ -88,7 +85,7 @@ class Rotation2xyz:
                 translation = translation - rot_J0
         
         # import ipdb; ipdb.set_trace()
-        vertices, joints = self.hand_model(poses=hand_pose, Rh=global_orient, Th=translation, shapes=shapes, pose2rot=True, hamer_style=hamer_style)
+        vertices, joints = self.hand_model(poses=hand_pose, Rh=global_orient, Th=translation, shapes=shapes, pose2rot=True)
 
         vertices = vertices.view(B, F, -1, 3)
         joints = joints.view(B, F, -1, 3)

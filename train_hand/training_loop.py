@@ -370,8 +370,6 @@ class TrainLoop:
                     translation=vis_sample['y_trans'], 
                     root_translation=vis_sample['y_root_trans'], 
                     return_vertices=True,
-                    root_revise=True,
-                    hamer_style=False,
                 )
                 y_video_dir = os.path.join(vis_out_dir, 'ori_video')
                 vis_gigahands.render_video(y_verts, y_xyz, y_video_dir, rgb_video_paths, rgb_frame_indices, gt_cam, suffix_masks)
@@ -382,51 +380,7 @@ class TrainLoop:
                     iteration=self.step, 
                     local_path=y_video_dir
                 )
-
-                # # orig y cam space vis
-                # y_cam_xyz, y_cam_verts = self.model.rot2xyz(
-                #     pose=vis_sample['y_pose'], 
-                #     pose_rep='rot6d', 
-                #     beta=vis_sample['gt_beta'], 
-                #     ff_rotmat=vis_sample['y_ff_root_orient_rotmat'], 
-                #     translation=vis_sample['y_trans'], 
-                #     root_translation=vis_sample['y_root_trans'], 
-                #     return_vertices=True,
-                #     R_cam2world=vis_sample['R_c2w'],
-                #     C_world=vis_sample['C_world'],
-                #     )
-                # y_cam_video_dir = os.path.join(vis_out_dir, 'ori_video_cam_space')
-                # vis_gigahands.render_video(y_cam_verts, y_cam_video_dir, rgb_video_paths, rgb_frame_indices, y_cam, suffix_masks)
-
-                # self.train_platform.report_media(
-                #     title='Eval_Visualization', 
-                #     series='y_cam_space', 
-                #     iteration=self.step, 
-                #     local_path=y_video_dir
-                # )
-
-                # # pred cam space vis
-                # _, pred_verts_y = self.model.rot2xyz(
-                #     pose=vis_sample['pred_pose'], 
-                #     pose_rep='rot6d', 
-                #     beta=vis_sample['gt_beta'], 
-                #     ff_rotmat=vis_sample['y_ff_root_orient_rotmat'], 
-                #     translation=vis_sample['pred_trans'],
-                #     root_translation=vis_sample['y_root_trans'],
-                #     return_vertices=True,
-                #     R_cam2world=vis_sample['R_c2w'],
-                #     C_world=vis_sample['C_world'],
-                # )
-                # pred_y_video_dir = os.path.join(vis_out_dir, 'pred_video_cam_space')
-                # vis_gigahands.render_video(pred_verts_y, pred_y_video_dir, rgb_video_paths, rgb_frame_indices, y_cam, suffix_masks)
-
-                # self.train_platform.report_media(
-                #     title='Eval_Visualization', 
-                #     series='pred_cam_space', 
-                #     iteration=self.step, 
-                #     local_path=pred_y_video_dir
-                # )
-
+                
                 # gt vis
                 gt_xyz, gt_verts = self.model.rot2xyz(
                     pose=vis_sample['gt_pose'], 
@@ -436,8 +390,6 @@ class TrainLoop:
                     translation=vis_sample['gt_trans'], 
                     root_translation=vis_sample['gt_root_trans'], 
                     return_vertices=True,
-                    root_revise=True,
-                    hamer_style=False,    
                 )
                 gt_video_dir = os.path.join(vis_out_dir, 'gt_video')
                 vis_gigahands.render_video(gt_verts, gt_xyz, gt_video_dir, rgb_video_paths, rgb_frame_indices, gt_cam, suffix_masks)
@@ -458,8 +410,6 @@ class TrainLoop:
                     translation=vis_sample['pred_trans'], 
                     root_translation=vis_sample['y_root_trans'],
                     return_vertices=True, 
-                    root_revise=True,
-                    hamer_style=False,
                 )
                 pred_video_dir = os.path.join(vis_out_dir, 'pred_video')
                 vis_gigahands.render_video(pred_verts, pred_xyz, pred_video_dir, rgb_video_paths, rgb_frame_indices, gt_cam, suffix_masks)
