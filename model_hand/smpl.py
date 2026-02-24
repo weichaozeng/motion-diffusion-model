@@ -215,7 +215,8 @@ class MANO(nn.Module):
             #     vertices = vertices[:, :self.J_regressor.shape[0], :]
             # else:
             #     vertices = vertices[:, self.J_regressor.shape[0]:, :]
-        vertices = torch.matmul(vertices, rot.transpose(1, 2)) + transl
+        vertices = vertices + transl
+        # vertices = torch.matmul(vertices, rot.transpose(1, 2)) + transl
         if not return_tensor:
             vertices = vertices.detach().cpu().numpy()
         if return_smpl_joints:
