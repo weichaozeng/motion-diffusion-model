@@ -279,6 +279,10 @@ class GigaHands(Dataset):
 
         y_trans_cam_real = torch.stack([x_real, y_real, z_real], dim=-1)
 
+        P_offset = torch.stack([-tx_local / s, -ty_local / s, torch.zeros_like(s)], dim=-1)
+
+        y_trans_cam_real += P_offset
+
         return y_trans_cam_real, mask
 
     
