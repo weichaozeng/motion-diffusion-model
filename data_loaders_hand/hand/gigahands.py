@@ -301,9 +301,9 @@ class GigaHands(Dataset):
 
         y_trans_cam_real = torch.stack([x_real, y_real, z_real], dim=-1)
         
-        print(f'target_pred_cam: {target_pred_cam[0]}')
-        print(f'target_boxes: {target_boxes[0]}')
-        print(f"cam[K][0]: {cam['K'][0]}")
+        # print(f'target_pred_cam: {target_pred_cam[0]}')
+        # print(f'target_boxes: {target_boxes[0]}')
+        # print(f"cam[K][0]: {cam['K'][0]}")
 
 
         return y_trans_cam_real, mask

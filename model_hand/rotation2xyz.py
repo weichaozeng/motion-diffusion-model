@@ -9,7 +9,7 @@ class Rotation2xyz:
 
     def __call__(self, pose, pose_rep, beta, translation=None, root_translation=None, ff_rotmat=None, return_vertices=False, R_cam2world=None, C_world=None, root_revise=False, hamer_style=False, **kwargs):
 
-        assert ((not root_revise and hamer_style) or (root_revise and not hamer_style)), "root_revise and hamer_style should not be the same."
+        assert root_revise != hamer_style, "root_revise and hamer_style should not be the same."
         x_rotations = pose
 
         x_rotations = x_rotations.permute(0, 3, 1, 2)
