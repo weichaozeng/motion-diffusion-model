@@ -48,7 +48,7 @@ def render_video(verts, xyzs, out_dir, rgb_video_paths, rgb_frame_indices, cams,
                 0: {
                     'vertices': vertices[idx],
                     'faces': faces,
-                    'joints': joints[idx],
+                    'joints': joints[:, :, idx],
                     'vid': 1,
                     'name': f'{i}'
                 }
