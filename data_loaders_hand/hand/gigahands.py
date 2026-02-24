@@ -269,7 +269,7 @@ class GigaHands(Dataset):
         b = torch.max(w, h)
 
         # Z_real = 2 * f_real / (box_size * scale)
-        z_real = (2.0 * f_real) / (b  + 1e-6)
+        z_real = (2.0 * f_real) / (b * s + 1e-6)
 
         u = bx + tx_local * (b / 2.0) 
         v = by + ty_local * (b / 2.0)
