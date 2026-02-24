@@ -169,10 +169,10 @@ class GigaHands(Dataset):
         crop_centers = boxes[:, 0:2] # [cx, cy, bbox_size, bbox_size]
         
         virtual_K = torch.eye(3)
-        virtual_K[0, 0] = cam['K'][0, 0, 0]
-        virtual_K[1, 1] = cam['K'][0, 1, 1]
-        virtual_K[0, 2] = cam['K'][0, 0, 2]
-        virtual_K[1, 2] = cam['K'][0, 1, 2]
+        virtual_K[0, 0] = 500 * 1280 / 256 #= cam['K'][0, 0, 0]
+        virtual_K[1, 1] = 500 * 1280 / 256 # = cam['K'][0, 1, 1]
+        virtual_K[0, 2] = 640 # = cam['K'][0, 0, 2]
+        virtual_K[1, 2] = 360 # = cam['K'][0, 1, 2]
         virtual_R = torch.eye(3)
         
         global_orient_corrected, R_c2w = self.get_hamer_to_world_orient(
@@ -262,11 +262,11 @@ class GigaHands(Dataset):
         mask = inpaint_mask[target_idx]
 
 
-        fx_real = cam['K'][0][0, 0]
-        fy_real = cam['K'][0][1, 1]
-        f_real = (fx_real + fy_real) / 2.0
-        cx_real = cam['K'][0][0, 2]
-        cy_real = cam['K'][0][1, 2]
+        fx_real = 500 * 1280 / 256 #= cam['K'][0][0, 0]
+        fy_real = 500 * 1280 / 256 #= cam['K'][0][1, 1]
+        f_real = 500 * 1280 / 256 #= (fx_real + fy_real) / 2.0
+        cx_real = 640 #= cam['K'][0][0, 2]
+        cy_real = 360 #= cam['K'][0][1, 2]
 
         s = target_pred_cam[:, 0]
         tx_local = target_pred_cam[:, 1]
