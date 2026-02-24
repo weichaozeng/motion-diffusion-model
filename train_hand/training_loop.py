@@ -374,7 +374,7 @@ class TrainLoop:
                     hamer_style=False,
                 )
                 y_video_dir = os.path.join(vis_out_dir, 'ori_video')
-                vis_gigahands.render_video(y_verts, y_xyz, y_video_dir, rgb_video_paths, rgb_frame_indices, y_cam, suffix_masks)
+                vis_gigahands.render_video(y_verts, y_xyz, y_video_dir, rgb_video_paths, rgb_frame_indices, gt_cam, suffix_masks)
 
                 self.train_platform.report_media(
                     title='Eval_Visualization', 
