@@ -373,7 +373,7 @@ class TrainLoop:
                     root_revise=True,
                 )
                 y_video_dir = os.path.join(vis_out_dir, 'ori_video')
-                vis_gigahands.render_video(y_verts, y_video_dir, rgb_video_paths, rgb_frame_indices, gt_cam, suffix_masks)
+                vis_gigahands.render_video(y_verts, y_xyz, y_video_dir, rgb_video_paths, rgb_frame_indices, gt_cam, suffix_masks)
 
                 self.train_platform.report_media(
                     title='Eval_Visualization', 
@@ -436,7 +436,7 @@ class TrainLoop:
                     root_translation=vis_sample['gt_root_trans'], 
                     return_vertices=True)
                 gt_video_dir = os.path.join(vis_out_dir, 'gt_video')
-                vis_gigahands.render_video(gt_verts, gt_video_dir, rgb_video_paths, rgb_frame_indices, gt_cam, suffix_masks)
+                vis_gigahands.render_video(gt_verts, gt_xyz, gt_video_dir, rgb_video_paths, rgb_frame_indices, gt_cam, suffix_masks)
 
                 self.train_platform.report_media(
                     title='Eval_Visualization', 
@@ -457,7 +457,7 @@ class TrainLoop:
                     root_revise=True
                 )
                 pred_video_dir = os.path.join(vis_out_dir, 'pred_video')
-                vis_gigahands.render_video(pred_verts, pred_video_dir, rgb_video_paths, rgb_frame_indices, gt_cam, suffix_masks)
+                vis_gigahands.render_video(pred_verts, pred_xyz, pred_video_dir, rgb_video_paths, rgb_frame_indices, gt_cam, suffix_masks)
 
                 self.train_platform.report_media(
                     title='Eval_Visualization', 

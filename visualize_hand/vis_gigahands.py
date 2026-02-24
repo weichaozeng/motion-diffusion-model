@@ -6,7 +6,7 @@ from decord import VideoReader, cpu
 import numpy as np
 import imageio
 
-def render_video(verts, out_dir, rgb_video_paths, rgb_frame_indices, cams, suffix_masks):
+def render_video(verts, xyzs, out_dir, rgb_video_paths, rgb_frame_indices, cams, suffix_masks):
     assert len(verts) ==  len(rgb_video_paths) and len(verts) == len(rgb_frame_indices) and len(verts) == len(cams['K']), f"Length of verts, rgb_video_paths, rgb_frame_indices and cams must be the same."
 
     model_path = '/home/zvc/Project/VHand/_DATA/data/mano/MANO_RIGHT.pkl'
@@ -17,6 +17,7 @@ def render_video(verts, out_dir, rgb_video_paths, rgb_frame_indices, cams, suffi
 
     for i in range(len(verts)):
         vertices = verts[i].cpu().numpy() 
+        joints = xyzs[i].cpu().numpy()
         video_path = rgb_video_paths[i]
         frame_indices = rgb_frame_indices[i]
         suffix_mask = suffix_masks[i]
@@ -47,6 +48,7 @@ def render_video(verts, out_dir, rgb_video_paths, rgb_frame_indices, cams, suffi
                 0: {
                     'vertices': vertices[idx],
                     'faces': faces,
+                    'joints': joints[idx],
                     'vid': 1,
                     'name': f'{i}'
                 }

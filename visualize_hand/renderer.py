@@ -159,10 +159,10 @@ class Renderer(object):
             for trackId, data in render_data.items():
                 vert = data['vertices'].copy()
                 faces = data['faces']
+                joints = data['joints'].copy()
                 # debug
-                
                 axis_trimesh = trimesh.creation.axis(origin_size=0.008, axis_radius=0.005, axis_length=0.15)
-                root_pos = vert[0] 
+                root_pos = joints[0] 
                 axis_trimesh.apply_translation(root_pos)
                 axis_vert = np.asarray(axis_trimesh.vertices)
                 axis_vert = axis_vert @ R.T + T.T
