@@ -45,7 +45,7 @@ class GigaHandsEvaluator(Dataset):
                 )
 
                 for bs_i in range(batch['x_ret'].shape[0]):
-                    print(f'gt_root_trans: {batch['x_root_trans'][bs_i]}, y_root_trans: {batch['y_root_trans'][bs_i]}, dist: {batch['x_root_trans'][bs_i] - batch['y_root_trans'][bs_i]}')
+                    print(f'gt_root_trans: {batch["x_root_trans"][bs_i]}, y_root_trans: {batch["y_root_trans"][bs_i]}, dist: {batch["x_root_trans"][bs_i] - batch["y_root_trans"][bs_i]}')
                     entry = {
                         # pred_sample
                         'pred_pose': sample[bs_i, :-1, :, :],
