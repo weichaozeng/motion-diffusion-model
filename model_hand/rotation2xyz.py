@@ -9,7 +9,7 @@ class Rotation2xyz:
 
     def __call__(self, pose, pose_rep, beta, translation=None, root_translation=None, ff_rotmat=None, return_vertices=False, R_cam2world=None, C_world=None, root_revise=False, hamer_style=False, **kwargs):
 
-        assert (not root_revise and hamer_style) or (root_revise and not hamer_style), "root_revise and hamer_style are contradict."
+        assert ((not root_revise and hamer_style) or (root_revise and not hamer_style)), "root_revise and hamer_style should not be the same."
         x_rotations = pose
 
         x_rotations = x_rotations.permute(0, 3, 1, 2)
@@ -80,9 +80,7 @@ class Rotation2xyz:
                         shapes=shapes, pose2rot=True, 
                     )
                     J0 = joints_rest[:, 0]  # Shape: (B*F, 3)
-                    print(J0[:5])
                 rot_matrix = rotmat_flat[:, 0]  # Shape: (B*F, 3, 3)
-                print(rot_matrix[:5])
                 rot_J0 = torch.matmul(rot_matrix, J0.unsqueeze(-1)).squeeze(-1) # Shape: (B*F, 3)
 
                 # translation = translation + J0 - rot_J0
