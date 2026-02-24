@@ -255,8 +255,10 @@ class GigaHands(Dataset):
         fx_real = cam['K'][0][0, 0]
         fy_real = cam['K'][0][1, 1]
         f_real = (fx_real + fy_real) / 2.0
-        cx_real = cam['K'][0][0, 2]
-        cy_real = cam['K'][0][1, 2]
+        # cx_real = cam['K'][0][0, 2]
+        # cy_real = cam['K'][0][1, 2]
+        cx_real = 640
+        cy_real = 360
 
         s = target_pred_cam[:, 0]
         tx_local = target_pred_cam[:, 1]
@@ -271,8 +273,8 @@ class GigaHands(Dataset):
         # Z_real = 2 * f_real / (box_size * scale)
         z_real = (2.0 * f_real) / (b * s + 1e-6)
 
-        u = bx + tx_local * (b / 2.0) / s
-        v = by + ty_local * (b / 2.0) / s
+        u = bx + tx_local * (b / 2.0)
+        v = by + ty_local * (b / 2.0)
 
         x_real = (u - cx_real) * z_real / fx_real
         y_real = (v - cy_real) * z_real / fy_real
