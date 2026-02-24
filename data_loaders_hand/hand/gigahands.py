@@ -255,10 +255,8 @@ class GigaHands(Dataset):
         fx_real = cam['K'][0][0, 0]
         fy_real = cam['K'][0][1, 1]
         f_real = (fx_real + fy_real) / 2.0
-        # cx_real = cam['K'][0][0, 2]
-        # cy_real = cam['K'][0][1, 2]
-        cx_real = 640
-        cy_real = 360
+        cx_real = cam['K'][0][0, 2]
+        cy_real = cam['K'][0][1, 2]
 
         s = target_pred_cam[:, 0]
         tx_local = target_pred_cam[:, 1]
@@ -280,6 +278,7 @@ class GigaHands(Dataset):
         y_real = (v - cy_real) * z_real / fy_real
 
         y_trans_cam_real = torch.stack([x_real, y_real, z_real], dim=-1)
+        breakpoint()
         return y_trans_cam_real, mask
 
     
