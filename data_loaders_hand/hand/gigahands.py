@@ -166,7 +166,7 @@ class GigaHands(Dataset):
         global_orient = torch.from_numpy(np.asarray([mano['global_orient'] for mano in y_data['mano']]))
         # corret
         boxes = torch.from_numpy(np.asarray(y_data['boxes']))
-        crop_centers = (boxes[:, 2:4] + boxes[:, 0:2]) / 2.0
+        crop_centers = boxes[:, 0:2] # [cx, cy, bbox_size, bbox_size]
         global_orient_corrected, R_c2w, R_adj = self.get_hamer_to_world_orient(
             global_orient, 
             cam['R'][0], 
@@ -262,23 +262,17 @@ class GigaHands(Dataset):
         tx_local = target_pred_cam[:, 1]
         ty_local = target_pred_cam[:, 2]
 
-        x1 = target_boxes[:, 0]
-        y1 = target_boxes[:, 1]
-        x2 = target_boxes[:, 2]
-        y2 = target_boxes[:, 3]
-        Cx = (x1 + x2) / 2.0
-        Cy = (y1 + y2) / 2.0
-
-        w = x2 - x1
-        h = y2 - y1
-        b = torch.max(w, h) * 1.3
-
+        cx = target_boxes[:, 0]
+        cy = target_boxes[:, 1]
+        w = target_boxes[:, 2]
+        h = target_boxes[:, 3]
+        b = torch.max(w, h)
 
         # Z_real = 2 * f_real / (box_size * scale)
         z_real = (2.0 * f_real) / (b * s + 1e-6)
 
-        u = Cx + tx_local * (b * s / 2.0)
-        v = Cy + ty_local * (b * s / 2.0)
+        u = cx + tx_local * (b * s / 2.0)
+        v = cy + ty_local * (b * s / 2.0)
 
         x_real = (u - cx_real) * z_real / fx_real
         y_real = (v - cy_real) * z_real / fy_real
