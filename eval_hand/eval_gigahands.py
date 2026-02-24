@@ -43,8 +43,10 @@ class GigaHandsEvaluator(Dataset):
                 for bs_i in range(batch['x_ret'].shape[0]):
                     print(f'gt_root_trans: {batch["x_root_trans"][bs_i]}, y_root_trans: {batch["y_root_trans"][bs_i]}, dist: {batch["x_root_trans"][bs_i] - batch["y_root_trans"][bs_i]}')
                     virtual_K = torch.eye(3)
-                    virtual_K[0, 0] = 500 * 1280 / 256 #= batch['cam']['K'][bs_i][0, 0, 0]
-                    virtual_K[1, 1] = 500 * 1280 / 256 #= batch['cam']['K'][bs_i][0, 1, 1]
+                    # virtual_K[0, 0] = 500 * 1280 / 256 
+                    virtual_K[0, 0] = batch['cam']['K'][bs_i][0, 0, 0]
+                    # virtual_K[1, 1] = 500 * 1280 / 256 
+                    virtual_K[1, 1] = batch['cam']['K'][bs_i][0, 1, 1]
                     virtual_K[0, 2] =640 #= batch['cam']['K'][bs_i][0, 0, 2]
                     virtual_K[1, 2] =360 #= batch['cam']['K'][bs_i][0, 1, 2]
                     entry = {
