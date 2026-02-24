@@ -9,6 +9,7 @@ class Rotation2xyz:
 
     def __call__(self, pose, pose_rep, beta, translation=None, root_translation=None, ff_rotmat=None, return_vertices=False, R_cam2world=None, C_world=None, root_revise=False, hamer_style=False, **kwargs):
 
+        assert (not root_revise and hamer_style) or (root_revise and not hamer_style), "root_revise and hamer_style are contradict."
         x_rotations = pose
 
         x_rotations = x_rotations.permute(0, 3, 1, 2)
@@ -85,6 +86,7 @@ class Rotation2xyz:
                 rot_J0 = torch.matmul(rot_matrix, J0.unsqueeze(-1)).squeeze(-1) # Shape: (B*F, 3)
 
                 # translation = translation + J0 - rot_J0
+                # Move J0 offset to dataset.py
                 translation = translation - rot_J0
         
         # import ipdb; ipdb.set_trace()

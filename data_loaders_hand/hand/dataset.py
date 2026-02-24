@@ -53,6 +53,8 @@ class Dataset(torch.utils.data.Dataset):
         else:
             # x
             x_pose, x_beta = self._load_rotvec_x(ind, frame_ix, x_data, is_right)
+            x_pose = to_torch(x_pose)
+            x_raw_root_rotmat = geometry.axis_angle_to_matrix(x_pose[:, 0, :])
             if not self.glob:
                 x_pose = x_pose[:, 1:, :]
             x_pose = to_torch(x_pose)
@@ -66,6 +68,8 @@ class Dataset(torch.utils.data.Dataset):
 
             # y
             y_pose, inpaint_mask, R_c2w = self._load_rotvec_y(ind, frame_ix, y_data, cam)
+            y_pose = to_torch(y_pose)
+            R_c2w = to_torch(R_c2w)
             if not self.glob:
                 y_pose = y_pose[:, 1:, :]
             y_pose = to_torch(y_pose)
@@ -94,27 +98,31 @@ class Dataset(torch.utils.data.Dataset):
         
         # 2. trans
         if self.translation:
+            J0_offset = torch.tensor([0.0957, 0.0064, 0.0062], device=x_pose.device, dtype=x_pose.dtype)
             # x
             if getattr(self, "_load_translation_x") is None:
                 raise ValueError("Can't extract translations x.")
-            x_trans = self._load_translation_x(ind, frame_ix, x_data, is_right)
-            x_orig_root = to_torch(x_trans[0]).clone()
-            x_trans = to_torch(x_trans - x_trans[0])
+            x_trans = to_torch(self._load_translation_x(ind, frame_ix, x_data, is_right))
+            # x_wrist = x_trans + Rot_J0
+            rot_J0_x = torch.matmul(x_raw_root_rotmat, J0_offset.unsqueeze(-1)).squeeze(-1)
+            x_wrist_world = x_trans + rot_J0_x
+            x_orig_root = x_wrist_world[0].clone()
+            x_trans = x_wrist_world - x_wrist_world[0]
             if self.align_pose_frontview:
                 x_trans = torch.matmul(x_trans, x_first_frame_root_pose_matrix)
             # y
             if getattr(self, "_load_translation_y") is None:
                 raise ValueError("Can't extract translations y.")
-            y_trans_cam_real, _= self._load_translation_y(ind, frame_ix, y_data, cam)
-            J0_offset = torch.tensor([0.0957, 0.0064, 0.0062], device=y_trans_cam_real.device, dtype=y_trans_cam_real.dtype)
-            wrist_trans_cam_real = y_trans_cam_real + J0_offset
+            y_trans_cam, _= self._load_translation_y(ind, frame_ix, y_data, cam)
+            # y_wrist = R_c2w * (y_trans_cam + J0) - R_c2w * T_w2c
+            y_wrist_cam = y_trans_cam + J0_offset
             # cam2world      
             R_w2c = to_torch(cam['R'][0]) # [3, 3]
             T_w2c = to_torch(cam['T'][0]) # [3]
             C_world = -torch.matmul(R_w2c.t(), T_w2c)
-            wrist_world = torch.matmul(R_c2w.unsqueeze(0), wrist_trans_cam_real.unsqueeze(-1)).squeeze(-1) + C_world.unsqueeze(0)
-            y_trans = to_torch(wrist_world - wrist_world[0])
-            y_orig_root = to_torch(wrist_world[0])
+            y_wrist_world = torch.matmul(R_c2w.unsqueeze(0), y_wrist_cam.unsqueeze(-1)).squeeze(-1) + C_world.unsqueeze(0)
+            y_orig_root = to_torch(y_wrist_world[0]).clone()
+            y_trans = to_torch(y_wrist_world - y_wrist_world[0])
             if self.align_pose_frontview:
                 y_trans = torch.matmul(y_trans, y_first_frame_root_pose_matrix)
         else:

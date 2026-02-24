@@ -435,7 +435,10 @@ class TrainLoop:
                     ff_rotmat=vis_sample['gt_ff_root_orient_rotmat'], 
                     translation=vis_sample['gt_trans'], 
                     root_translation=vis_sample['gt_root_trans'], 
-                    return_vertices=True)
+                    return_vertices=True,
+                    root_revise=True,
+                    hamer_style=False,    
+                )
                 gt_video_dir = os.path.join(vis_out_dir, 'gt_video')
                 vis_gigahands.render_video(gt_verts, gt_xyz, gt_video_dir, rgb_video_paths, rgb_frame_indices, gt_cam, suffix_masks)
 
@@ -453,9 +456,10 @@ class TrainLoop:
                     beta=vis_sample['gt_beta'], 
                     ff_rotmat=vis_sample['y_ff_root_orient_rotmat'], 
                     translation=vis_sample['pred_trans'], 
-                    root_translation=vis_sample['y_root_trans'], 
-                    return_vertices=True,
-                    root_revise=True
+                    root_translation=vis_sample['y_root_trans'],
+                    return_vertices=True, 
+                    root_revise=True,
+                    hamer_style=False,
                 )
                 pred_video_dir = os.path.join(vis_out_dir, 'pred_video')
                 vis_gigahands.render_video(pred_verts, pred_xyz, pred_video_dir, rgb_video_paths, rgb_frame_indices, gt_cam, suffix_masks)
