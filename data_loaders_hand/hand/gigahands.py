@@ -262,9 +262,17 @@ class GigaHands(Dataset):
         tx_local = target_pred_cam[:, 1]
         ty_local = target_pred_cam[:, 2]
 
-        Cx = target_boxes[:, 0]
-        Cy = target_boxes[:, 1]
-        b = target_boxes[:, 2]  # box_size
+        x1 = target_boxes[:, 0]
+        y1 = target_boxes[:, 1]
+        x2 = target_boxes[:, 2]
+        y2 = target_boxes[:, 3]
+        Cx = (x1 + x2) / 2.0
+        Cy = (y1 + y2) / 2.0
+
+        w = x2 - x1
+        h = y2 - y1
+        b = torch.max(w, h) * 1.3
+
 
         # Z_real = 2 * f_real / (box_size * scale)
         z_real = (2.0 * f_real) / (b * s + 1e-6)
