@@ -68,7 +68,7 @@ class Rotation2xyz:
             J0 = J_rest[0]
             rot_matrix = rotmat_flat[:, 0]
             rot_J0 = torch.matmul(rot_matrix, J0.unsqueeze(-1)).squeeze(-1)
-            translation -= rot_J0
+            translation += rot_J0
 
             
 
