@@ -302,7 +302,7 @@ class GigaHands(Dataset):
 
         full_trans = np.stack([
             np.interp(target_times_clipped, frame_indices, cam_trans[:, i]) 
-            for i in range(3)
+            for i in range(cam_trans.shape[-1])
         ], axis=-1)
 
         return full_trans.astype(np.float32), mask
