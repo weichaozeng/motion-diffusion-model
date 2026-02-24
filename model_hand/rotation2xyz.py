@@ -66,20 +66,20 @@ class Rotation2xyz:
                 else:
                     translation = translation_world
             translation = translation.reshape(-1, 3)    
-            if root_revise: 
-                with torch.no_grad():
-                    zero_pose = torch.zeros_like(hand_pose)
-                    zero_glob = torch.zeros_like(global_orient)
-                    zero_trans = torch.zeros_like(translation)
-                    _, joints_rest = self.hand_model(
-                        poses=zero_pose, Rh=zero_glob, Th=zero_trans, 
-                        shapes=shapes, pose2rot=True
-                    )
-                    J0 = joints_rest[:, 0]  # Shape: (B*F, 3) 动态精准的 J0
-                rot_matrix = rotmat_flat[:, 0]  # Shape: (B*F, 3, 3)
-                rot_J0 = torch.matmul(rot_matrix, J0.unsqueeze(-1)).squeeze(-1) # Shape: (B*F, 3)
+            # if root_revise: 
+            #     with torch.no_grad():
+            #         zero_pose = torch.zeros_like(hand_pose)
+            #         zero_glob = torch.zeros_like(global_orient)
+            #         zero_trans = torch.zeros_like(translation)
+            #         _, joints_rest = self.hand_model(
+            #             poses=zero_pose, Rh=zero_glob, Th=zero_trans, 
+            #             shapes=shapes, pose2rot=True
+            #         )
+            #         J0 = joints_rest[:, 0]  # Shape: (B*F, 3) 动态精准的 J0
+            #     rot_matrix = rotmat_flat[:, 0]  # Shape: (B*F, 3, 3)
+            #     rot_J0 = torch.matmul(rot_matrix, J0.unsqueeze(-1)).squeeze(-1) # Shape: (B*F, 3)
 
-                translation = translation + J0 - rot_J0
+            #     translation = translation + J0 - rot_J0
 
 
         
