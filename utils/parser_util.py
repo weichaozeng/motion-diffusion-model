@@ -89,21 +89,6 @@ def add_diffusion_options(parser):
     group.add_argument("--diffusion_steps", default=1000, type=int,
                        help="Number of diffusion steps (denoted T in the paper)")
     group.add_argument("--sigma_small", default=True, type=bool, help="Use smaller sigma values.")
-    # loss
-    group.add_argument("--lambda_pose", default=1.0)
-    group.add_argument("--lambda_trans", default=1.0)
-    group.add_argument("--lambda_xyz", default=1.0)
-    group.add_argument("--lambda_vert", default=1.0)
-    group.add_argument("--lambda_vel_pose", default=0.2)
-    group.add_argument("--lambda_vel_trans", default=0.2)
-    group.add_argument("--lambda_vel_xyz", default=0.2)
-    group.add_argument("--lambda_acc_pose", default=0.1)
-    group.add_argument("--lambda_acc_trans", default=0.1)
-    group.add_argument("--lambda_acc_xyz", default=0.1)
-    group.add_argument("--lambda_anchor_pose", default=0.5)
-    group.add_argument("--lambda_anchor_trans", default=0.5)
-    group.add_argument("--lambda_norm_pose", default=0.1)
-    group.add_argument("--lambda_reproj_2d", default=0.1)
 
 
 def add_model_options(parser):
