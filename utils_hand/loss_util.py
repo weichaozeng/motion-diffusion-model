@@ -60,8 +60,8 @@ def masked_geodesic_loss(pred_rot6d, target_rot6d, mask, epsilon=1e-6):
     target = target_rot6d.permute(0, 1, 3, 2).contiguous() # [B, J, T, 6]
     
     # [B, J, T, 3, 3]
-    pred_mat = geometry.axis_angle_to_matrix(pred)       
-    target_mat = geometry.axis_angle_to_matrix(target)   
+    pred_mat = geometry.rotation_6d_to_matrix(pred)       
+    target_mat = geometry.rotation_6d_to_matrix(target)   
     
     # R_rel = R_target @ R_pred^T
     pred_mat_inv = pred_mat.transpose(-1, -2)
