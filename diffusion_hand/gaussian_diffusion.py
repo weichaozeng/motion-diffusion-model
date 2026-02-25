@@ -1102,7 +1102,7 @@ class GaussianDiffusion:
                 ff_rotmat = model_kwargs.get('y_ff_root_orient_rotmat', None)
                 root_trans = model_kwargs.get('y_root_trans', None)
                 out_xyz_world = get_xyz(model_output, return_verts=False, 
-                                        ff_rotmat=ff_rotmat, root_translation=root_trans)
+                                        ff_rotmat=ff_rotmat, root_translation=root_trans.unsqueeze(1))
                 B_dim, J_dim, _, T_dim = out_xyz_world.shape
                 device = out_xyz_world.device
 
