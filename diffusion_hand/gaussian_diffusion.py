@@ -1107,9 +1107,14 @@ class GaussianDiffusion:
                 device = out_xyz_world.device
 
                 cam = model_kwargs['cam']
-                R_mat = cam['R'][:, 0, ...].to(device).float() # [B, 3, 3]
-                T_vec = cam['T'][:, 0, ...].to(device).float() # [B, 3]
-                K_mat = cam['K'][:, 0, ...].to(device).float() # [B, 3, 3]
+                def get_cam_tensor(key):
+                    val = cam[key]
+                    if isinstance(val, list):
+                        val = torch.stack(val) if torch.is_tensor(val[0]) else torch.tensor(np.array(val))
+                    return val
+                R_mat = get_cam_tensor('R')[:, 0, ...].to(device).float() # [B, 3, 3]
+                T_vec = get_cam_tensor('T')[:, 0, ...].to(device).float() # [B, 3]
+                K_mat = get_cam_tensor('K')[:, 0, ...].to(device).float() # [B, 3, 3]
                 world_pts_flat = out_xyz_world.permute(0, 2, 1, 3).reshape(B_dim, 3, -1) 
                 cam_pts_flat = torch.bmm(R_mat, world_pts_flat) + T_vec.unsqueeze(-1)
                 out_xyz_cam = cam_pts_flat.view(B_dim, 3, J_dim, T_dim).permute(0, 2, 1, 3)
