@@ -9,6 +9,7 @@ from diffusion_hand.nn import mean_flat, sum_flat
 from diffusion_hand.losses import normal_kl, discretized_gaussian_log_likelihood
 from utils_hand.loss_util import masked_l2, masked_geodesic_loss
 
+
 def get_named_beta_schedule(schedule_name, num_diffusion_timesteps, scale_betas=1.):
     """
     Get a pre-defined beta schedule for the given name.
@@ -1118,9 +1119,28 @@ class GaussianDiffusion:
                 world_pts_flat = out_xyz_world.permute(0, 2, 1, 3).reshape(B_dim, 3, -1) 
                 cam_pts_flat = torch.bmm(R_mat, world_pts_flat) + T_vec.unsqueeze(-1)
                 out_xyz_cam = cam_pts_flat.view(B_dim, 3, J_dim, T_dim).permute(0, 2, 1, 3)
-                target_2d_full = model_kwargs['y_2d']       # [B, J, 3, T]
-                target_uv = target_2d_full[:, :, :2, :]     # [B, J, 2, T]
-                target_conf = target_2d_full[:, :, 2:3, :]  # [B, J, 1, T]
+                target_2d_full = model_kwargs['y_2d']       # [B, 21, 3, T]
+                mano_to_op_idx = [
+                    0,   # Wrist
+                    5,   # Index MCP
+                    9,   # Middle MCP
+                    17,  # Pinky MCP
+                    13,  # Ring MCP
+                    1,   # Thumb CMC
+                    6,   # Index PIP
+                    10,  # Middle PIP
+                    18,  # Pinky PIP
+                    14,  # Ring PIP
+                    2,   # Thumb MCP
+                    7,   # Index DIP
+                    11,  # Middle DIP
+                    19,  # Pinky DIP
+                    15,  # Ring DIP
+                    3    # Thumb IP
+                ]
+                target_2d_mapped = target_2d_full[:, mano_to_op_idx, :, :]   # [B, J, 2, T]
+                target_uv = target_2d_mapped[:, :, :2, :]     # [B, 16, 2, T]
+                target_conf = target_2d_mapped[:, :, 2:3, :]  # [B, 16, 1, T]
 
                 Z = out_xyz_cam[:, :, 2:3, :].clamp(min=1e-4)
                 X = out_xyz_cam[:, :, 0:1, :]
