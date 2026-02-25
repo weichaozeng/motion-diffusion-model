@@ -69,11 +69,6 @@ def create_gaussian_diffusion(args):
 
     if not timestep_respacing:
         timestep_respacing = [steps]
-    
-    if hasattr(args, 'lambda_target_loc'):
-        lambda_target_loc = args.lambda_target_loc
-    else:
-        lambda_target_loc = 0.
 
     STR_TO_STRATEGY = {
         'standard': gd.DiffusionStrategy.STANDARD,
@@ -103,9 +98,24 @@ def create_gaussian_diffusion(args):
         ),
         loss_type=loss_type,
         rescale_timesteps=rescale_timesteps,
-        lambda_vel=args.lambda_vel,
-        lambda_rcxyz=args.lambda_rcxyz,
-        lambda_target_loc=lambda_target_loc,
+        # loss
+        lambda_pose=args.lambda_pose,
+        lambda_trans=args.lambda_trans,
+        lambda_xyz=args.lambda_xyz,
+        lambda_vert=args.lambda_vert,
+        
+        lambda_vel_pose=args.lambda_vel_pose,
+        lambda_vel_trans=args.lambda_vel_trans,
+        lambda_vel_xyz=args.lambda_vel_xyz,
+        
+        lambda_acc_pose=args.lambda_acc_pose,
+        lambda_acc_trans=args.lambda_acc_trans,
+        lambda_acc_xyz=args.lambda_acc_xyz,
+        
+        lambda_anchor_pose=args.lambda_anchor_pose,
+        lambda_anchor_trans=args.lambda_anchor_trans,
+        lambda_norm_pose=args.lambda_norm_pose,
+        lambda_reproj_2d=args.lambda_reproj_2d,
     )
 
 

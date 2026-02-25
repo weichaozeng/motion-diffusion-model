@@ -307,6 +307,38 @@ class GigaHands(Dataset):
 
 
         return y_trans_cam_real, mask
+    
+
+    def _load_2d_pose_y(self, ind, frame_ix, y_data):
+        frame_indices = np.asarray(y_data['frame_indices'])
+        poses_2d = np.asarray(y_data['poses']) 
+
+        indices = np.searchsorted(frame_indices, [frame_ix[0], frame_ix[-1]])
+        start_idx = max(0, indices[0] - 1)
+        end_idx = indices[1]
+
+        slice_indices = frame_indices[start_idx:end_idx+1]
+        slice_poses = poses_2d[start_idx:end_idx+1]
+
+        min_t, max_t = slice_indices[0], slice_indices[-1]
+        target_times = np.arange(min_t, max_t + 1)
+        
+        _, J, C = slice_poses.shape
+        full_poses = np.zeros((len(target_times), J, C), dtype=np.float32)
+
+        for j in range(J):
+            for c in range(2): 
+                full_poses[:, j, c] = np.interp(target_times, slice_indices, slice_poses[:, j, c])
+
+        valid_mask = slice_indices - min_t
+        full_poses[valid_mask, :, 2] = slice_poses[:, :, 2]
+
+        relative_indices = frame_ix - min_t
+        target_idx = relative_indices
+
+        target_poses_2d = to_torch(full_poses[target_idx])
+        # [T, 21, 3]
+        return target_poses_2d
 
     
     def _interpolate_y(self, frame_indices, cam_trans):

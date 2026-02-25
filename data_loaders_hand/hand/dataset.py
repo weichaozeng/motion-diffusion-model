@@ -156,6 +156,10 @@ class Dataset(torch.utils.data.Dataset):
         y_trans = y_trans.permute(1, 0).contiguous()      # 3, T
         y_ret = y_ret.permute(1, 2, 0).contiguous()       # J+1, 6, T
         inpaint_mask = torch.from_numpy(inpaint_mask)
+
+        # extra. pose 2d
+        y_2d = self._load_2d_pose_y(ind, frame_ix, y_data)
+        y_2d = y_2d.permute(1, 2, 0).contiguous()         # 21, 3, T
                 
         # 5, return
         data_dict = {
@@ -176,6 +180,8 @@ class Dataset(torch.utils.data.Dataset):
             # corr
             'R_c2w': R_c2w.float(),
             'C_world': C_world.float(),
+            # extra
+            'y_2d': y_2d.float(),
         }
 
         return data_dict
@@ -267,6 +273,7 @@ class Dataset(torch.utils.data.Dataset):
             # corr
             'R_c2w': data_dict['R_c2w'].float(),
             'C_world': data_dict['C_world'].float(),
+            'y_2d': data_dict['y_2d'],
         }
         
         return output

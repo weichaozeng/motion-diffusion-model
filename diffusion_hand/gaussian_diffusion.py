@@ -7,7 +7,7 @@ from copy import deepcopy
 
 from diffusion_hand.nn import mean_flat, sum_flat
 from diffusion_hand.losses import normal_kl, discretized_gaussian_log_likelihood
-from utils_hand.loss_util import masked_l2
+from utils_hand.loss_util import masked_l2, masked_geodesic_loss
 
 def get_named_beta_schedule(schedule_name, num_diffusion_timesteps, scale_betas=1.):
     """
@@ -124,16 +124,22 @@ class GaussianDiffusion:
         strategy=DiffusionStrategy.STANDARD,
         kappa=1.0,
         rescale_timesteps=False,
-        # lambda for loss
-        lambda_rcxyz=0.,
-        lambda_vel=0.,
-        lambda_pose=1.,
-        lambda_orient=1.,
-        lambda_loc=1.,
         data_rep='rot6d',
-        lambda_root_vel=0.,
-        lambda_vel_rcxyz=0.,
-        lambda_target_loc=0.,
+        # lambda for loss
+        lambda_pose=1.,
+        lambda_trans=1.,
+        lambda_xyz=1.,
+        lambda_vert=0.,
+        lambda_vel_pose=0.,
+        lambda_vel_trans=0.,
+        lambda_vel_xyz=0.,
+        lambda_acc_pose=0.,
+        lambda_acc_trans=0.,
+        lambda_acc_xyz=0.,
+        lambda_anchor_pose=0.,
+        lambda_anchor_trans=0.,
+        lambda_norm_pose=0.,
+        lambda_reproj_2d=0.,
         **kargs,
     ):
         self.model_mean_type = model_mean_type
@@ -146,18 +152,19 @@ class GaussianDiffusion:
             raise ValueError('lambda_pose is relevant only when training on velocities!')
         
         self.lambda_pose = lambda_pose
-        self.lambda_orient = lambda_orient
-        self.lambda_loc = lambda_loc
-
-        self.lambda_rcxyz = lambda_rcxyz
-        self.lambda_target_loc = lambda_target_loc
-        self.lambda_vel = lambda_vel
-        self.lambda_root_vel = lambda_root_vel
-        self.lambda_vel_rcxyz = lambda_vel_rcxyz
-
-        if self.lambda_rcxyz > 0. or self.lambda_vel > 0. or self.lambda_root_vel > 0. or \
-                self.lambda_vel_rcxyz > 0. or self.lambda_target_loc > 0.:
-            assert self.loss_type == LossType.MSE, 'Geometric losses are supported by MSE loss type only!'
+        self.lambda_trans = lambda_trans
+        self.lambda_xyz = lambda_xyz
+        self.lambda_vert = lambda_vert
+        self.lambda_vel_pose = lambda_vel_pose
+        self.lambda_vel_trans = lambda_vel_trans
+        self.lambda_vel_xyz = lambda_vel_xyz
+        self.lambda_acc_pose = lambda_acc_pose
+        self.lambda_acc_trans = lambda_acc_trans
+        self.lambda_acc_xyz = lambda_acc_xyz
+        self.lambda_anchor_pose = lambda_anchor_pose
+        self.lambda_anchor_trans = lambda_anchor_trans
+        self.lambda_norm_pose = lambda_norm_pose
+        self.lambda_reproj_2d = lambda_reproj_2d
 
         # strategy
         self.strategy = strategy
@@ -212,6 +219,7 @@ class GaussianDiffusion:
 
         # self.l2_loss = lambda a, b: (a - b) ** 2  # th.nn.MSELoss(reduction='none')  # must be None for handling mask later on.
         self.masked_l2 = masked_l2
+        self.masked_geodesic_loss = masked_geodesic_loss
 
     def q_mean_variance(self, x_start, t, model_kwargs=None):
         """
@@ -953,92 +961,301 @@ class GaussianDiffusion:
         return {"output": output, "pred_xstart": out["pred_xstart"]}
     
     def training_losses(self, model, x_start, t, model_kwargs=None, noise=None, dataset=None):
-
         if model_kwargs is None:
             model_kwargs = {}
 
         enc = model.model
-        mask = ~model_kwargs['suffix_mask']
-        mano_beta = model_kwargs['x_beta']
+        raw_mask = ~model_kwargs['suffix_mask']  # True for valid
+        if len(raw_mask.shape) == 2:
+            mask = raw_mask.unsqueeze(1).unsqueeze(2)
+        elif len(raw_mask.shape) == 4:
+            mask = raw_mask
+        else:
+            raise ValueError("Wrong dimension of mask.")
+        
+        mano_beta = model_kwargs.get('x_beta', None)
 
-        get_xyz = lambda sample: enc.rot2xyz(pose=sample, pose_rep=model.data_rep, beta=mano_beta)
+        # sample: [B, J+1, 6, T]
+        def get_xyz(sample, return_verts=True, ff_rotmat=None, root_translation=None):
+            pose = sample[:, :-1, :, :]
+            trans = sample[:, -1, :3, :].permute(0, 2, 1).contiguous()
+            out = enc.rot2xyz(
+                pose=pose, 
+                pose_rep=self.data_rep,
+                beta=mano_beta,
+                translation=trans,
+                root_translation=root_translation,
+                ff_rotmat=ff_rotmat,
+                root_revise=True,       
+                return_vertices=return_verts
+            )
+            if return_verts:
+                joints, vertices = out
+                vertices = vertices.permute(0, 2, 3, 1).contiguous()
+                # both [B, J, 3, T]
+                return joints, vertices
+            return out
+
 
         if noise is None:
             noise = th.randn_like(x_start)
 
         x_t = self.q_sample(x_start, t, noise=noise, model_kwargs=model_kwargs)
-
         terms = {}
 
-        if self.loss_type == LossType.KL or self.loss_type == LossType.RESCALED_KL:
-            terms["loss"] = self._vb_terms_bpd(
-                model=model,
-                x_start=x_start,
-                x_t=x_t,
-                t=t,
-                clip_denoised=False,
-                model_kwargs=model_kwargs,
-            )["output"]
-            if self.loss_type == LossType.RESCALED_KL:
-                terms["loss"] *= self.num_timesteps
-        
-        elif self.loss_type == LossType.MSE or self.loss_type == LossType.RESCALED_MSE:
+        if self.loss_type == LossType.MSE or self.loss_type == LossType.RESCALED_MSE:
             model_output = model(x_t, self._scale_timesteps(t), model_kwargs)
+            target = x_start
+            assert model_output.shape == target.shape
 
-            if self.model_var_type in [ModelVarType.LEARNED, ModelVarType.LEARNED_RANGE]:
-                B, C = x_t.shape[:2]
-                assert model_output.shape == (B, C * 2, *x_t.shape[2:])
-                model_output, model_var_values = th.split(model_output, C, dim=1)
-                
-                frozen_out = th.cat([model_output.detach(), model_var_values], dim=1)
-                terms["vb"] = self._vb_terms_bpd(
-                    model=lambda *args, r=frozen_out: r,
-                    x_start=x_start,
-                    x_t=x_t,
-                    t=t,
-                    clip_denoised=False,
-                    model_kwargs=model_kwargs,
-                )["output"]
-                if self.loss_type == LossType.RESCALED_MSE:
-                    terms["vb"] *= self.num_timesteps / 1000.0
+            # pose: [B, J, 6, T]
+            target_pose = target[:, :-1, ...] 
+            out_pose = model_output[:, :-1, ...]
+            # Trans: [B, 1. 3. T]
+            target_trans = target[:, -1:, :3, :] 
+            out_trans = model_output[:, -1:, :3, :]
 
-            target = {
-                ModelMeanType.PREVIOUS_X: self.q_posterior_mean_variance(
-                    x_start=x_start, x_t=x_t, t=t, model_kwargs=model_kwargs
-                )[0],
-                ModelMeanType.START_X: x_start,
-                ModelMeanType.EPSILON: noise,
-            }[self.model_mean_type]
+            # Loss Layer 1
+            lambda_pose = getattr(self, 'lambda_pose', 1.)
+            lambda_trans = getattr(self, 'lambda_trans', 1.)
+            terms["pose_geodesic"] = self.masked_geodesic_loss(target_pose, out_pose, mask)
+            terms["trans_mse"] = self.masked_l2(target_trans, out_trans, mask)
 
-            assert model_output.shape == target.shape == x_start.shape
+            lambda_xyz = getattr(self, 'lambda_xyz', 0.)
+            lambda_vert = getattr(self, 'lambda_vert', 0.)
+            target_xyz, out_xyz = None, None
+            if lambda_xyz > 0. or lambda_vert > 0.:
+                target_xyz, target_verts = get_xyz(target, return_verts=True)
+                out_xyz, out_verts = get_xyz(model_output, return_verts=True)
+                if lambda_xyz > 0.:
+                    terms["xyz_mse"] = self.masked_l2(target_xyz, out_xyz, mask)
+                if lambda_vert > 0.:
+                    terms["vert_mse"] = self.masked_l2(target_verts, out_verts, mask)
 
-            terms["rot_mse"] = self.masked_l2(target, model_output, mask)
+            # Loss Layer 2
+            vel_mask = mask[..., 1:]
+            lambda_vel_pose = getattr(self, 'lambda_vel_pose', 0.)
+            if lambda_vel_pose > 0.:
+                target_vel_pose = target_pose[..., 1:] - target_pose[..., :-1]
+                out_vel_pose = out_pose[..., 1:] - out_pose[..., :-1]
+                terms["vel_pose_mse"] = self.masked_l2(target_vel_pose, out_vel_pose, vel_mask)
 
-            target_xyz, model_output_xyz = None, None
+            lambda_vel_trans = getattr(self, 'lambda_vel_trans', 0.)
+            if lambda_vel_trans > 0.:
+                target_vel_trans = target_trans[..., 1:] - target_trans[..., :-1]
+                out_vel_trans = out_trans[..., 1:] - out_trans[..., :-1]
+                terms["vel_trans_mse"] = self.masked_l2(target_vel_trans, out_vel_trans, vel_mask)
 
-            if self.lambda_rcxyz  > 0.:
-                target_xyz = get_xyz(target)
-                model_output_xyz = get_xyz(model_output)
-                terms["rcxyz_mse"] = self.masked_l2(target_xyz, model_output_xyz, mask)
+            lambda_vel_xyz = getattr(self, 'lambda_vel_xyz', 0.)
+            if lambda_vel_xyz > 0. and target_xyz is not None:
+                target_vel_xyz = target_xyz[..., 1:] - target_xyz[..., :-1]
+                out_vel_xyz = out_xyz[..., 1:] - out_xyz[..., :-1]
+                terms["vel_xyz_mse"] = self.masked_l2(target_vel_xyz, out_vel_xyz, vel_mask)
             
-            if self.lambda_vel_rcxyz > 0.:
-                
-                target_xyz = get_xyz(target) if target_xyz is None else target_xyz
-                model_output_xyz = get_xyz(model_output) if model_output_xyz is None else model_output_xyz
-                target_xyz_vel = (target_xyz[:, :, :, 1:] - target_xyz[:, :, :, :-1])
-                model_output_xyz_vel = (model_output_xyz[:, :, :, 1:] - model_output_xyz[:, :, :, :-1])
-                terms["vel_xyz_mse"] = self.masked_l2(target_xyz_vel, model_output_xyz_vel, mask[:, :, :, 1:])
+            #Loss Layer 3
+            acc_mask = mask[..., 2:] # [B, T-2]
             
-            if self.lambda_vel > 0.:
-                target_vel = (target[..., 1:] - target[..., :-1])
-                model_output_vel = (model_output[..., 1:] - model_output[..., :-1])
-                terms["vel_mse"] = self.masked_l2(target_vel[:, :-1, :, :], model_output_vel[:, :-1, :, :], mask[:, :, :, 1:])
+            lambda_acc_pose = getattr(self, 'lambda_acc_pose', 0.)
+            if lambda_acc_pose > 0.:
+                target_acc_pose = target_pose[..., 2:] - 2 * target_pose[..., 1:-1] + target_pose[..., :-2]
+                out_acc_pose = out_pose[..., 2:] - 2 * out_pose[..., 1:-1] + out_pose[..., :-2]
+                terms["acc_pose_mse"] = self.masked_l2(target_acc_pose, out_acc_pose, acc_mask)
 
-            terms["loss"] = terms["rot_mse"] + terms.get('vb', 0.) +\
-                            (self.lambda_vel * terms.get('vel_mse', 0.)) +\
-                            (self.lambda_rcxyz * terms.get('rcxyz_mse', 0.)) + \
-                            (self.lambda_vel_rcxyz * terms.get('vel_xyz_mse', 0.))
+            lambda_acc_trans = getattr(self, 'lambda_acc_trans', 0.)
+            if lambda_acc_trans > 0.:
+                target_acc_trans = target_trans[..., 2:] - 2 * target_trans[..., 1:-1] + target_trans[..., :-2]
+                out_acc_trans = out_trans[..., 2:] - 2 * out_trans[..., 1:-1] + out_trans[..., :-2]
+                terms["acc_trans_mse"] = self.masked_l2(target_acc_trans, out_acc_trans, acc_mask)
+
+            lambda_acc_xyz = getattr(self, 'lambda_acc_xyz', 0.)
+            if lambda_acc_xyz > 0. and target_xyz is not None:
+                target_acc_xyz = target_xyz[..., 2:] - 2 * target_xyz[..., 1:-1] + target_xyz[..., :-2]
+                out_acc_xyz = out_xyz[..., 2:] - 2 * out_xyz[..., 1:-1] + out_xyz[..., :-2]
+                terms["acc_xyz_mse"] = self.masked_l2(target_acc_xyz, out_acc_xyz, acc_mask)
+
+            # Loss Layer Anchor
+            lambda_anchor_pose = getattr(self, 'lambda_anchor_pose', 0.)
+            lambda_anchor_trans = getattr(self, 'lambda_anchor_trans', 0.)
+            
+            
+            if 'y_ret' in model_kwargs:
+                y_ret = model_kwargs['y_ret']
+                y_ret_pose = y_ret[:, :-1, :, :]
+                y_ret_trans = y_ret[:, -1:, :3, :]
+                
+                if lambda_anchor_pose > 0.:
+                    terms["anchor_pose_geodesic"] = self.masked_geodesic_loss(y_ret_pose, out_pose, mask)
+                if lambda_anchor_trans > 0.:
+                    terms["anchor_trans_mse"] = self.masked_l2(y_ret_trans, out_trans, mask)
+
+            # Loss Layer Norm
+            lambda_norm_pose = getattr(self, 'lambda_norm_pose', 0.0)
+
+            if lambda_norm_pose > 0.:
+                identity_rot6d = torch.tensor([1., 0., 0., 0., 1., 0.], device=out_pose.device, dtype=out_pose.dtype)
+                target_identity = identity_rot6d.view(1, 1, 6, 1).expand_as(out_pose)
+                terms["norm_pose_geodesic"] = self.masked_geodesic_loss(out_pose, target_identity, mask)
+
+            # Loss Layer Reprojection
+            lambda_reproj_2d = getattr(self, 'lambda_reproj_2d', 0.)
+            if lambda_reproj_2d > 0. and 'cam' in model_kwargs and 'y_2d' in model_kwargs:
+                ff_rotmat = model_kwargs.get('y_ff_root_orient_rotmat', None)
+                root_trans = model_kwargs.get('y_root_trans', None)
+                out_xyz_world = get_xyz(model_output, return_verts=False, 
+                                        ff_rotmat=ff_rotmat, root_translation=root_trans)
+                B_dim, J_dim, _, T_dim = out_xyz_world.shape
+                device = out_xyz_world.device
+
+                cam = model_kwargs['cam']
+                R_mat = cam['R'][:, 0, ...].to(device).float() # [B, 3, 3]
+                T_vec = cam['T'][:, 0, ...].to(device).float() # [B, 3]
+                K_mat = cam['K'][:, 0, ...].to(device).float() # [B, 3, 3]
+                world_pts_flat = out_xyz_world.permute(0, 2, 1, 3).reshape(B_dim, 3, -1) 
+                cam_pts_flat = torch.bmm(R_mat, world_pts_flat) + T_vec.unsqueeze(-1)
+                out_xyz_cam = cam_pts_flat.view(B_dim, 3, J_dim, T_dim).permute(0, 2, 1, 3)
+                target_2d_full = model_kwargs['y_2d']       # [B, J, 3, T]
+                target_uv = target_2d_full[:, :, :2, :]     # [B, J, 2, T]
+                target_conf = target_2d_full[:, :, 2:3, :]  # [B, J, 1, T]
+
+                Z = out_xyz_cam[:, :, 2:3, :].clamp(min=1e-4)
+                X = out_xyz_cam[:, :, 0:1, :]
+                Y = out_xyz_cam[:, :, 1:2, :]
+
+                fx = K_mat[:, 0, 0].view(-1, 1, 1, 1)
+                fy = K_mat[:, 1, 1].view(-1, 1, 1, 1)
+                cx = K_mat[:, 0, 2].view(-1, 1, 1, 1)
+                cy = K_mat[:, 1, 2].view(-1, 1, 1, 1)
+
+                pred_u = (X / Z) * fx + cx
+                pred_v = (Y / Z) * fy + cy
+                pred_uv = torch.cat([pred_u, pred_v], dim=2) # [B, J, 2, T]
+
+                norm_target_u = (target_uv[:, :, 0:1, :] - cx) / cx
+                norm_target_v = (target_uv[:, :, 1:2, :] - cy) / cy
+                norm_target_uv = torch.cat([norm_target_u, norm_target_v], dim=2)
+
+                norm_pred_u = (pred_uv[:, :, 0:1, :] - cx) / cx
+                norm_pred_v = (pred_uv[:, :, 1:2, :] - cy) / cy
+                norm_pred_uv = torch.cat([norm_pred_u, norm_pred_v], dim=2)
+
+                valid_2d_mask = (target_conf > 0.4).float() 
+                combined_mask = mask.float() * valid_2d_mask
+                terms["reproj_2d_mse"] = self.masked_l2(norm_target_uv, norm_pred_uv, combined_mask)
+
+
+            # All
+            terms["loss"] = (lambda_pose * terms.get("pose_geodesic", 0.)) + \
+                            (lambda_trans * terms.get("trans_mse", 0.)) + \
+                            (lambda_xyz * terms.get("xyz_mse", 0.)) + \
+                            (lambda_vert * terms.get("vert_mse", 0.)) + \
+                            (lambda_vel_pose * terms.get("vel_pose_mse", 0.)) + \
+                            (lambda_vel_trans * terms.get("vel_trans_mse", 0.)) + \
+                            (lambda_vel_xyz * terms.get("vel_xyz_mse", 0.)) + \
+                            (lambda_acc_pose * terms.get("acc_pose_mse", 0.)) + \
+                            (lambda_acc_trans * terms.get("acc_trans_mse", 0.)) + \
+                            (lambda_acc_xyz * terms.get("acc_xyz_mse", 0.)) + \
+                            (lambda_anchor_pose * terms.get("anchor_pose_geodesic", 0.)) + \
+                            (lambda_anchor_trans * terms.get("anchor_trans_mse", 0.))+ \
+                            (lambda_norm_pose * terms.get("norm_pose_geodesic", 0.))+ \
+                            (lambda_reproj_2d * terms.get("reproj_2d_mse", 0.))
+
+            terms["loss"] += terms.get('vb', 0.)
+
         else:
             raise NotImplementedError(self.loss_type)
 
-        return terms
+
+    # def training_losses(self, model, x_start, t, model_kwargs=None, noise=None, dataset=None):
+
+    #     if model_kwargs is None:
+    #         model_kwargs = {}
+
+    #     enc = model.model
+    #     mask = ~model_kwargs['suffix_mask']
+    #     mano_beta = model_kwargs['x_beta']
+
+    #     get_xyz = lambda sample: enc.rot2xyz(pose=sample, pose_rep=model.data_rep, beta=mano_beta)
+
+    #     if noise is None:
+    #         noise = th.randn_like(x_start)
+
+    #     x_t = self.q_sample(x_start, t, noise=noise, model_kwargs=model_kwargs)
+
+    #     terms = {}
+
+    #     if self.loss_type == LossType.KL or self.loss_type == LossType.RESCALED_KL:
+    #         terms["loss"] = self._vb_terms_bpd(
+    #             model=model,
+    #             x_start=x_start,
+    #             x_t=x_t,
+    #             t=t,
+    #             clip_denoised=False,
+    #             model_kwargs=model_kwargs,
+    #         )["output"]
+    #         if self.loss_type == LossType.RESCALED_KL:
+    #             terms["loss"] *= self.num_timesteps
+        
+    #     elif self.loss_type == LossType.MSE or self.loss_type == LossType.RESCALED_MSE:
+    #         model_output = model(x_t, self._scale_timesteps(t), model_kwargs)
+
+    #         if self.model_var_type in [ModelVarType.LEARNED, ModelVarType.LEARNED_RANGE]:
+    #             B, C = x_t.shape[:2]
+    #             assert model_output.shape == (B, C * 2, *x_t.shape[2:])
+    #             model_output, model_var_values = th.split(model_output, C, dim=1)
+                
+    #             frozen_out = th.cat([model_output.detach(), model_var_values], dim=1)
+    #             terms["vb"] = self._vb_terms_bpd(
+    #                 model=lambda *args, r=frozen_out: r,
+    #                 x_start=x_start,
+    #                 x_t=x_t,
+    #                 t=t,
+    #                 clip_denoised=False,
+    #                 model_kwargs=model_kwargs,
+    #             )["output"]
+    #             if self.loss_type == LossType.RESCALED_MSE:
+    #                 terms["vb"] *= self.num_timesteps / 1000.0
+
+    #         target = {
+    #             ModelMeanType.PREVIOUS_X: self.q_posterior_mean_variance(
+    #                 x_start=x_start, x_t=x_t, t=t, model_kwargs=model_kwargs
+    #             )[0],
+    #             ModelMeanType.START_X: x_start,
+    #             ModelMeanType.EPSILON: noise,
+    #         }[self.model_mean_type]
+
+    #         assert model_output.shape == target.shape == x_start.shape
+            
+    #         # loss_mse
+    #         terms["rot_mse"] = self.masked_l2(target, model_output, mask)
+
+    #         # loss_pose
+
+    #         # loss_rcxyz
+    #         target_xyz, model_output_xyz = None, None
+    #         if self.lambda_rcxyz  > 0.:
+    #             target_xyz = get_xyz(target)
+    #             model_output_xyz = get_xyz(model_output)
+    #             terms["rcxyz_mse"] = self.masked_l2(target_xyz, model_output_xyz, mask)
+            
+    #         # loss_vel_rxyz
+    #         if self.lambda_vel_rcxyz > 0.:
+    #             target_xyz = get_xyz(target) if target_xyz is None else target_xyz
+    #             model_output_xyz = get_xyz(model_output) if model_output_xyz is None else model_output_xyz
+    #             target_xyz_vel = (target_xyz[:, :, :, 1:] - target_xyz[:, :, :, :-1])
+    #             model_output_xyz_vel = (model_output_xyz[:, :, :, 1:] - model_output_xyz[:, :, :, :-1])
+    #             terms["vel_xyz_mse"] = self.masked_l2(target_xyz_vel, model_output_xyz_vel, mask[:, :, :, 1:])
+            
+    #         # loss_vel
+    #         if self.lambda_vel > 0.:
+    #             target_vel = (target[..., 1:] - target[..., :-1])
+    #             model_output_vel = (model_output[..., 1:] - model_output[..., :-1])
+    #             terms["vel_mse"] = self.masked_l2(target_vel[:, :-1, :, :], model_output_vel[:, :-1, :, :], mask[:, :, :, 1:])
+
+    #         terms["loss"] = terms["rot_mse"] + terms.get('vb', 0.) +\
+    #                         (self.lambda_vel * terms.get('vel_mse', 0.)) +\
+    #                         (self.lambda_rcxyz * terms.get('rcxyz_mse', 0.)) + \
+    #                         (self.lambda_vel_rcxyz * terms.get('vel_xyz_mse', 0.))
+    #     else:
+    #         raise NotImplementedError(self.loss_type)
+
+    #     return terms
