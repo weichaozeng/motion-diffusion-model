@@ -1188,6 +1188,7 @@ class GaussianDiffusion:
 
         else:
             raise NotImplementedError(self.loss_type)
+        return terms
 
 
     # def training_losses(self, model, x_start, t, model_kwargs=None, noise=None, dataset=None):
