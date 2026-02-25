@@ -1,6 +1,7 @@
 from diffusion_hand.nn import mean_flat, sum_flat
 import torch
 import numpy as np
+import utils_hand.rotation_conversions as geometry
 
 def angle_l2(angle1, angle2):
     a = angle1 - angle2
@@ -46,3 +47,40 @@ def masked_goal_l2(pred_goal, ref_goal, cond, all_goal_joint_names):
 
     loss =  loc_loss + heading_loss
     return loss
+
+
+
+def masked_geodesic_loss(pred_rot6d, target_rot6d, mask, epsilon=1e-6):
+    """
+    pred_rot6d, target_rot6d: [B, J, 6, T]
+    mask: [B, T]
+    """
+
+    pred = pred_rot6d.permute(0, 1, 3, 2).contiguous()     # [B, J, T, 6]
+    target = target_rot6d.permute(0, 1, 3, 2).contiguous() # [B, J, T, 6]
+    
+    # [B, J, T, 3, 3]
+    pred_mat = geometry.axis_angle_to_matrix(pred)       
+    target_mat = geometry.axis_angle_to_matrix(target)   
+    
+    # R_rel = R_target @ R_pred^T
+    pred_mat_inv = pred_mat.transpose(-1, -2)
+    r_rel = torch.matmul(target_mat, pred_mat_inv)
+    
+    # Trace
+    tr = r_rel[..., 0, 0] + r_rel[..., 1, 1] + r_rel[..., 2, 2]
+    
+    # Geodesic Distance
+    cos_theta = torch.clamp((tr - 1.0) / 2.0, -1.0 + epsilon, 1.0 - epsilon)
+    theta = torch.acos(cos_theta) # [B, J, T]
+    
+    loss = theta ** 2 
+    
+    mask_squeeze = mask.unsqueeze(1) # -> [B, 1, T]
+    loss = loss * mask_squeeze.float()
+    
+    # Normalize
+    n_entries = loss.shape[1] # J 维度
+    non_zero_elements = mask_squeeze.sum() * n_entries
+    
+    return loss.sum() / (non_zero_elements + epsilon)
