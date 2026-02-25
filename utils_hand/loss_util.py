@@ -75,12 +75,12 @@ def masked_geodesic_loss(pred_rot6d, target_rot6d, mask, epsilon=1e-6):
     theta = torch.acos(cos_theta) # [B, J, T]
     
     loss = theta ** 2 
-    
-    mask_squeeze = mask.unsqueeze(1) # -> [B, 1, T]
+    mask_squeeze = mask.squeeze(2) # -> [B, 1, T]
     loss = loss * mask_squeeze.float()
     
     # Normalize
-    n_entries = loss.shape[1] # J 维度
-    non_zero_elements = mask_squeeze.sum() * n_entries
+    loss_sum = sum_flat(loss)
+    n_entries = loss.shape[1]
+    non_zero_elements = sum_flat(mask_squeeze.float()) * n_entries
     
-    return loss.sum() / (non_zero_elements + epsilon)
+    return loss_sum / (non_zero_elements + epsilon)

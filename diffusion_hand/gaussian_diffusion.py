@@ -1159,8 +1159,8 @@ class GaussianDiffusion:
                 norm_target_v = (target_uv[:, :, 1:2, :] - cy) / cy
                 norm_target_uv = torch.cat([norm_target_u, norm_target_v], dim=2)
 
-                norm_pred_u = (pred_uv[:, :, 0:1, :] - cx) / cx
-                norm_pred_v = (pred_uv[:, :, 1:2, :] - cy) / cy
+                norm_pred_u = torch.clamp((pred_uv[:, :, 0:1, :] - cx) / cx, min=-5.0, max=5.0)
+                norm_pred_v = torch.clamp((pred_uv[:, :, 1:2, :] - cy) / cy, min=-5.0, max=5.0)
                 norm_pred_uv = torch.cat([norm_pred_u, norm_pred_v], dim=2)
 
                 valid_2d_mask = (target_conf > 0.4).float() 
