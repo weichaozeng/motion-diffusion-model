@@ -75,20 +75,20 @@ def add_diffusion_options(parser):
         help="The weight of noise/residual in RESIDUAL strategy. Lower values mean higher trust in y_pose."
     )
     # loss
-    group.add_argument("--lambda_pose", default=1.0)
-    group.add_argument("--lambda_trans", default=1.0)
-    group.add_argument("--lambda_xyz", default=1.0)
-    group.add_argument("--lambda_vert", default=1.0)
-    group.add_argument("--lambda_vel_pose", default=0.2)
-    group.add_argument("--lambda_vel_trans", default=0.2)
-    group.add_argument("--lambda_vel_xyz", default=0.2)
+    group.add_argument("--lambda_pose", default=10.0)
+    group.add_argument("--lambda_trans", default=10.0)
+    group.add_argument("--lambda_xyz", default=10.0)
+    group.add_argument("--lambda_vert", default=10.0)
+    group.add_argument("--lambda_vel_pose", default=1.0)
+    group.add_argument("--lambda_vel_trans", default=1.0)
+    group.add_argument("--lambda_vel_xyz", default=1.0)
     group.add_argument("--lambda_acc_pose", default=0.1)
     group.add_argument("--lambda_acc_trans", default=0.1)
     group.add_argument("--lambda_acc_xyz", default=0.1)
-    group.add_argument("--lambda_anchor_pose", default=0.5)
-    group.add_argument("--lambda_anchor_trans", default=0.5)
+    group.add_argument("--lambda_anchor_pose", default=10.0)
+    group.add_argument("--lambda_anchor_trans", default=100.0)
     group.add_argument("--lambda_norm_pose", default=0.1)
-    group.add_argument("--lambda_reproj_2d", default=0.1)
+    group.add_argument("--lambda_reproj_2d", default=10.)
 
 
 def add_training_options(parser):
