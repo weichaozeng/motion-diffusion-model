@@ -3,7 +3,7 @@ import numpy as np
 import torch as th
 
 from .gaussian_diffusion import GaussianDiffusion
-from utils.misc import wrapped_getattr
+from utils_hand.misc import wrapped_getattr
 
 
 def space_timesteps(num_timesteps, section_counts):
