@@ -149,8 +149,6 @@ class GaussianDiffusion:
         self.rescale_timesteps = rescale_timesteps
         self.data_rep = data_rep
 
-        if data_rep != 'rot_vel' and lambda_pose != 1.:
-            raise ValueError('lambda_pose is relevant only when training on velocities!')
         
         self.lambda_pose = lambda_pose
         self.lambda_trans = lambda_trans
