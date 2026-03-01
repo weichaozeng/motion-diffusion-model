@@ -38,7 +38,7 @@ def add_model_options(parser):
     group.add_argument("--arch", default='trans_enc',
                        choices=['trans_enc', 'trans_dec', 'gru'], type=str,
                        help="Architecture types as reported in the paper.")
-    group.add_argument("--layers", default=6, type=int,
+    group.add_argument("--layers", default=24, type=int,
                        help="Number of layers.")
     group.add_argument("--latent_dim", default=512, type=int,
                        help="Transformer/GRU width.")
@@ -87,7 +87,7 @@ def add_diffusion_options(parser):
     group.add_argument("--lambda_acc_xyz", default=0.1)
     group.add_argument("--lambda_anchor_pose", default=10.0)
     group.add_argument("--lambda_anchor_trans", default=100.0)
-    group.add_argument("--lambda_norm_pose", default=0.1)
+    group.add_argument("--lambda_norm_pose", default=0.0)
     group.add_argument("--lambda_reproj_2d", default=10.)
 
 
