@@ -38,17 +38,17 @@ def add_model_options(parser):
     group.add_argument("--arch", default='trans_enc',
                        choices=['trans_enc', 'trans_dec', 'gru'], type=str,
                        help="Architecture types as reported in the paper.")
-    group.add_argument("--layers", default=24, type=int,
+    group.add_argument("--layers", default=16, type=int,
                        help="Number of layers.")
     group.add_argument("--latent_dim", default=512, type=int,
                        help="Transformer/GRU width.")
     group.add_argument("--cond_mask_prob", default=.1, type=float,
                        help="The probability of masking the condition during training."
                             " For classifier-free guidance learning.")
-    group.add_argument("--lambda_rcxyz", default=0.0, type=float, help="Joint positions loss.")
-    group.add_argument("--lambda_vel", default=0.0, type=float, help="Joint velocity loss.")
+    # group.add_argument("--lambda_rcxyz", default=0.0, type=float, help="Joint positions loss.")
+    # group.add_argument("--lambda_vel", default=0.0, type=float, help="Joint velocity loss.")
     # group.add_argument("--lambda_fc", default=0.0, type=float, help="Foot contact loss.")
-    group.add_argument("--lambda_target_loc", default=0.0, type=float, help="For HumanML only, when . L2 with target location.")
+    # group.add_argument("--lambda_target_loc", default=0.0, type=float, help="For HumanML only, when . L2 with target location.")
 
     group.add_argument("--pos_embed_max_len", default=5000, type=int,
                        help="Pose embedding max length.")
@@ -76,7 +76,7 @@ def add_diffusion_options(parser):
     )
     # loss
     group.add_argument("--lambda_pose", default=10.0)
-    group.add_argument("--lambda_trans", default=10.0)
+    group.add_argument("--lambda_trans", default=50.0)
     group.add_argument("--lambda_xyz", default=10.0)
     group.add_argument("--lambda_vert", default=10.0)
     group.add_argument("--lambda_vel_pose", default=1.0)
@@ -86,7 +86,7 @@ def add_diffusion_options(parser):
     group.add_argument("--lambda_acc_trans", default=0.1)
     group.add_argument("--lambda_acc_xyz", default=0.1)
     group.add_argument("--lambda_anchor_pose", default=10.0)
-    group.add_argument("--lambda_anchor_trans", default=100.0)
+    group.add_argument("--lambda_anchor_trans", default=20.0)
     group.add_argument("--lambda_norm_pose", default=0.0)
     group.add_argument("--lambda_reproj_2d", default=10.)
 
