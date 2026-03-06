@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from model_hand.rotation2xyz import Rotation2xyz
 from utils_hand.misc import WeightedSum
-
+import utils_hand.rotation_conversions as geometry
 
 class MDM_Hand(nn.Module):
     def __init__(self, njoints, nfeats, translation, pose_rep, glob, glob_rot,
@@ -120,11 +120,49 @@ class MDM_Hand(nn.Module):
         xseq = torch.cat((time_emb, x_full), axis=0)
         xseq = self.sequence_pos_encoder(xseq)
         # output: [nframes+1, bs, d]
-        output = self.seqTransEncoder(xseq, src_key_padding_mask=frames_mask)[1:]
-        
+        output = self.seqTransEncoder(xseq, src_key_padding_mask=frames_mask)[1:]        
         # output: [nframes+1, bs, d] -> [bs, njoints, nfeats, nframes]
         output = self.output_process(output)
-        return output
+
+        # -----------------------
+        # Residual Reconstruction
+        # -----------------------
+        y_orig = batch['y_ret']
+        y_base = y_orig.clone()
+        if isinstance(uncond, bool):
+            if uncond:
+                y_base[:, :-1, 0, :] = 1.0
+                y_base[:, :-1, 1:4, :] = 0.0
+                y_base[:, :-1, 4, :] = 1.0
+                y_base[:, :-1, 5, :] = 0.0
+                y_base[:, -1, :, :] = 0.0
+        else:
+            mask_out = (~uncond).float().to(device).view(bs, 1, 1, 1)
+            identity_y = torch.zeros_like(y_orig)
+            identity_y[:, :-1, 0, :] = 1.0
+            identity_y[:, :-1, 4, :] = 1.0
+            y_base = y_orig * mask_out + identity_y * (1.0 - mask_out)
+        
+        res_pose6d = output[:, :-1, :, :]  # [bs, J, 6, T]
+        res_trans = output[:, -1, :3, :]   # [bs, 1, 3, T]
+        base_pose6d = y_base[:, :-1, :, :]
+        base_trans = y_base[:, -1, :3, :]
+        pred_trans = base_trans + res_trans
+        # [bs, J, 6, T] -> [bs, J, T, 6]
+        res_pose6d_perm = res_pose6d.permute(0, 1, 3, 2).contiguous()
+        base_pose6d_perm = base_pose6d.permute(0, 1, 3, 2).contiguous()
+        res_mat = geometry.rotation_6d_to_matrix(res_pose6d_perm)   # [bs, J, T, 3, 3]
+        base_mat = geometry.rotation_6d_to_matrix(base_pose6d_perm) # [bs, J, T, 3, 3]
+        # R_0 = R_base * R_res
+        pred_mat = torch.matmul(base_mat, res_mat)
+        # [bs, J, T, 6] -> [bs, J, 6, T]
+        pred_pose6d = geometry.matrix_to_rotation_6d(pred_mat).permute(0, 1, 3, 2).contiguous()
+
+        pred_x0 = torch.zeros_like(output)
+        pred_x0[:, :-1, :, :] = pred_pose6d
+        pred_x0[:, -1, :3, :] = pred_trans
+        
+        return pred_x0
 
 
     def _apply(self, fn):
