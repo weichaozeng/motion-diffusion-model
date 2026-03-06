@@ -53,7 +53,7 @@ def masked_goal_l2(pred_goal, ref_goal, cond, all_goal_joint_names):
 def masked_geodesic_loss(pred_rot6d, target_rot6d, mask, epsilon=1e-6):
     """
     pred_rot6d, target_rot6d: [B, J, 6, T]
-    mask: [B, T]
+    mask: [B, 1, 1, T]
     """
 
     pred = pred_rot6d.permute(0, 1, 3, 2).contiguous()     # [B, J, T, 6]

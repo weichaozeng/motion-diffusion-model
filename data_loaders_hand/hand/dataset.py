@@ -160,6 +160,51 @@ class Dataset(torch.utils.data.Dataset):
         # extra. pose 2d
         y_2d = self._load_2d_pose_y(ind, frame_ix, y_data)
         y_2d = y_2d.permute(1, 2, 0).contiguous()         # 21, 3, T
+
+        # ==========================================================
+        # [NEW] 速度与姿态异常检测 & 缺失/异常帧强制置零
+        # ==========================================================
+        valid_idx = torch.where(inpaint_mask > 0)[0]
+        
+        # 将时间维度提到最前面，方便按帧切片
+        y_trans_t = y_trans.permute(1, 0)       # [T, 3]
+        y_pose_t = y_pose.permute(2, 0, 1)      # [T, J, 6]
+        
+        if len(valid_idx) > 1:
+            valid_trans = y_trans_t[valid_idx]
+            valid_pose = y_pose_t[valid_idx]
+            
+            # 1. 计算平移差异 (L2 Norm)
+            trans_dists = torch.norm(valid_trans[1:] - valid_trans[:-1], dim=-1) # [N-1]
+            
+            # 2. 计算姿态差异 (使用 6D 表征的 L2 距离作为快速近似)
+            # 先计算每个关节的 6D 差异 [N-1, J]，再取当前帧所有关节中最大的跳变幅度 [N-1]
+            pose_diffs = torch.norm(valid_pose[1:] - valid_pose[:-1], dim=-1)
+            max_pose_dists = torch.max(pose_diffs, dim=-1)[0]
+            
+            # 设置物理极限阈值 (需要根据你的数据集尺度微调)
+            velocity_threshold = 0.10  # 平移阈值 (例: 0.1 米)
+            pose_threshold = 0.5       # 姿态阈值 (经验值: 6D向量的L2突变超过0.5通常意味着严重的关节翻折)
+            
+            # 找出平移或姿态超过阈值的异常跳变索引 (取并集)
+            outlier_local_idx = torch.where(
+                (trans_dists > velocity_threshold) | (max_pose_dists > pose_threshold)
+            )[0]
+            
+            for local_idx in outlier_local_idx:
+                # 将发生跳变的两帧都标记为无效 (交由模型去 Inpaint 脑补)
+                idx_a = valid_idx[local_idx]
+                idx_b = valid_idx[local_idx + 1]
+                inpaint_mask[idx_a] = 0
+                inpaint_mask[idx_b] = 0
+                
+        # 基于更新后的 mask，将 y_init 相关的所有缺失帧和异常帧的特征暴力清零
+        mask_bool = (inpaint_mask > 0).view(-1)
+        y_trans[:, ~mask_bool] = 0.0
+        y_pose[:, :, ~mask_bool] = 0.0
+        y_ret[:, :, ~mask_bool] = 0.0
+        y_2d[:, :, ~mask_bool] = 0.0
+        # ==========================================================
                 
         # 5, return
         data_dict = {
