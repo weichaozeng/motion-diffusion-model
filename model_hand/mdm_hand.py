@@ -124,37 +124,112 @@ class MDM_Hand(nn.Module):
         # output: [nframes+1, bs, d] -> [bs, njoints, nfeats, nframes]
         output = self.output_process(output)
 
+        # # -----------------------
+        # # Residual Reconstruction
+        # # -----------------------
+        # y_orig = batch['y_ret']
+        # y_base = y_orig.clone()
+        # if isinstance(uncond, bool):
+        #     if uncond:
+        #         y_base[:, :-1, 0, :] = 1.0
+        #         y_base[:, :-1, 1:4, :] = 0.0
+        #         y_base[:, :-1, 4, :] = 1.0
+        #         y_base[:, :-1, 5, :] = 0.0
+        #         y_base[:, -1, :, :] = 0.0
+        # else:
+        #     mask_out = (~uncond).float().to(device).view(bs, 1, 1, 1)
+        #     identity_y = torch.zeros_like(y_orig)
+        #     identity_y[:, :-1, 0, :] = 1.0
+        #     identity_y[:, :-1, 4, :] = 1.0
+        #     y_base = y_orig * mask_out + identity_y * (1.0 - mask_out)
+        
+        # res_pose6d = output[:, :-1, :, :]  # [bs, J, 6, T]
+        # res_trans = output[:, -1, :3, :]   # [bs, 1, 3, T]
+        # base_pose6d = y_base[:, :-1, :, :]
+        # base_trans = y_base[:, -1, :3, :]
+        # pred_trans = base_trans + res_trans
+        # # [bs, J, 6, T] -> [bs, J, T, 6]
+        # res_pose6d_perm = res_pose6d.permute(0, 1, 3, 2).contiguous()
+        # base_pose6d_perm = base_pose6d.permute(0, 1, 3, 2).contiguous()
+        # res_mat = geometry.rotation_6d_to_matrix(res_pose6d_perm)   # [bs, J, T, 3, 3]
+        # base_mat = geometry.rotation_6d_to_matrix(base_pose6d_perm) # [bs, J, T, 3, 3]
+        # # R_0 = R_base * R_res
+        # pred_mat = torch.matmul(base_mat, res_mat)
+        # # [bs, J, T, 6] -> [bs, J, 6, T]
+        # pred_pose6d = geometry.matrix_to_rotation_6d(pred_mat).permute(0, 1, 3, 2).contiguous()
+
+        # pred_x0 = torch.zeros_like(output)
+        # pred_x0[:, :-1, :, :] = pred_pose6d
+        # pred_x0[:, -1, :3, :] = pred_trans
+        
+        # return pred_x0
+
         # -----------------------
         # Residual Reconstruction
         # -----------------------
         y_orig = batch['y_ret']
-        y_base = y_orig.clone()
-        if isinstance(uncond, bool):
-            if uncond:
-                y_base[:, :-1, 0, :] = 1.0
-                y_base[:, :-1, 1:4, :] = 0.0
-                y_base[:, :-1, 4, :] = 1.0
-                y_base[:, :-1, 5, :] = 0.0
-                y_base[:, -1, :, :] = 0.0
-        else:
-            mask_out = (~uncond).float().to(device).view(bs, 1, 1, 1)
-            identity_y = torch.zeros_like(y_orig)
-            identity_y[:, :-1, 0, :] = 1.0
-            identity_y[:, :-1, 4, :] = 1.0
-            y_base = y_orig * mask_out + identity_y * (1.0 - mask_out)
         
+        # --- [NEW] 结合 CFG 掩码与 Inpaint 掩码 (异常帧自动降级为绝对预测) ---
+        # 获取我们处理过的数据集 mask: [bs, nframes] -> [bs, 1, 1, nframes]
+        mask_valid = batch['inpaint_mask'].view(bs, 1, 1, nframes).to(device)
+        
+        if isinstance(uncond, bool):
+            cfg_mask = 0.0 if uncond else 1.0
+        else:
+            cfg_mask = (~uncond).float().to(device).view(bs, 1, 1, 1)
+            
+        # final_mask: 1 = 使用 y_orig 作为基底，0 = 强制使用 Identity 作为基底
+        final_mask = cfg_mask * mask_valid
+        
+        # 构建纯净的 6D 旋转单位向量 [1, 0, 0, 0, 1, 0]
+        identity_y = torch.zeros_like(y_orig)
+        identity_y[:, :-1, 0, :] = 1.0
+        identity_y[:, :-1, 4, :] = 1.0
+        
+        y_base = y_orig * final_mask + identity_y * (1.0 - final_mask)
+        # ------------------------------------------------------------------
+
+        # --- [OLD] 纯 CFG 掩码逻辑 ---
+        # y_base = y_orig.clone()
+        # if isinstance(uncond, bool):
+        #     if uncond:
+        #         y_base[:, :-1, 0, :] = 1.0
+        #         y_base[:, :-1, 1:4, :] = 0.0
+        #         y_base[:, :-1, 4, :] = 1.0
+        #         y_base[:, :-1, 5, :] = 0.0
+        #         y_base[:, -1, :, :] = 0.0
+        # else:
+        #     mask_out = (~uncond).float().to(device).view(bs, 1, 1, 1)
+        #     identity_y = torch.zeros_like(y_orig)
+        #     identity_y[:, :-1, 0, :] = 1.0
+        #     identity_y[:, :-1, 4, :] = 1.0
+        #     y_base = y_orig * mask_out + identity_y * (1.0 - mask_out)
+        # -----------------------------
+
         res_pose6d = output[:, :-1, :, :]  # [bs, J, 6, T]
         res_trans = output[:, -1, :3, :]   # [bs, 1, 3, T]
         base_pose6d = y_base[:, :-1, :, :]
-        base_trans = y_base[:, -1, :3, :]
-        pred_trans = base_trans + res_trans
+        
+        # --- [NEW] 平移直接使用网络绝对输出，不加残差基底 ---
+        pred_trans = res_trans
+        # --------------------------------------------------
+
+        # --- [OLD] 平移预测残差 ---
+        # base_trans = y_base[:, -1, :3, :]
+        # pred_trans = base_trans + res_trans
+        # --------------------------
+
         # [bs, J, 6, T] -> [bs, J, T, 6]
         res_pose6d_perm = res_pose6d.permute(0, 1, 3, 2).contiguous()
         base_pose6d_perm = base_pose6d.permute(0, 1, 3, 2).contiguous()
+        
         res_mat = geometry.rotation_6d_to_matrix(res_pose6d_perm)   # [bs, J, T, 3, 3]
         base_mat = geometry.rotation_6d_to_matrix(base_pose6d_perm) # [bs, J, T, 3, 3]
-        # R_0 = R_base * R_res
+        
+        # 旋转必须依然维持残差乘法：R_0 = R_base * R_res
+        # (此时如果是异常帧，base_mat 是 Identity，相当于 pred_mat = res_mat)
         pred_mat = torch.matmul(base_mat, res_mat)
+        
         # [bs, J, T, 6] -> [bs, J, 6, T]
         pred_pose6d = geometry.matrix_to_rotation_6d(pred_mat).permute(0, 1, 3, 2).contiguous()
 
