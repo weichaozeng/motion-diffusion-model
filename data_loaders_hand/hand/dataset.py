@@ -70,7 +70,7 @@ class Dataset(torch.utils.data.Dataset):
             x_data = json.load(f)
 
         # random for anno degradation or init prediction
-        if random.random() < 0.1 or self.split != 'train':
+        if random.random() < 0.0 or self.split != 'train':
             # frame length
             max_nframe = min(y_data['frame_indices'][-1], len(x_data["right"]["Th"])-1)
             min_nframe = max(0, y_data['frame_indices'][0])
@@ -367,7 +367,7 @@ class Dataset(torch.utils.data.Dataset):
                     if s is not None:
                         y_pose[s:e] += torch.randn_like(y_pose[s:e]) * 0.1
             # Hand Flip
-            if random.random() < 0.4:  # 40% 概率触发手腕翻转
+            if random.random() < 1.0:  # 40% 概率触发手腕翻转
                     num_flip = random.randint(1, 2)
                     for _ in range(num_flip):
                         s, e = get_free_segment(min_len=3, max_len=8)
@@ -391,10 +391,10 @@ class Dataset(torch.utils.data.Dataset):
                             y_pose[s:e, 0, :] = geometry.matrix_to_axis_angle(flipped_mat)
             
             # Frame Drop
-            if random.random() < 0.5:  # 50% 概率触发丢帧
+            if random.random() < 1.0:  # 50% 概率触发丢帧
                     num_drops = random.randint(1, 3)
                     for _ in range(num_drops):
-                        s, e = get_free_segment(min_len=5, max_len=25)
+                        s, e = get_free_segment(min_len=5, max_len=15)
                         if s is not None:
                             inpaint_mask[s:e] = 0.0
 
@@ -445,7 +445,7 @@ class Dataset(torch.utils.data.Dataset):
                             return start, end
                     return None, None
             # Local Jitte
-            if random.random() < 0.6:  # 60% 概率触发
+            if random.random() < 0.0:  # 60% 概率触发
                     num_jitter = random.randint(1, 3)
                     for _ in range(num_jitter):
                         s, e = get_free_segment_trans(min_len=2, max_len=8)
@@ -453,7 +453,7 @@ class Dataset(torch.utils.data.Dataset):
                             # 局部高频抖动，标准差 1cm (0.01米)
                             y_trans[s:e] += torch.randn_like(y_trans[s:e]) * 0.01
             # Depth Jump
-            if random.random() < 0.4:  # 40% 概率触发
+            if random.random() < 0.0:  # 40% 概率触发
                     num_jumps = random.randint(1, 2)
                     for _ in range(num_jumps):
                         s, e = get_free_segment_trans(min_len=5, max_len=15)
