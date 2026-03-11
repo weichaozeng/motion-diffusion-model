@@ -1097,9 +1097,13 @@ class GaussianDiffusion:
 
             # Loss Layer Reprojection
             lambda_reproj_2d = getattr(self, 'lambda_reproj_2d', 0.)
-            if lambda_reproj_2d > 0. and 'cam' in model_kwargs and 'y_2d' in model_kwargs:
-                ff_rotmat = model_kwargs.get('y_ff_root_orient_rotmat', None)
-                root_trans = model_kwargs.get('y_root_trans', None)
+            # [修改点 1] 监听的 key 改为 'j_2d'
+            if lambda_reproj_2d > 0. and 'cam' in model_kwargs and 'j_2d' in model_kwargs:
+                
+                # 为了兼容纯合成退化(x_x)和真实预测(x_y)的数据集键值，做一下回退保护
+                ff_rotmat = model_kwargs.get('y_ff_root_orient_rotmat', model_kwargs.get('x_ff_root_orient_rotmat', None))
+                root_trans = model_kwargs.get('y_root_trans', model_kwargs.get('x_root_trans', None))
+                
                 out_xyz_world = get_xyz(model_output, return_verts=False, 
                                         ff_rotmat=ff_rotmat, root_translation=root_trans.unsqueeze(1))
                 B_dim, J_dim, _, T_dim = out_xyz_world.shape
@@ -1111,34 +1115,17 @@ class GaussianDiffusion:
                     if isinstance(val, list):
                         val = torch.stack(val) if torch.is_tensor(val[0]) else torch.tensor(np.array(val))
                     return val
+                
                 R_mat = get_cam_tensor('R')[:, 0, ...].to(device).float() # [B, 3, 3]
                 T_vec = get_cam_tensor('T')[:, 0, ...].to(device).float() # [B, 3]
                 K_mat = get_cam_tensor('K')[:, 0, ...].to(device).float() # [B, 3, 3]
+                
                 world_pts_flat = out_xyz_world.permute(0, 2, 1, 3).reshape(B_dim, 3, -1) 
                 cam_pts_flat = torch.bmm(R_mat, world_pts_flat) + T_vec.unsqueeze(-1)
                 out_xyz_cam = cam_pts_flat.view(B_dim, 3, J_dim, T_dim).permute(0, 2, 1, 3)
-                target_2d_full = model_kwargs['y_2d']       # [B, 21, 3, T]
-                mano_to_op_idx = [
-                    0,   # Wrist
-                    5,   # Index MCP
-                    9,   # Middle MCP
-                    17,  # Pinky MCP
-                    13,  # Ring MCP
-                    1,   # Thumb CMC
-                    6,   # Index PIP
-                    10,  # Middle PIP
-                    18,  # Pinky PIP
-                    14,  # Ring PIP
-                    2,   # Thumb MCP
-                    7,   # Index DIP
-                    11,  # Middle DIP
-                    19,  # Pinky DIP
-                    15,  # Ring DIP
-                    3    # Thumb IP
-                ]
-                target_2d_mapped = target_2d_full[:, mano_to_op_idx, :, :]   # [B, J, 2, T]
-                target_uv = target_2d_mapped[:, :, :2, :]     # [B, 16, 2, T]
-                target_conf = target_2d_mapped[:, :, 2:3, :]  # [B, 16, 1, T]
+                
+                # [修改点 2] 直接取 j_2d，它天生是 [B, 16, 2, T]，无需再做索引映射
+                target_uv = model_kwargs['j_2d']       
 
                 Z = out_xyz_cam[:, :, 2:3, :].clamp(min=1e-4)
                 X = out_xyz_cam[:, :, 0:1, :]
@@ -1161,8 +1148,18 @@ class GaussianDiffusion:
                 norm_pred_v = torch.clamp((pred_uv[:, :, 1:2, :] - cy) / cy, min=-5.0, max=5.0)
                 norm_pred_uv = torch.cat([norm_pred_u, norm_pred_v], dim=2)
 
-                valid_2d_mask = (target_conf > 0.4).float() 
-                combined_mask = mask.float() * valid_2d_mask
+                # [修改点 3] 移除 target_conf 逻辑
+                # GT 生成的 2D 坐标是绝对正确的，无需置信度过滤。
+                # 只要利用全局的时间序列 mask (去除 padding 和强制 inpaint 的帧) 即可。
+                combined_mask = mask.float()
+                
+                # 确保 mask 的形状能正确广播到 [B, 16, 2, T]
+                # 如果你的 mask 传进来是 [B, T]，需要做如下升维：
+                if combined_mask.dim() == 2:
+                    combined_mask = combined_mask.unsqueeze(1).unsqueeze(2)
+                elif combined_mask.dim() == 3:
+                    combined_mask = combined_mask.unsqueeze(1)
+                    
                 terms["reproj_2d_mse"] = self.masked_l2(norm_target_uv, norm_pred_uv, combined_mask)
 
 
