@@ -9,7 +9,6 @@ class Rotation2xyz:
 
     def __call__(self, pose, pose_rep, beta, translation=None, root_translation=None, ff_rotmat=None, return_vertices=False, root_revise=True, **kwargs):
 
-
         x_rotations = pose
 
         x_rotations = x_rotations.permute(0, 3, 1, 2)

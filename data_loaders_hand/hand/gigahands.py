@@ -6,6 +6,7 @@ import random
 import numpy as np
 import pickle
 from utils_hand.misc import to_torch
+from model_hand.rotation2xyz import Rotation2xyz
 from scipy.spatial.transform import Rotation as R
 from scipy.spatial.transform import Slerp
 from .vis import camparam_utils as param_utils
@@ -131,6 +132,8 @@ class GigaHands(Dataset):
         self._val = _all_indices[:val_size]
         self._train = _all_indices[val_size:]
 
+        self.rot2xyz = Rotation2xyz(device='cpu')
+
     def _load_cam(self, ind):
         return self.seqs_cam[ind]
 
@@ -140,6 +143,7 @@ class GigaHands(Dataset):
             Rh = torch.tensor(x_data["right"]["Rh"], dtype=torch.float32)
             beta = torch.tensor(x_data["right"]["shapes"], dtype=torch.float32)
         else:
+            raise NotImplementedError
             full_poses = torch.tensor(x_data["left"]["poses"], dtype=torch.float32) 
             Rh = torch.tensor(x_data["left"]["Rh"], dtype=torch.float32)
             beta = torch.tensor(x_data["left"]["shapes"], dtype=torch.float32)
@@ -154,6 +158,7 @@ class GigaHands(Dataset):
         if is_right:
             Th = torch.tensor(x_data["right"]["Th"], dtype=torch.float32)
         else:
+            raise NotImplementedError
             Th = torch.tensor(x_data["left"]["Th"], dtype=torch.float32)
         if not is_right and flip_left:
             raise NotImplementedError
@@ -168,21 +173,7 @@ class GigaHands(Dataset):
         boxes = torch.from_numpy(np.asarray(y_data['boxes']))
         crop_centers = boxes[:, 0:2] # [cx, cy, bbox_size, bbox_size]
         
-        # virtual_K = torch.eye(3)
-        
-        # virtual_K[0, 0] = cam['K'][0][0, 0]
-        # virtual_K[1, 1] = cam['K'][0][1, 1]
-        # virtual_K[0, 2] = cam['K'][0][0, 2]
-        # virtual_K[1, 2] = cam['K'][0][1, 2]
-        
-        # virtual_K[0, 0] = 500 * 1280 / 256 #= cam['K'][0, 0, 0]
-        # virtual_K[1, 1] = 500 * 1280 / 256 # = cam['K'][0, 1, 1]
-        # virtual_K[0, 2] = 640 # = cam['K'][0, 0, 2]
-        # virtual_K[1, 2] = 360 # = cam['K'][0, 1, 2]
-        
-        # virtual_R = torch.eye(3)
-        
-        global_orient_corrected, R_c2w = self.get_hamer_to_world_orient(
+        global_orient_corrected = self.get_hamer_to_world_orient(
             global_orient, 
             cam['R'][0],
             # virtual_R, 
@@ -212,40 +203,12 @@ class GigaHands(Dataset):
             hand_pose_corrected[start_idx:end_idx+1]
         )
 
-        # full_R_adj = self.interpolate_R_adj(
-        #     chunk_indices, 
-        #     R_adj[start_idx:end_idx+1], 
-        #     target_times
-        # )
-
-        # full_crop_centers = self._interpolate_linear(
-        #     chunk_indices,
-        #     crop_centers[start_idx:end_idx+1],
-        #     target_times
-        # )
-
         relative_indices = frame_ix - chunk_indices[0]
         target_idx = relative_indices
 
 
-        return full_pose[target_idx], inpaint_mask[target_idx], R_c2w
+        return full_pose[target_idx], inpaint_mask[target_idx]
 
-
-
-    # def _load_translation_y(self, ind, frame_ix, y_data):
-    #     frame_indices = y_data['frame_indices']
-    #     cam_trans = y_data['cam_trans']
-
-    #     indices = np.searchsorted(frame_indices, [frame_ix[0], frame_ix[-1]])
-    #     start_idx = max(0, indices[0] - 1)
-    #     end_idx = indices[1]
-
-    #     full_trans, inpaint_mask = self._interpolate_y(frame_indices[start_idx:end_idx+1], cam_trans[start_idx:end_idx+1])
-
-    #     relative_indices = frame_ix - frame_indices[start_idx]
-    #     target_idx = relative_indices
-
-    #     return full_trans[target_idx], inpaint_mask[target_idx]
 
     def _load_translation_y(self, ind, frame_ix, y_data, cam):
         frame_indices = y_data['frame_indices']
@@ -274,12 +237,6 @@ class GigaHands(Dataset):
         cx_real = cam['K'][0][0, 2]
         cy_real = cam['K'][0][1, 2]
 
-        # fx_real = 500 * 1280 / 256
-        # fy_real = 500 * 1280 / 256 #= cam['K'][0][1, 1]
-        # f_real = 500 * 1280 / 256 #= (fx_real + fy_real) / 2.0
-        # cx_real = 640 #= cam['K'][0][0, 2]
-        # cy_real = 360 #= cam['K'][0][1, 2]
-
         s = target_pred_cam[:, 0]
         tx_local = target_pred_cam[:, 1]
         ty_local = target_pred_cam[:, 2]
@@ -300,45 +257,39 @@ class GigaHands(Dataset):
         y_real = (v - cy_real) * z_real / fy_real
 
         y_trans_cam_real = torch.stack([x_real, y_real, z_real], dim=-1)
-        
-        # print(f'target_pred_cam: {target_pred_cam[0]}')
-        # print(f'target_boxes: {target_boxes[0]}')
-        # print(f"cam[K][0]: {cam['K'][0]}")
-
 
         return y_trans_cam_real, mask
     
 
-    def _load_2d_pose_y(self, ind, frame_ix, y_data):
-        frame_indices = np.asarray(y_data['frame_indices'])
-        poses_2d = np.asarray(y_data['poses']) 
-
-        indices = np.searchsorted(frame_indices, [frame_ix[0], frame_ix[-1]])
-        start_idx = max(0, indices[0] - 1)
-        end_idx = indices[1]
-
-        slice_indices = frame_indices[start_idx:end_idx+1]
-        slice_poses = poses_2d[start_idx:end_idx+1]
-
-        min_t, max_t = slice_indices[0], slice_indices[-1]
-        target_times = np.arange(min_t, max_t + 1)
+    def _load_2d_joint(self, ind, frame_ix, x_data, cam, is_right):
+        if is_right:
+            full_poses = torch.tensor(x_data["right"]["poses"], dtype=torch.float32)
+            Rh = torch.tensor(x_data["right"]["Rh"], dtype=torch.float32)
+            beta = torch.tensor(x_data["right"]["shapes"], dtype=torch.float32)
+            Th = torch.tensor(x_data["right"]["Th"], dtype=torch.float32)
+        else:
+            raise NotImplementedError
+       
+        j_3d = self.rot2xyz(
+            pose=torch.cat([Rh, full_poses[:, 3:]], dim=1)[frame_ix],
+            pose_rep='rotvec',
+            beta=beta,
+            translation=Th[frame_ix],
+            root_revise=False,
+        ).squeeze(0)   # (16, 3, T)
+        cam_K = torch.from_numpy(cam['K'][0]).float()
+        cam_R = torch.from_numpy(cam['R'][0]).float()
+        cam_T = torch.from_numpy(cam['T'][0]).float()
         
-        _, J, C = slice_poses.shape
-        full_poses = np.zeros((len(target_times), J, C), dtype=np.float32)
+        # (16, 3, T) -> (T, 16, 3)
+        j_3d = j_3d.permute(2, 0, 1).contiguous()
+        j_cam = torch.matmul(j_3d, cam_R.t()) + cam_T
+        j_img = torch.matmul(j_cam, cam_K.t())
+        z = j_img[..., 2:3] + 1e-6
+        j_2d = j_img[..., :2] / z
 
-        for j in range(J):
-            for c in range(2): 
-                full_poses[:, j, c] = np.interp(target_times, slice_indices, slice_poses[:, j, c])
-
-        valid_mask = slice_indices - min_t
-        full_poses[valid_mask, :, 2] = slice_poses[:, :, 2]
-
-        relative_indices = frame_ix - min_t
-        target_idx = relative_indices
-
-        target_poses_2d = to_torch(full_poses[target_idx])
-        # [T, 21, 3]
-        return target_poses_2d
+        # [T, 16, 2]
+        return j_2d
 
     
     def _interpolate_y(self, frame_indices, cam_trans):
@@ -419,50 +370,20 @@ class GigaHands(Dataset):
             return torch.from_numpy(x).to(device).float()
         
         R_w2c = to_tensor(cam_extrinsic)
-        K = to_tensor(cam_intrinsics)
-        centers = to_tensor(crop_center)
-
         R_w2c = R_w2c[:3, :3]
         R_c2w = R_w2c.t() 
 
-        fx, fy = K[0, 0], K[1, 1]
-        cx, cy = K[0, 2], K[1, 2]
-        ux, uy = centers[:, 0], centers[:, 1]
-        theta_y = torch.atan((ux - cx) / fx)   
-        theta_x = -torch.atan((uy - cy) / fy)  
-
-        # # R_adj (N, 3, 3)
-        # cos_y, sin_y = torch.cos(theta_y), torch.sin(theta_y)
-        # cos_x, sin_x = torch.cos(theta_x), torch.sin(theta_x)
-        # ones = torch.ones_like(theta_y)
-        # zeros = torch.zeros_like(theta_y)
-
-        # Ry = torch.stack([
-        #     torch.stack([cos_y,  zeros, sin_y], dim=-1),
-        #     torch.stack([zeros,  ones,  zeros], dim=-1),
-        #     torch.stack([-sin_y, zeros, cos_y], dim=-1)
-        # ], dim=-2)
-
-        # Rx = torch.stack([
-        #     torch.stack([ones,  zeros,  zeros], dim=-1),
-        #     torch.stack([zeros, cos_x, -sin_x], dim=-1),
-        #     torch.stack([zeros, sin_x,  cos_x], dim=-1)
-        # ], dim=-2)
-
-        # R_adj = Ry @ Rx 
-
-        # R_world = R_c2w @ R_adj @ R_hamer
-        # y_global_orient_world = R_c2w.unsqueeze(0) @ R_adj @ y_global_orient.squeeze(1)
         y_global_orient_world = R_c2w.unsqueeze(0) @ y_global_orient.squeeze(1)
         
-        return y_global_orient_world.unsqueeze(1), R_c2w #, R_adj
+        return y_global_orient_world.unsqueeze(1)
     
-    def interpolate_R_adj(self, frame_indices, R_adj, target_times):
-        frame_indices = np.asarray(frame_indices)
-        rotations = R.from_matrix(R_adj)
-        slerp = Slerp(frame_indices, rotations)
-        interp_rots = slerp(target_times)
-        return interp_rots.as_matrix().astype(np.float32)   
+
+    # def interpolate_R_adj(self, frame_indices, R_adj, target_times):
+    #     frame_indices = np.asarray(frame_indices)
+    #     rotations = R.from_matrix(R_adj)
+    #     slerp = Slerp(frame_indices, rotations)
+    #     interp_rots = slerp(target_times)
+    #     return interp_rots.as_matrix().astype(np.float32)   
     
     def _interpolate_linear(self, source_indices, values, target_indices):
         v_np = values.numpy() if torch.is_tensor(values) else values
