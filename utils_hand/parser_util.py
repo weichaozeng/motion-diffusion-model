@@ -76,7 +76,7 @@ def add_diffusion_options(parser):
     )
     # loss
     group.add_argument("--lambda_pose", default=10.0)
-    group.add_argument("--lambda_trans", default=50.0)
+    group.add_argument("--lambda_trans", default=10.0)
     group.add_argument("--lambda_xyz", default=10.0)
     group.add_argument("--lambda_vert", default=10.0)
     group.add_argument("--lambda_vel_pose", default=1.0)
@@ -85,8 +85,8 @@ def add_diffusion_options(parser):
     group.add_argument("--lambda_acc_pose", default=0.1)
     group.add_argument("--lambda_acc_trans", default=0.1)
     group.add_argument("--lambda_acc_xyz", default=0.1)
-    group.add_argument("--lambda_anchor_pose", default=10.0)
-    group.add_argument("--lambda_anchor_trans", default=20.0)
+    group.add_argument("--lambda_anchor_pose", default=0.0)
+    group.add_argument("--lambda_anchor_trans", default=0.0)
     group.add_argument("--lambda_norm_pose", default=0.0)
     group.add_argument("--lambda_reproj_2d", default=10.)
 
