@@ -271,10 +271,10 @@ class GigaHands(Dataset):
             raise NotImplementedError
        
         j_3d = self.rot2xyz(
-            pose=torch.cat([Rh, full_poses[:, 3:]], dim=1)[frame_ix],
+            pose=torch.cat([Rh, full_poses[:, 3:]], dim=1)[frame_ix].unsqueeze(0).view(1, -1, 16, 3).permute(0, 2, 3, 1).contiguous(), # (1, 16, 3, len(frame_ix))
             pose_rep='rotvec',
             beta=beta,
-            translation=Th[frame_ix],
+            translation=Th[frame_ix].unsqueeze(0),
             root_revise=False,
         ).squeeze(0)   # (16, 3, T)
         cam_K = torch.from_numpy(cam['K'][0]).float()
