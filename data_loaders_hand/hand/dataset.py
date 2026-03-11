@@ -14,9 +14,10 @@ import json
 
 
 class Dataset(torch.utils.data.Dataset):
-    def __init__(self, num_frames=150, split="train", pose_rep="rot6d", translation=True, glob=True, align_pose_frontview=True, **kwargs):
+    def __init__(self, num_frames=150, sampling_step=1, split="train", pose_rep="rot6d", translation=True, glob=True, align_pose_frontview=True, **kwargs):
         super().__init__()
         self.num_frames = num_frames
+        self.sampling_step = sampling_step
         self.split = split
         self.pose_rep = pose_rep
         self.translation = translation
