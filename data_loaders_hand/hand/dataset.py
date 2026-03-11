@@ -502,7 +502,7 @@ class Dataset(torch.utils.data.Dataset):
         y_pose = y_pose.permute(1, 2, 0).contiguous()     # J, 6, T
         y_trans = y_trans.permute(1, 0).contiguous()      # 3, T
         y_ret = y_ret.permute(1, 2, 0).contiguous()       # J+1, 6, T
-        inpaint_mask = torch.from_numpy(inpaint_mask)
+        inpaint_mask = to_torch(inpaint_mask)
 
         # extra. pose 2d
         j_2d = self._load_2d_joint(ind, frame_ix, x_data, cam, is_right)
