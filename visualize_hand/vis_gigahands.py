@@ -81,9 +81,9 @@ def render_video(verts, xyzs, out_dir, rgb_video_paths, rgb_frame_indices, cams,
             frames_mesh.append(vis_img.astype(np.uint8))
             # joints video
             joints_3d = joints[:, :, idx]
-            R_mat = cam['R']
-            T_vec = cam['T'].reshape(1, 3)
-            K_mat = cam['K']
+            R_mat = np.squeeze(cam['R'])
+            T_vec = np.squeeze(cam['T']).reshape(1, 3)
+            K_mat = np.squeeze(cam['K'])
             j_cam = np.dot(joints_3d, R_mat.T) + T_vec
             j_img = np.dot(j_cam, K_mat.T)
             z = j_img[:, 2:3] + 1e-6
