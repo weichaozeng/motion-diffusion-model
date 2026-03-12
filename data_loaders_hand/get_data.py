@@ -14,6 +14,7 @@ def get_dataset_loader(
     align_pose_frontview=True,
 ):
     dataset = get_dataset(name, num_frames, split=split, pose_rep=pose_rep, device=device, translation=translation, glob=glob, align_pose_frontview=align_pose_frontview)
+    dataset.compute_statistics(num_samples=1000)
     collate = get_collate_fn(name, batch_size)
     loader = DataLoader(
         dataset, batch_size=batch_size, shuffle=True,
