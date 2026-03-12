@@ -88,7 +88,7 @@ def add_diffusion_options(parser):
     group.add_argument("--lambda_anchor_pose", default=0.0)
     group.add_argument("--lambda_anchor_trans", default=0.0)
     group.add_argument("--lambda_norm_pose", default=0.0)
-    group.add_argument("--lambda_reproj_2d", default=10.)
+    group.add_argument("--lambda_reproj_2d", default=1.)
 
 
 def add_training_options(parser):

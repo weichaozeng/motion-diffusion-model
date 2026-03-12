@@ -979,6 +979,7 @@ class GaussianDiffusion:
         def get_xyz(sample, return_verts=True, ff_rotmat=None, root_translation=None):
             pose = sample[:, :-1, :, :]
             trans = sample[:, -1, :3, :].permute(0, 2, 1).contiguous()
+            trans = trans / 15.0
             out = enc.rot2xyz(
                 pose=pose, 
                 pose_rep=self.data_rep,

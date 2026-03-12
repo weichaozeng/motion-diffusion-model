@@ -367,7 +367,7 @@ class TrainLoop:
                     pose_rep='rot6d', 
                     beta=vis_sample['gt_beta'], 
                     ff_rotmat=vis_sample['y_ff_root_orient_rotmat'], 
-                    translation=vis_sample['y_trans'], 
+                    translation=vis_sample['y_trans'] / 15.0, 
                     root_translation=vis_sample['y_root_trans'], 
                     return_vertices=True,
                 )
@@ -387,7 +387,7 @@ class TrainLoop:
                     pose_rep='rot6d', 
                     beta=vis_sample['gt_beta'], 
                     ff_rotmat=vis_sample['gt_ff_root_orient_rotmat'], 
-                    translation=vis_sample['gt_trans'], 
+                    translation=vis_sample['gt_trans'] / 15.0, 
                     root_translation=vis_sample['gt_root_trans'], 
                     return_vertices=True,
                 )
@@ -407,7 +407,7 @@ class TrainLoop:
                     pose_rep='rot6d', 
                     beta=vis_sample['gt_beta'], 
                     ff_rotmat=vis_sample['y_ff_root_orient_rotmat'], 
-                    translation=vis_sample['pred_trans'], 
+                    translation=vis_sample['pred_trans'] / 15.0, 
                     root_translation=vis_sample['y_root_trans'],
                     return_vertices=True, 
                 )

@@ -488,6 +488,9 @@ class Dataset(torch.utils.data.Dataset):
             y_orig_root = y_trans[0].clone()
 
         # 3. padding pose with trans
+        trans_scale = 15.0
+        x_trans = x_trans * trans_scale
+        y_trans = y_trans * trans_scale
         # x
         x_padded_tr = torch.zeros((x_pose.shape[0], x_pose.shape[2]), dtype=x_pose.dtype)
         x_padded_tr[:, :3] = x_trans
