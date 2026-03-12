@@ -282,7 +282,7 @@ class Dataset(torch.utils.data.Dataset):
 
         # extra. pose 2d
         j_2d = self._load_2d_joint(ind, frame_ix, x_data, cam, is_right)
-        j_2d = j_2d.permute(1, 2, 0).contiguous()         # 16, 3, 2
+        j_2d = j_2d.permute(1, 2, 0).contiguous()         # 21, 2, T
         
 
         # 5, return
@@ -359,6 +359,14 @@ class Dataset(torch.utils.data.Dataset):
                             occupied[start:end] = True
                             return start, end
                     return None, None
+            # Frame Drop
+            if random.random() < 1.0:  # 50% 概率触发丢帧
+                    num_drops = random.randint(1, 3)
+                    for _ in range(num_drops):
+                        s, e = get_free_segment(min_len=5, max_len=15)
+                        if s is not None:
+                            inpaint_mask[s:e] = 0.0
+            
             # Pose Jitter
             if random.random() < 0.5:
                 num_jitter = random.randint(1, 3) # 采样 1~3 个片段
@@ -390,13 +398,7 @@ class Dataset(torch.utils.data.Dataset):
                             # 转回 rotvec 格式写回
                             y_pose[s:e, 0, :] = geometry.matrix_to_axis_angle(flipped_mat)
             
-            # Frame Drop
-            if random.random() < 1.0:  # 50% 概率触发丢帧
-                    num_drops = random.randint(1, 3)
-                    for _ in range(num_drops):
-                        s, e = get_free_segment(min_len=5, max_len=15)
-                        if s is not None:
-                            inpaint_mask[s:e] = 0.0
+            
 
             mask_bool_pose = (inpaint_mask > 0).view(T_len, 1, 1)
             y_pose = y_pose * mask_bool_pose
@@ -506,7 +508,7 @@ class Dataset(torch.utils.data.Dataset):
 
         # extra. pose 2d
         j_2d = self._load_2d_joint(ind, frame_ix, x_data, cam, is_right)
-        j_2d = j_2d.permute(1, 2, 0).contiguous()         # 16, 2, T
+        j_2d = j_2d.permute(1, 2, 0).contiguous()         # 21, 2, T
         
 
         # 5, return

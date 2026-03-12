@@ -74,6 +74,23 @@ class Rotation2xyz:
         # import ipdb; ipdb.set_trace()
         vertices, joints = self.hand_model(poses=hand_pose, Rh=global_orient, Th=translation, shapes=shapes, pose2rot=True)
 
+        # ==========================================================
+        # Map joints from mano to openpose
+        # ==========================================================
+        fingertip_idxs = torch.tensor([744, 320, 443, 554, 671], dtype=torch.long, device=vertices.device)
+        extra_joints = torch.index_select(vertices, 1, fingertip_idxs) # [B*F, 5, 3]
+        joints = torch.cat([joints, extra_joints], dim=1) # [B*F, 21, 3]
+        mano_to_openpose = [
+            0,          # 0: Wrist
+            13, 14, 15, 16, # 1-4: Thumb (CMC, MCP, IP, Tip)
+            1, 2, 3, 17,    # 5-8: Index (MCP, PIP, DIP, Tip)
+            4, 5, 6, 18,    # 9-12: Middle (MCP, PIP, DIP, Tip)
+            10, 11, 12, 19, # 13-16: Ring (MCP, PIP, DIP, Tip)
+            7, 8, 9, 20     # 17-20: Pinky (MCP, PIP, DIP, Tip)
+        ]
+        joints = joints[:, mano_to_openpose, :]
+        # ==========================================================
+
         vertices = vertices.view(B, F, -1, 3)
         joints = joints.view(B, F, -1, 3)
         joints = joints.permute(0, 2, 3, 1).contiguous()

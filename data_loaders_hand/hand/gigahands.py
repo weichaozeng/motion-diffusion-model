@@ -276,19 +276,19 @@ class GigaHands(Dataset):
             beta=beta,
             translation=Th[frame_ix].unsqueeze(0),
             root_revise=False,
-        ).squeeze(0)   # (16, 3, T)
+        ).squeeze(0)   # (21, 3, T)
         cam_K = torch.from_numpy(cam['K'][0]).float()
         cam_R = torch.from_numpy(cam['R'][0]).float()
         cam_T = torch.from_numpy(cam['T'][0]).float()
         
-        # (16, 3, T) -> (T, 16, 3)
+        # (21, 3, T) -> (T, 21, 3)
         j_3d = j_3d.permute(2, 0, 1).contiguous()
         j_cam = torch.matmul(j_3d, cam_R.t()) + cam_T
         j_img = torch.matmul(j_cam, cam_K.t())
         z = j_img[..., 2:3] + 1e-6
         j_2d = j_img[..., :2] / z
 
-        # [T, 16, 2]
+        # (T, 21, 2)
         return j_2d
 
     
