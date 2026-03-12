@@ -43,6 +43,7 @@ def main():
                               batch_size=args.batch_size, 
                               num_frames=args.num_frames, 
                               device=dist_util.dev(),)
+    data.compute_statistics(num_samples=1000)
 
     print("creating model and diffusion...")
     model, diffusion = create_model_and_diffusion(args)

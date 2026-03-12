@@ -536,3 +536,65 @@ class Dataset(torch.utils.data.Dataset):
 
         return data_dict
     
+
+    #----------------------------------------------
+    # add for statistics
+    #----------------------------------------------
+    def compute_statistics(self, num_samples=500):
+        """
+        随机抽样计算数据集中关键张量的均值和标准差，用于指导特征标准化 (Normalization/Scaling)。
+        建议在实例化 Dataset 后，手动调用一次此函数查看输出。
+        """
+        print(f"🚀 开始对 {self.split} 数据集进行 {num_samples} 个样本的均值方差统计...")
+        
+        # 收集容器
+        trans_list = []
+        pose_list = []
+        j2d_list = []
+        
+        # 随机采样索引，防止数据完全同质化
+        total_len = len(self)
+        sample_indices = random.sample(range(total_len), min(num_samples, total_len))
+        
+        for idx in sample_indices:
+            # 直接调用 __getitem__ 获取处理好的完整数据
+            data = self[idx]
+            
+            # 提取 GT 数据 (抛弃时间维度以便全局统计)
+            # x_trans: [3, T] -> [3, T]
+            trans_list.append(data['x_trans'])
+            # x_pose: [J, 6, T] -> [J*6, T]
+            pose_list.append(data['x_pose'].view(-1, data['x_pose'].shape[-1]))
+            # j_2d: [21, 2, T] -> [42, T]
+            j2d_list.append(data['j_2d'].view(-1, data['j_2d'].shape[-1]))
+
+        # 在时间维度上拼接所有样本
+        all_trans = torch.cat(trans_list, dim=1)  # [3, N*T]
+        all_pose = torch.cat(pose_list, dim=1)    # [J*6, N*T]
+        all_j2d = torch.cat(j2d_list, dim=1)      # [42, N*T]
+
+        print("\n" + "="*50)
+        print(f"数据集 {self.split} 统计结果 (基于 {num_samples} 个视频序列)")
+        print("="*50)
+        
+        # 1. 统计平移 (Translation: X, Y, Z)
+        trans_mean = all_trans.mean(dim=1)
+        trans_std = all_trans.std(dim=1)
+        print(f"[平移 Trans] (单位: 米)")
+        print(f"   X轴 - 均值: {trans_mean[0]:.4f}, 标准差: {trans_std[0]:.4f}")
+        print(f"   Y轴 - 均值: {trans_mean[1]:.4f}, 标准差: {trans_std[1]:.4f}")
+        print(f"   Z轴 - 均值: {trans_mean[2]:.4f}, 标准差: {trans_std[2]:.4f}")
+        print(f"   全局标准差均值: {trans_std.mean():.4f} (扩散模型最佳方差为 1.0, 建议缩放倍数: {1.0 / (trans_std.mean().item() + 1e-6):.1f}x)")
+        
+        # 2. 统计姿态 (6D Pose)
+        pose_mean = all_pose.mean()
+        pose_std = all_pose.std()
+        print(f"\n[姿态 Pose 6D] (范围应在 [-1, 1] 之间)")
+        print(f"   全局均值: {pose_mean:.4f}, 全局标准差: {pose_std:.4f}")
+        
+        # 3. 统计 2D 关键点 (Pixel Coordinates)
+        j2d_mean = all_j2d.mean()
+        j2d_std = all_j2d.std()
+        print(f"\n[2D 投影 Pixel] (画面尺寸范围)")
+        print(f"   全局均值: {j2d_mean:.1f}, 全局标准差: {j2d_std:.1f}")
+        print("="*50 + "\n")

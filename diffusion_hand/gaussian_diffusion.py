@@ -964,6 +964,7 @@ class GaussianDiffusion:
             model_kwargs = {}
 
         enc = model.model
+        # mask: [B, 1, 1, T]
         raw_mask = ~model_kwargs['suffix_mask']  # True for valid
         if len(raw_mask.shape) == 2:
             mask = raw_mask.unsqueeze(1).unsqueeze(2)
