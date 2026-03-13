@@ -20,7 +20,7 @@ if torch.cuda.is_available():
 
 def main():
     args = train_args()
-    fixseed(args.seed)
+    # fixseed(args.seed)
     train_platform_type = eval(args.train_platform_type)
     train_platform = train_platform_type(args.save_dir, name=args.platform_name)
     train_platform.report_args(args, name='Args')
