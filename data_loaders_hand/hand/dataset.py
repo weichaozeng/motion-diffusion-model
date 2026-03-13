@@ -70,7 +70,7 @@ class Dataset(torch.utils.data.Dataset):
             x_data = json.load(f)
 
         # random for anno degradation or init prediction
-        if random.random() < 0.0 or self.split != 'train':
+        if random.random() < 0.0: # or self.split != 'train':
             # frame length
             max_nframe = min(y_data['frame_indices'][-1], len(x_data["right"]["Th"])-1)
             min_nframe = max(0, y_data['frame_indices'][0])
