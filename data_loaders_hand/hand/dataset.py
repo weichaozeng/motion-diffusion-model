@@ -363,7 +363,7 @@ class Dataset(torch.utils.data.Dataset):
                             return start, end
                     return None, None
             # Frame Drop
-            if random.random() < 1.0:  # 50% 概率触发丢帧
+            if random.random() < 0.5:  # 50% 概率触发丢帧
                     num_drops = random.randint(1, 3)
                     for _ in range(num_drops):
                         s, e = get_free_segment(min_len=5, max_len=15)
@@ -378,7 +378,7 @@ class Dataset(torch.utils.data.Dataset):
                     if s is not None:
                         y_pose[s:e] += torch.randn_like(y_pose[s:e]) * 0.1
             # Hand Flip
-            if random.random() < 1.0:  # 40% 概率触发手腕翻转
+            if random.random() < 0.5:  # 40% 概率触发手腕翻转
                     num_flip = random.randint(1, 2)
                     for _ in range(num_flip):
                         s, e = get_free_segment(min_len=3, max_len=8)
