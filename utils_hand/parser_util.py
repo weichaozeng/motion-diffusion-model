@@ -38,9 +38,9 @@ def add_model_options(parser):
     group.add_argument("--arch", default='trans_enc',
                        choices=['trans_enc', 'trans_dec', 'gru'], type=str,
                        help="Architecture types as reported in the paper.")
-    group.add_argument("--layers", default=16, type=int,
+    group.add_argument("--layers", default=24, type=int,
                        help="Number of layers.")
-    group.add_argument("--latent_dim", default=512, type=int,
+    group.add_argument("--latent_dim", default=1024, type=int,
                        help="Transformer/GRU width.")
     group.add_argument("--cond_mask_prob", default=.1, type=float,
                        help="The probability of masking the condition during training."
@@ -50,7 +50,7 @@ def add_model_options(parser):
     # group.add_argument("--lambda_fc", default=0.0, type=float, help="Foot contact loss.")
     # group.add_argument("--lambda_target_loc", default=0.0, type=float, help="For HumanML only, when . L2 with target location.")
 
-    group.add_argument("--pos_embed_max_len", default=5000, type=int,
+    group.add_argument("--pos_embed_max_len", default=800, type=int,
                        help="Pose embedding max length.")
     group.add_argument("--use_ema", action='store_true',
                     help="If True, will use EMA model averaging.")
