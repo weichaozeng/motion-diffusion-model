@@ -1103,8 +1103,10 @@ class GaussianDiffusion:
             if lambda_reproj_2d > 0. and 'cam' in model_kwargs and 'j_2d' in model_kwargs:
                 
                 # 为了兼容纯合成退化(x_x)和真实预测(x_y)的数据集键值，做一下回退保护
-                ff_rotmat = model_kwargs.get('y_ff_root_orient_rotmat', model_kwargs.get('x_ff_root_orient_rotmat', None))
-                root_trans = model_kwargs.get('y_root_trans', model_kwargs.get('x_root_trans', None))
+                # ff_rotmat = model_kwargs.get('y_ff_root_orient_rotmat', model_kwargs.get('x_ff_root_orient_rotmat', None))
+                # root_trans = model_kwargs.get('y_root_trans', model_kwargs.get('x_root_trans', None))
+                ff_rotmat = model_kwargs.get('x_ff_root_orient_rotmat', None)
+                root_trans = model_kwargs.get('x_root_trans', None)
                 
                 out_xyz_world = get_xyz(model_output, return_verts=False, 
                                         ff_rotmat=ff_rotmat, root_translation=root_trans.unsqueeze(1))
