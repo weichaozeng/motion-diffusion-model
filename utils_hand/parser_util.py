@@ -50,7 +50,7 @@ def add_model_options(parser):
     # group.add_argument("--lambda_fc", default=0.0, type=float, help="Foot contact loss.")
     # group.add_argument("--lambda_target_loc", default=0.0, type=float, help="For HumanML only, when . L2 with target location.")
 
-    group.add_argument("--pos_embed_max_len", default=800, type=int,
+    group.add_argument("--pos_embed_max_len", default=5000, type=int,
                        help="Pose embedding max length.")
     group.add_argument("--use_ema", action='store_true',
                     help="If True, will use EMA model averaging.")
