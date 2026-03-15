@@ -40,7 +40,7 @@ def add_model_options(parser):
                        help="Architecture types as reported in the paper.")
     group.add_argument("--layers", default=24, type=int,
                        help="Number of layers.")
-    group.add_argument("--latent_dim", default=1024, type=int,
+    group.add_argument("--latent_dim", default=512, type=int,
                        help="Transformer/GRU width.")
     group.add_argument("--cond_mask_prob", default=.1, type=float,
                        help="The probability of masking the condition during training."
@@ -77,11 +77,11 @@ def add_diffusion_options(parser):
     # loss
     group.add_argument("--lambda_pose", default=10.0)
     group.add_argument("--lambda_trans", default=10.0)
-    group.add_argument("--lambda_xyz", default=1000.0)
-    group.add_argument("--lambda_vert", default=1000.0)
+    group.add_argument("--lambda_xyz", default=10.0)
+    group.add_argument("--lambda_vert", default=10.0)
     group.add_argument("--lambda_vel_pose", default=1.0)
     group.add_argument("--lambda_vel_trans", default=1.0)
-    group.add_argument("--lambda_vel_xyz", default=100.0)
+    group.add_argument("--lambda_vel_xyz", default=1.0)
     group.add_argument("--lambda_acc_pose", default=1.0)
     group.add_argument("--lambda_acc_trans", default=1.0)
     group.add_argument("--lambda_acc_xyz", default=1.0)
