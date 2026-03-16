@@ -116,10 +116,10 @@ def plot_mano_poses(joints_tensor, vertices_tensor, faces, dissim_scores, save_p
             ax.plot([pose[p_idx, 0], pose[c_idx, 0]],
                     [pose[p_idx, 1], pose[c_idx, 1]],
                     [pose[p_idx, 2], pose[c_idx, 2]],
-                    c='red', linewidth=3.0, zorder=5) # 线条加粗
+                    c='red', linewidth=1.0, zorder=5) # 线条加粗
             
         # 绘制关节球
-        ax.scatter(pose[:, 0], pose[:, 1], pose[:, 2], c='darkred', s=25, zorder=10)
+        ax.scatter(pose[:, 0], pose[:, 1], pose[:, 2], c='darkred', s=6, zorder=10)
         
         # 统一视角和坐标系 (依据 MANO 数据尺度调整)
         ax.set_xlim([-0.1, 0.1])
