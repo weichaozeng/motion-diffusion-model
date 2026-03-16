@@ -1,17 +1,16 @@
+import sys
+import os
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if project_root not in sys.path:
+    sys.path.append(project_root)
 import torch
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 import numpy as np
 from model_hand.rotation2xyz import Rotation2xyz
 
-# 假设你的环境已经可以正常 import 以下模块
-# import utils_hand.rotation_conversions as geometry
-# from model_hand.smpl import MANO
-# from your_module import Rotation2xyz
 
-# ==========================================
-# 1. 骨架定义与基础设置
-# ==========================================
+
 BONE_CONNECTIONS = torch.tensor([
     [0, 1], [1, 2], [2, 3], [3, 4],        # Thumb
     [0, 5], [5, 6], [6, 7], [7, 8],        # Index
@@ -23,9 +22,8 @@ BONE_CONNECTIONS = torch.tensor([
 parent_idx = BONE_CONNECTIONS[:, 0]
 child_idx = BONE_CONNECTIONS[:, 1]
 
-# ==========================================
-# 2. 生成基于 MANO 模型的真实手部数据
-# ==========================================
+
+
 def generate_mano_poses(rot2xyz_model, num_poses=5, device='cpu'):
     """
     使用 MANO 模型生成从平展到握拳的序列
