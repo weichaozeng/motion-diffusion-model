@@ -199,7 +199,7 @@ if __name__ == "__main__":
     
     # 【旋转相机】：绕 Y 轴旋转相机视角 (例如 np.radians(45) 就是倾斜 45 度看)
     # 如果全为 0，则是正对着手掌背部或掌心观察。
-    angle_x = np.radians(0)  # 俯仰
+    angle_x = np.radians(45)  # 俯仰
     angle_y = np.radians(0)  # 左右转头 <--- 修改这个值看不同视角
     angle_z = np.radians(45)  # 偏航
     
