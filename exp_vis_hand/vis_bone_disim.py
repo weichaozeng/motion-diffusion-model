@@ -34,30 +34,78 @@ def get_mano_faces(model_path='/home/zvc/Project/VHand/_DATA/data/mano/MANO_RIGH
     faces = mano_model['f']
     return faces
 
+def define_manual_poses():
+    """
+    在这里手动定义每一帧、每个关节的旋转角度（弧度制）。
+    
+    【MANO 关节索引参考】
+    0: 全局手腕旋转 (控制整只手的朝向)
+    1, 2, 3: 食指 (根部 MCP, 中部 PIP, 指尖 DIP)
+    4, 5, 6: 中指 (根部 MCP, 中部 PIP, 指尖 DIP)
+    7, 8, 9: 小指 (根部 MCP, 中部 PIP, 指尖 DIP)
+    10, 11, 12: 无名指 (根部 MCP, 中部 PIP, 指尖 DIP)
+    13, 14, 15: 拇指 (根部 CMC, 中部 MCP, 指尖 IP)
+    
+    【旋转轴参考】
+    0: X 轴 (通常是扭转 / 麻花)
+    1: Y 轴 (通常是四指的屈伸 Flexion/Extension)
+    2: Z 轴 (通常是手指的侧偏外展，或者拇指的屈伸)
+    """
+    F = 5 # 总帧数
+    poses = torch.zeros((F, 16, 3)) # 初始化全 0 (平展手)
+    
+    # --------------------------------------------------
+    # Pose 0: 平展状态 (保持默认全 0 即可)
+    # --------------------------------------------------
+    
+    # --------------------------------------------------
+    # Pose 1: 微屈 (整体一起调整)
+    # --------------------------------------------------
+    poses[1, 1:13, 1] = -0.4   # 四指 Y 轴整体下弯
+    poses[1, 13:16, 2] = 0.4   # 拇指 Z 轴内收
+    
+    # --------------------------------------------------
+    # Pose 2: 不对称姿态 (比如食指单独伸直，其他弯曲)
+    # --------------------------------------------------
+    poses[2, 1:4, 1] = 0.0     # 食指 (1,2,3) 保持伸直(0弧度)
+    poses[2, 4:13, 1] = -0.8   # 其他三指弯曲
+    poses[2, 13:16, 2] = 0.6   # 拇指弯曲
+    
+    # --------------------------------------------------
+    # Pose 3: 进一步测试特定关节 (例如只弯曲指尖)
+    # --------------------------------------------------
+    # 让中指(4,5,6) 只有指尖(6)弯曲，根部不弯
+    poses[3, 4:6, 1] = 0.0     
+    poses[3, 6, 1] = -1.2      
+    poses[3, 1:4, 1] = -1.0    # 食指弯曲
+    poses[3, 7:13, 1] = -1.0   # 其他指弯曲
+    poses[3, 13:16, 2] = 0.9   # 拇指
+    
+    # --------------------------------------------------
+    # Pose 4: 极度握拳 + 侧偏测试
+    # --------------------------------------------------
+    poses[4, 1:13, 1] = -1.5   # 四指极度弯曲 (接近90度)
+    poses[4, 13:16, 2] = 1.2   # 拇指极度内收
+    
+    # 添加一点外展(Abduction)：让小指(7,8,9)和食指(1,2,3)往外撇一点 (调整 Z 轴)
+    poses[4, 7, 2] = -0.3      # 小指根部向外
+    poses[4, 1, 2] = 0.3       # 食指根部向外
+    
+    return poses
 
-def generate_mano_poses(rot2xyz_model, num_poses=5, device='cpu'):
+
+def generate_mano_poses(rot2xyz_model, custom_poses, device='cpu'):
     """
-    使用 MANO 模型生成从平展到握拳的序列
+    使用 MANO 模型生成自定义的手部序列。
+    :param custom_poses: 形状为 (F, 16, 3) 的 Tensor，F 为帧数
     """
-    B = 1 # Batch size
-    F = num_poses # Frames
+    B = 1 
+    F = custom_poses.shape[0]
     
-    poses = torch.zeros((B, 16, 3, F), device=device)
+    # 你的模型期望的输入是 (B, 16, 3, F)
+    # 我们将 (F, 16, 3) 增加 batch 维度并调换轴向
+    poses = custom_poses.unsqueeze(0).permute(0, 2, 3, 1).to(device)
     
-    # 模拟握拳过程
-    for i in range(F):
-        # 最大弯曲约 1.5 弧度（接近 90 度）
-        bend_angle = - i * (1.5 / (F - 1)) 
-        
-        # 【关键修改】：改变旋转轴
-        # MANO 中，四指（食指、中指、无名指、小指）的屈伸通常在 Y 轴 (1) 或 Z 轴 (2)
-        # 这里的符号 (+/-) 和轴 (1 或 2) 取决于具体的右手坐标系方向。
-        # 如果发现手指是向手背翻折的，将 bend_angle 前面加个负号即可。
-        poses[0, 1:13, 1, i] = bend_angle  # 四指沿 Y 轴弯曲
-        
-        # 拇指（索引 13~15）的朝向与四指不同，通常在 Z 轴上弯曲更容易向掌心内收
-        poses[0, 13:16, 2, i] = -bend_angle 
-        
     beta = torch.zeros((B, 10), device=device) 
     translation = torch.zeros((B, F, 3), device=device) 
     
@@ -189,7 +237,8 @@ if __name__ == "__main__":
     mano_pkl_path = '/home/zvc/Project/VHand/_DATA/data/mano/MANO_RIGHT.pkl'
     faces = get_mano_faces(mano_pkl_path)
    
-    joints_kps, vertices_kps = generate_mano_poses(rot2xyz_model, num_poses=5, device=device)
+    custom_poses = define_manual_poses()
+    joints_kps, vertices_kps = generate_mano_poses(rot2xyz_model, custom_poses, device=device)
 
     pose_dissim, _ = calculate_dissim(joints_kps)
     
