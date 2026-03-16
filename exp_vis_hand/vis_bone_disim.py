@@ -228,7 +228,7 @@ def plot_mano_poses(joints_tensor, vertices_tensor, faces, dissim_scores, save_p
     
     # 保存透明背景的高清图片
     plt.savefig(save_path, dpi=300, bbox_inches='tight', transparent=True)
-    plt.show()
+    # plt.show()
 
 if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
