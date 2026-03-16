@@ -104,9 +104,81 @@ def calculate_dissim_2d(kps_2d):
     
     return pose_dissim, bone_dissim
 
-# =======================================================
-# 极客级 2D 渲染器 (Painter's Algorithm)
-# =======================================================
+# # =======================================================
+# # 极客级 2D 渲染器 (Painter's Algorithm)
+# # =======================================================
+# def plot_mano_2d_projection(joints_2d, vertices_3d, faces, K, R, T, dissim_scores, save_path="mano_dissim_2d.png"):
+#     F_frames = joints_2d.shape[0]
+#     fig = plt.figure(figsize=(10, 4.5 * F_frames)) 
+    
+#     # 图像分辨率 (根据 K 矩阵的中心点推算)
+#     img_w, img_h = int(K[0, 2].item() * 2), int(K[1, 2].item() * 2)
+
+#     for i in range(F_frames):
+#         j_2d = joints_2d[i].numpy()
+#         v_3d = vertices_3d[i:i+1] # 保持 batch 维度以复用 project_points
+        
+#         # 将 Mesh 顶点投影到 2D
+#         v_2d, v_depth = project_points(v_3d, K, R, T)
+#         v_2d = v_2d[0].numpy()
+#         v_depth = v_depth[0].numpy()
+        
+#         # --- 创建左侧子图：2D 投影骨架 ---
+#         ax_skeleton = fig.add_subplot(F_frames, 2, 2 * i + 1)
+#         for p_idx, c_idx in BONE_CONNECTIONS.numpy():
+#             ax_skeleton.plot([j_2d[p_idx, 0], j_2d[c_idx, 0]],
+#                              [j_2d[p_idx, 1], j_2d[c_idx, 1]],
+#                              c="#1A51D3", linewidth=2.0)
+#         ax_skeleton.scatter(j_2d[:, 0], j_2d[:, 1], c="#0EEC3A", s=15, zorder=10)
+        
+#         # 锁定相机视角域 (像素范围)
+#         ax_skeleton.set_xlim([0, img_w])
+#         ax_skeleton.set_ylim([img_h, 0]) # 像素坐标系 Y 轴朝下
+#         ax_skeleton.set_aspect('equal')
+#         ax_skeleton.set_axis_off() 
+#         ax_skeleton.set_title(f"Pose {i} | 2D Camera View Skeleton", color='#2E8B57' if i == 0 else '#B22222', fontweight='bold')
+        
+#         # --- 创建右侧子图：2D 软光栅化 Mesh ---
+#         ax_model = fig.add_subplot(F_frames, 2, 2 * i + 2)
+        
+#         # 提取面片的 2D 坐标和平均深度
+#         face_verts_2d = v_2d[faces] # (num_faces, 3, 2)
+#         face_z = v_depth[faces].mean(axis=1) # 面片的相机 Z 深度
+        
+#         # 【深度排序】：将离相机远的面片先画，近的面片后画 (Painter's Algorithm)
+#         sort_idx = np.argsort(face_z)[::-1] 
+#         sorted_face_verts_2d = face_verts_2d[sort_idx]
+        
+#         # 【基础光影计算】：使用相机坐标系的法向量
+#         v_cam = (torch.matmul(v_3d[0], R.T) + T).numpy()
+#         v0, v1, v2 = v_cam[faces[:, 0]], v_cam[faces[:, 1]], v_cam[faces[:, 2]]
+#         normals = np.cross(v1 - v0, v2 - v0)
+#         normals = normals / (np.linalg.norm(normals, axis=1, keepdims=True) + 1e-6)
+        
+#         # 光源方向 (假设来自相机前方)
+#         light_dir = np.array([0, 0, -1.0])
+#         # 使用 abs 实现双面光照，避免内部面片变全黑
+#         intensity = np.abs(np.dot(normals, light_dir)) 
+        
+#         # 上色：莫兰迪蓝底色 + 光照强度
+#         base_color = np.array([160/255, 196/255, 255/255])
+#         face_colors = base_color * (0.4 + 0.6 * intensity[:, None]) # Ambient + Diffuse
+#         sorted_face_colors = np.clip(face_colors[sort_idx], 0, 1)
+
+#         # 使用 PolyCollection 一次性渲染所有面片，速度极快
+#         poly = PolyCollection(sorted_face_verts_2d, facecolors=sorted_face_colors, edgecolors='none', antialiased=True)
+#         ax_model.add_collection(poly)
+        
+#         ax_model.set_xlim([0, img_w])
+#         ax_model.set_ylim([img_h, 0])
+#         ax_model.set_aspect('equal')
+#         ax_model.set_axis_off() 
+#         ax_model.set_title(f"Pose {i} | 2D Projected Dis_sim: {dissim_scores[i]:.4f}", color='#2E8B57' if i == 0 else '#B22222', fontweight='bold')
+
+#     plt.subplots_adjust(hspace=0.1, wspace=0.1) 
+#     plt.savefig(save_path, dpi=300, bbox_inches='tight', transparent=True)
+#     # plt.show()
+
 def plot_mano_2d_projection(joints_2d, vertices_3d, faces, K, R, T, dissim_scores, save_path="mano_dissim_2d.png"):
     F_frames = joints_2d.shape[0]
     fig = plt.figure(figsize=(10, 4.5 * F_frames)) 
@@ -135,8 +207,36 @@ def plot_mano_2d_projection(joints_2d, vertices_3d, faces, K, R, T, dissim_score
         ax_skeleton.set_xlim([0, img_w])
         ax_skeleton.set_ylim([img_h, 0]) # 像素坐标系 Y 轴朝下
         ax_skeleton.set_aspect('equal')
-        ax_skeleton.set_axis_off() 
-        ax_skeleton.set_title(f"Pose {i} | 2D Camera View Skeleton", color='#2E8B57' if i == 0 else '#B22222', fontweight='bold')
+        
+        # ==========================================
+        # 【新增：定制化的高级感 2D 背景坐标系】
+        # ==========================================
+        # 1. 开启网格，设置虚线、颜色和透明度
+        ax_skeleton.grid(True, linestyle='--', linewidth=0.5, color='#B0B0B0', alpha=0.7)
+        
+        # 2. 设置极淡的灰色背景，提升质感 (可选)
+        ax_skeleton.set_facecolor('#F8F9FA')
+        
+        # 3. 图像坐标系通常 (0,0) 在左上角，我们把 X 轴刻度移到上方会更专业
+        ax_skeleton.xaxis.tick_top()
+        ax_skeleton.xaxis.set_label_position('top') 
+        
+        # 4. 添加坐标轴标签
+        ax_skeleton.set_xlabel('U (pixels)', fontsize=10, color='gray')
+        ax_skeleton.set_ylabel('V (pixels)', fontsize=10, color='gray')
+        
+        # 5. 隐藏四周粗壮的黑色边框，让画面保持干净
+        for spine in ax_skeleton.spines.values():
+            spine.set_visible(False)
+            
+        # 调整刻度数字的颜色，使其不要太喧宾夺主
+        ax_skeleton.tick_params(colors='gray', labelsize=8)
+        
+        # 注释掉原本的关闭坐标轴命令
+        # ax_skeleton.set_axis_off() 
+        # ==========================================
+
+        ax_skeleton.set_title(f"Pose {i} | 2D Camera View Skeleton", color='#2E8B57' if i == 0 else '#B22222', fontweight='bold', pad=20)
         
         # --- 创建右侧子图：2D 软光栅化 Mesh ---
         ax_model = fig.add_subplot(F_frames, 2, 2 * i + 2)
@@ -173,9 +273,9 @@ def plot_mano_2d_projection(joints_2d, vertices_3d, faces, K, R, T, dissim_score
         ax_model.set_ylim([img_h, 0])
         ax_model.set_aspect('equal')
         ax_model.set_axis_off() 
-        ax_model.set_title(f"Pose {i} | 2D Projected Dis_sim: {dissim_scores[i]:.4f}", color='#2E8B57' if i == 0 else '#B22222', fontweight='bold')
+        ax_model.set_title(f"Pose {i} | 2D Projected Dis_sim: {dissim_scores[i]:.4f}", color='#2E8B57' if i == 0 else '#B22222', fontweight='bold', pad=20)
 
-    plt.subplots_adjust(hspace=0.1, wspace=0.1) 
+    plt.subplots_adjust(hspace=0.2, wspace=0.1) # 稍微增加一点 hspace 留给顶部的坐标轴标签
     plt.savefig(save_path, dpi=300, bbox_inches='tight', transparent=True)
     # plt.show()
 
