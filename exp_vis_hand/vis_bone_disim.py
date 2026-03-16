@@ -42,25 +42,25 @@ def generate_mano_poses(rot2xyz_model, num_poses=5, device='cpu'):
     B = 1 # Batch size
     F = num_poses # Frames
     
-    # 初始化全 0 的 pose (MANO 中通常全 0 代表平展手)
-    # 按照 Rotation2xyz 的 permute 逻辑 (0,3,1,2)，输入 shape 应为 [B, njoints, feats, F]
-    # MANO 有 1个全局旋转 + 15个手指关节 = 16 joints. 使用 rotvec (axis-angle) 则是 3 feats.
     poses = torch.zeros((B, 16, 3, F), device=device)
     
-    # 模拟握拳过程：逐步增加指间关节的弯曲角度
+    # 模拟握拳过程
     for i in range(F):
-        # 假设弯曲主要沿着局部的某个轴 (例如 x 或 z 轴，视具体 MANO 坐标系而定)
-        # 这里假设 index=0 是全局旋转，1-15 是手指。我们逐渐增大它们的弯曲角度 (最大约 1.5 弧度)
+        # 最大弯曲约 1.5 弧度（接近 90 度）
         bend_angle = i * (1.5 / (F - 1)) 
         
-        # 将相同的弯曲角度应用到所有手指关节 (简化模拟)
-        # 注意：实际 MANO 握拳可能需要针对不同关节设置不同的轴，这里假设索引 0 代表主要屈伸轴
-        poses[0, 1:, 0, i] = bend_angle 
+        # 【关键修改】：改变旋转轴
+        # MANO 中，四指（食指、中指、无名指、小指）的屈伸通常在 Y 轴 (1) 或 Z 轴 (2)
+        # 这里的符号 (+/-) 和轴 (1 或 2) 取决于具体的右手坐标系方向。
+        # 如果发现手指是向手背翻折的，将 bend_angle 前面加个负号即可。
+        poses[0, 1:13, 1, i] = bend_angle  # 四指沿 Y 轴弯曲
         
-    beta = torch.zeros((B, 10), device=device) # 固定形状
-    translation = torch.zeros((B, F, 3), device=device) # 根节点位移为 0
+        # 拇指（索引 13~15）的朝向与四指不同，通常在 Z 轴上弯曲更容易向掌心内收
+        poses[0, 13:16, 2, i] = -bend_angle 
+        
+    beta = torch.zeros((B, 10), device=device) 
+    translation = torch.zeros((B, F, 3), device=device) 
     
-    # 调用你的模型进行前向推断
     with torch.no_grad():
         joints, vertices = rot2xyz_model(
             pose=poses, 
@@ -70,9 +70,7 @@ def generate_mano_poses(rot2xyz_model, num_poses=5, device='cpu'):
             return_vertices=True
         )
         
-    # joints shape 经过代码处理后是 [B, 21, 3, F]，我们需要转成 [F, 21, 3] 方便计算
     joints = joints.squeeze(0).permute(2, 0, 1).cpu() 
-    # vertices shape 是 [B, F, 778, 3]，我们需要转成 [F, 778, 3]
     vertices = vertices.squeeze(0).cpu()
     
     return joints, vertices
@@ -119,13 +117,13 @@ def plot_mano_poses(joints_tensor, vertices_tensor, faces, dissim_scores, save_p
         #             c='red', linewidth=1.0, zorder=5) # 线条加粗
             
         # 绘制关节球
-        ax.scatter(pose[:, 0], pose[:, 1], pose[:, 2], c='darkred', s=6, zorder=10)
+        # ax.scatter(pose[:, 0], pose[:, 1], pose[:, 2], c='darkred', s=6, zorder=10)
         
         # 统一视角和坐标系 (依据 MANO 数据尺度调整)
         ax.set_xlim([-0.1, 0.1])
         ax.set_ylim([-0.1, 0.1])
         ax.set_zlim([-0.1, 0.1])
-        ax.view_init(elev=-90, azim=-90) # 根据实际渲染结果微调你的观察视角
+        ax.view_init(elev=45, azim=-45) # 根据实际渲染结果微调你的观察视角
         
         ax.set_axis_off() # 关闭坐标轴，让画面极其干净
         
