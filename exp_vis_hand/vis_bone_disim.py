@@ -23,6 +23,17 @@ parent_idx = BONE_CONNECTIONS[:, 0]
 child_idx = BONE_CONNECTIONS[:, 1]
 
 
+import pickle
+import os
+
+def get_mano_faces(model_path='/home/zvc/Project/VHand/_DATA/data/mano/MANO_RIGHT.pkl'):
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(f"Can't Find in: {model_path}")   
+    with open(model_path, 'rb') as mano_file:
+        mano_model = pickle.load(mano_file, encoding='latin1')
+    faces = mano_model['f']
+    return faces
+
 
 def generate_mano_poses(rot2xyz_model, num_poses=5, device='cpu'):
     """
@@ -66,9 +77,7 @@ def generate_mano_poses(rot2xyz_model, num_poses=5, device='cpu'):
     
     return joints, vertices
 
-# ==========================================
-# 3. 计算 Dissimilarity (与初始手做对比)
-# ==========================================
+
 def calculate_dissim(kps):
     F_frames = kps.shape[0]
     box_scales = torch.ones((F_frames, 1, 1)) 
@@ -84,10 +93,8 @@ def calculate_dissim(kps):
     
     return pose_dissim, bone_dissim
 
-# ==========================================
-# 4. 高级 3D 可视化 (Vertices + 骨架)
-# ==========================================
-def plot_mano_poses(joints_tensor, vertices_tensor, dissim_scores, save_path="mano_dissim.png"):
+
+def plot_mano_poses(joints_tensor, vertices_tensor, faces, dissim_scores, save_path="mano_dissim.png"):
     F_frames = joints_tensor.shape[0]
     fig = plt.figure(figsize=(5, 4 * F_frames))
     
@@ -96,27 +103,29 @@ def plot_mano_poses(joints_tensor, vertices_tensor, dissim_scores, save_path="ma
         pose = joints_tensor[i].numpy()
         verts = vertices_tensor[i].numpy()
         
-        # 1. 渲染 MANO 真实的 3D Vertices (使用散点图模拟曲面)
-        # 如果你的 hand_model 有 faces 属性，用 ax.plot_trisurf(verts[:,0], verts[:,1], verts[:,2], triangles=faces) 会更平滑
-        ax.scatter(verts[:, 0], verts[:, 1], verts[:, 2], 
-                   s=0.5, c='lightblue', alpha=0.3, zorder=1) # 半透明网格
+        # ==========================================
+        # 核心升级：使用 faces 画出真实的 3D 曲面
+        # ==========================================
+        # triangles 传入拓扑结构，edgecolor='none' 去掉网格黑边让皮肤更平滑
+        ax.plot_trisurf(verts[:, 0], verts[:, 1], verts[:, 2], 
+                        triangles=faces, 
+                        color='lightblue', alpha=0.4, edgecolor='none', zorder=1)
         
-        # 2. 叠加骨架连接线 (加粗，使其在网格中清晰可见)
+        # 叠加内部骨架连接线
         for bone_idx, (p_idx, c_idx) in enumerate(BONE_CONNECTIONS.numpy()):
             ax.plot([pose[p_idx, 0], pose[c_idx, 0]],
                     [pose[p_idx, 1], pose[c_idx, 1]],
                     [pose[p_idx, 2], pose[c_idx, 2]],
-                    c='red', linewidth=2.5, zorder=5)
+                    c='red', linewidth=3.0, zorder=5) # 线条加粗
             
-        # 3. 绘制关节球
-        ax.scatter(pose[:, 0], pose[:, 1], pose[:, 2], c='darkred', s=20, zorder=10)
+        # 绘制关节球
+        ax.scatter(pose[:, 0], pose[:, 1], pose[:, 2], c='darkred', s=25, zorder=10)
         
-        # 统一视角和坐标系
-        # 注意：MANO 坐标系单位通常是米，坐标范围很小，这里设置一个合理的固定范围 (比如 0.2米)
+        # 统一视角和坐标系 (依据 MANO 数据尺度调整)
         ax.set_xlim([-0.1, 0.1])
         ax.set_ylim([-0.1, 0.1])
         ax.set_zlim([-0.1, 0.1])
-        ax.view_init(elev=-90, azim=-90) # 视具体 MANO 坐标系调整朝向，通常需要俯视或正视
+        ax.view_init(elev=-90, azim=-90) # 根据实际渲染结果微调你的观察视角
         
         ax.set_axis_off() # 关闭坐标轴，让画面极其干净
         
@@ -127,15 +136,13 @@ def plot_mano_poses(joints_tensor, vertices_tensor, dissim_scores, save_path="ma
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.show()
 
-# ==========================================
-# 5. 主执行入口
-# ==========================================
 if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     
     
     rot2xyz_model = Rotation2xyz(device=device)
-    
+    mano_pkl_path = '/home/zvc/Project/VHand/_DATA/data/mano/MANO_RIGHT.pkl'
+    faces = get_mano_faces(mano_pkl_path)
    
     joints_kps, vertices_kps = generate_mano_poses(rot2xyz_model, num_poses=5, device=device)
 
@@ -144,4 +151,4 @@ if __name__ == "__main__":
 
     for i, score in enumerate(pose_dissim):
         print(f"Pose {i} vs Pose 0: {score.item():.4f}")
-    plot_mano_poses(joints_kps, vertices_kps, pose_dissim)
+    plot_mano_poses(joints_kps, vertices_kps, faces, pose_dissim)
