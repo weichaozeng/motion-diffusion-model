@@ -86,23 +86,23 @@ def project_points(points_3d, K, R, T):
     pts_2d = pts_img[..., :2] / z
     return pts_2d, pts_cam[..., 2] # 返回 2D 坐标和相机空间深度
 
-# =======================================================
-# 修改：完全基于 2D 投影平面的区分度计算
-# =======================================================
-def calculate_dissim_2d(kps_2d):
-    F_frames = kps_2d.shape[0]
-    box_scales = torch.ones((F_frames, 1, 1)) 
+# # =======================================================
+# # 修改：完全基于 2D 投影平面的区分度计算
+# # =======================================================
+# def calculate_dissim_2d(kps_2d):
+#     F_frames = kps_2d.shape[0]
+#     box_scales = torch.ones((F_frames, 1, 1)) 
     
-    # 这里的 rel_vecs 现在是 2D 图像上的像素向量 (X, Y)
-    rel_vecs = (kps_2d[:, child_idx, :] - kps_2d[:, parent_idx, :]) / box_scales.clamp(min=1e-6)
-    bone_vecs_norm = F.normalize(rel_vecs, p=2, dim=2) 
+#     # 这里的 rel_vecs 现在是 2D 图像上的像素向量 (X, Y)
+#     rel_vecs = (kps_2d[:, child_idx, :] - kps_2d[:, parent_idx, :]) / box_scales.clamp(min=1e-6)
+#     bone_vecs_norm = F.normalize(rel_vecs, p=2, dim=2) 
     
-    anchor_vecs_norm = bone_vecs_norm[0:1] 
-    cos_sim = torch.sum(anchor_vecs_norm * bone_vecs_norm, dim=2) 
-    bone_dissim = 1.0 - (cos_sim + 1.0) / 2.0 
-    pose_dissim = torch.mean(bone_dissim, dim=1) 
+#     anchor_vecs_norm = bone_vecs_norm[0:1] 
+#     cos_sim = torch.sum(anchor_vecs_norm * bone_vecs_norm, dim=2) 
+#     bone_dissim = 1.0 - (cos_sim + 1.0) / 2.0 
+#     pose_dissim = torch.mean(bone_dissim, dim=1) 
     
-    return pose_dissim, bone_dissim
+#     return pose_dissim, bone_dissim
 
 # # =======================================================
 # # 极客级 2D 渲染器 (Painter's Algorithm)
@@ -179,93 +179,78 @@ def calculate_dissim_2d(kps_2d):
 #     plt.savefig(save_path, dpi=300, bbox_inches='tight', transparent=True)
 #     # plt.show()
 
-def plot_mano_2d_projection(joints_2d, vertices_3d, faces, K, R, T, dissim_scores, save_path="mano_dissim_2d.png"):
+# =======================================================
+# 极客级 2D/3D 混合渲染器 (3 列对比版)
+# =======================================================
+def plot_mano_2d_projection(joints_2d, joints_3d, vertices_3d, faces, K, R, T, dissim_scores, save_path="mano_dissim_3cols.png"):
     F_frames = joints_2d.shape[0]
-    fig = plt.figure(figsize=(10, 4.5 * F_frames)) 
+    
+    # 【改动 1】增加画布宽度以容纳 3 列
+    fig = plt.figure(figsize=(15, 4.5 * F_frames)) 
     
     # 图像分辨率 (根据 K 矩阵的中心点推算)
     img_w, img_h = int(K[0, 2].item() * 2), int(K[1, 2].item() * 2)
 
     for i in range(F_frames):
         j_2d = joints_2d[i].numpy()
-        v_3d = vertices_3d[i:i+1] # 保持 batch 维度以复用 project_points
+        j_3d = joints_3d[i].numpy() # 提取 3D 关节坐标
+        v_3d = vertices_3d[i:i+1]
         
         # 将 Mesh 顶点投影到 2D
         v_2d, v_depth = project_points(v_3d, K, R, T)
         v_2d = v_2d[0].numpy()
         v_depth = v_depth[0].numpy()
         
-        # --- 创建左侧子图：2D 投影骨架 ---
-        ax_skeleton = fig.add_subplot(F_frames, 2, 2 * i + 1)
+        # ==========================================
+        # 【第一列】左侧子图：2D 投影骨架 (带网格坐标系)
+        # ==========================================
+        ax_skeleton = fig.add_subplot(F_frames, 3, 3 * i + 1)
         for p_idx, c_idx in BONE_CONNECTIONS.numpy():
             ax_skeleton.plot([j_2d[p_idx, 0], j_2d[c_idx, 0]],
                              [j_2d[p_idx, 1], j_2d[c_idx, 1]],
                              c="#1A51D3", linewidth=2.0)
         ax_skeleton.scatter(j_2d[:, 0], j_2d[:, 1], c="#0EEC3A", s=15, zorder=10)
         
-        # 锁定相机视角域 (像素范围)
         ax_skeleton.set_xlim([0, img_w])
-        ax_skeleton.set_ylim([img_h, 0]) # 像素坐标系 Y 轴朝下
+        ax_skeleton.set_ylim([img_h, 0]) 
         ax_skeleton.set_aspect('equal')
         
-        # ==========================================
-        # 【新增：定制化的高级感 2D 背景坐标系】
-        # ==========================================
-        # 1. 开启网格，设置虚线、颜色和透明度
+        # 保留 2D 坐标系网格风格
         ax_skeleton.grid(True, linestyle='--', linewidth=0.5, color='#B0B0B0', alpha=0.7)
-        
-        # 2. 设置极淡的灰色背景，提升质感 (可选)
         ax_skeleton.set_facecolor('#F8F9FA')
-        
-        # 3. 图像坐标系通常 (0,0) 在左上角，我们把 X 轴刻度移到上方会更专业
         ax_skeleton.xaxis.tick_top()
         ax_skeleton.xaxis.set_label_position('top') 
-        
-        # 4. 添加坐标轴标签
         ax_skeleton.set_xlabel('U (pixels)', fontsize=10, color='gray')
         ax_skeleton.set_ylabel('V (pixels)', fontsize=10, color='gray')
-        
-        # 5. 隐藏四周粗壮的黑色边框，让画面保持干净
         for spine in ax_skeleton.spines.values():
             spine.set_visible(False)
-            
-        # 调整刻度数字的颜色，使其不要太喧宾夺主
         ax_skeleton.tick_params(colors='gray', labelsize=8)
         
-        # 注释掉原本的关闭坐标轴命令
-        # ax_skeleton.set_axis_off() 
+        ax_skeleton.set_title(f"Pose {i} | 2D Camera View", color='#2E8B57' if i == 0 else '#B22222', fontweight='bold', pad=20)
+        
         # ==========================================
-
-        ax_skeleton.set_title(f"Pose {i} | 2D Camera View Skeleton", color='#2E8B57' if i == 0 else '#B22222', fontweight='bold', pad=20)
+        # 【第二列】中间子图：2D 软光栅化 Mesh
+        # ==========================================
+        ax_model = fig.add_subplot(F_frames, 3, 3 * i + 2)
         
-        # --- 创建右侧子图：2D 软光栅化 Mesh ---
-        ax_model = fig.add_subplot(F_frames, 2, 2 * i + 2)
+        face_verts_2d = v_2d[faces] 
+        face_z = v_depth[faces].mean(axis=1) 
         
-        # 提取面片的 2D 坐标和平均深度
-        face_verts_2d = v_2d[faces] # (num_faces, 3, 2)
-        face_z = v_depth[faces].mean(axis=1) # 面片的相机 Z 深度
-        
-        # 【深度排序】：将离相机远的面片先画，近的面片后画 (Painter's Algorithm)
         sort_idx = np.argsort(face_z)[::-1] 
         sorted_face_verts_2d = face_verts_2d[sort_idx]
         
-        # 【基础光影计算】：使用相机坐标系的法向量
         v_cam = (torch.matmul(v_3d[0], R.T) + T).numpy()
         v0, v1, v2 = v_cam[faces[:, 0]], v_cam[faces[:, 1]], v_cam[faces[:, 2]]
         normals = np.cross(v1 - v0, v2 - v0)
         normals = normals / (np.linalg.norm(normals, axis=1, keepdims=True) + 1e-6)
         
-        # 光源方向 (假设来自相机前方)
         light_dir = np.array([0, 0, -1.0])
-        # 使用 abs 实现双面光照，避免内部面片变全黑
         intensity = np.abs(np.dot(normals, light_dir)) 
         
-        # 上色：莫兰迪蓝底色 + 光照强度
         base_color = np.array([160/255, 196/255, 255/255])
-        face_colors = base_color * (0.4 + 0.6 * intensity[:, None]) # Ambient + Diffuse
+        face_colors = base_color * (0.4 + 0.6 * intensity[:, None])
         sorted_face_colors = np.clip(face_colors[sort_idx], 0, 1)
 
-        # 使用 PolyCollection 一次性渲染所有面片，速度极快
         poly = PolyCollection(sorted_face_verts_2d, facecolors=sorted_face_colors, edgecolors='none', antialiased=True)
         ax_model.add_collection(poly)
         
@@ -273,9 +258,49 @@ def plot_mano_2d_projection(joints_2d, vertices_3d, faces, K, R, T, dissim_score
         ax_model.set_ylim([img_h, 0])
         ax_model.set_aspect('equal')
         ax_model.set_axis_off() 
-        ax_model.set_title(f"Pose {i} | 2D Projected Dis_sim: {dissim_scores[i]:.4f}", color='#2E8B57' if i == 0 else '#B22222', fontweight='bold', pad=20)
+        ax_model.set_title(f"Pose {i} | 2D Dis_sim: {dissim_scores[i]:.4f}", color='#2E8B57' if i == 0 else '#B22222', fontweight='bold', pad=20)
 
-    plt.subplots_adjust(hspace=0.2, wspace=0.1) # 稍微增加一点 hspace 留给顶部的坐标轴标签
+        # ==========================================
+        # 【第三列】右侧子图：真实 3D XYZ 空间坐标
+        # ==========================================
+        # 【改动 2】添加 3D 渲染列
+        ax_3d = fig.add_subplot(F_frames, 3, 3 * i + 3, projection='3d')
+        
+        for p_idx, c_idx in BONE_CONNECTIONS.numpy():
+            ax_3d.plot([j_3d[p_idx, 0], j_3d[c_idx, 0]],
+                       [j_3d[p_idx, 1], j_3d[c_idx, 1]],
+                       [j_3d[p_idx, 2], j_3d[c_idx, 2]],
+                       c="#FF3333", linewidth=2.0) # 使用红色强调原始 3D
+        ax_3d.scatter(j_3d[:, 0], j_3d[:, 1], j_3d[:, 2], c="#8B0000", s=15, zorder=10)
+        
+        # 动态 Bounding Box，防止手变形
+        x_min, x_max = j_3d[:, 0].min(), j_3d[:, 0].max()
+        y_min, y_max = j_3d[:, 1].min(), j_3d[:, 1].max()
+        z_min, z_max = j_3d[:, 2].min(), j_3d[:, 2].max()
+        
+        max_range = np.array([x_max-x_min, y_max-y_min, z_max-z_min]).max() / 2.0
+        mid_x = (x_max+x_min) * 0.5
+        mid_y = (y_max+y_min) * 0.5
+        mid_z = (z_max+z_min) * 0.5
+        
+        ax_3d.set_xlim(mid_x - max_range, mid_x + max_range)
+        ax_3d.set_ylim(mid_y - max_range, mid_y + max_range)
+        ax_3d.set_zlim(mid_z - max_range, mid_z + max_range)
+        ax_3d.set_box_aspect([1, 1, 1])
+        
+        # 设置一个斜侧视角，以最好地呈现 3D 深度感
+        ax_3d.view_init(elev=20, azim=-60)
+        ax_3d.dist = 8 
+        
+        ax_3d.set_xlabel('X')
+        ax_3d.set_ylabel('Y')
+        ax_3d.set_zlabel('Z')
+        # 调整 3D 坐标轴文字大小
+        ax_3d.tick_params(labelsize=6)
+        
+        ax_3d.set_title(f"Pose {i} | 3D XYZ Space", color='#2E8B57' if i == 0 else '#B22222', fontweight='bold', pad=20)
+
+    plt.subplots_adjust(hspace=0.2, wspace=0.15) 
     plt.savefig(save_path, dpi=300, bbox_inches='tight', transparent=True)
     # plt.show()
 
@@ -343,7 +368,7 @@ if __name__ == "__main__":
         print(f"Pose {i} 2D Dis_sim vs Pose 0: {score.item():.4f}")
         
     # 3. 画出相机视野里的二维手
-    plot_mano_2d_projection(joints_2d, vertices_3d, faces, K, R, T, pose_dissim_2d)
+    plot_mano_2d_projection(joints_2d, joints_3d, vertices_3d, faces, K, R, T, pose_dissim_2d)
 
 
 
