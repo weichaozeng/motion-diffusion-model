@@ -58,15 +58,15 @@ def define_manual_poses():
     F = 5 
     poses = torch.zeros((F, 16, 3)) 
     # Pose 0
-    poses[0, 0, 0] = -0.6    
+    poses[0, 0, 1] = -1.0   
     # Pose 1
-    poses[1, 0, 0] = -0.4   
+    poses[1, 0, 1] = -0.5   
     # Pose 2
-    poses[2, 0, 0] = -0.2   
+    poses[2, 0, 1] = 0.0   
     # Pose 3
-    poses[3, 0, 0] = 0.2   
+    poses[3, 0, 1] = 0.5   
     # Pose 4
-    poses[4, 0, 0] = 0.8   
+    poses[4, 0, 1] = 1.0   
     return poses
 
 def generate_mano_poses(rot2xyz_model, custom_poses, device='cpu'):
