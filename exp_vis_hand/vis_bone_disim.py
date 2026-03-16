@@ -40,16 +40,16 @@ def define_manual_poses():
     poses[0, 13:16, 2] = 0.0   
     # Pose 1
     poses[1, 1:13, 2] = -0.2   
-    poses[1, 13:16, 2] = 0.0   
+    poses[1, 13:16, 2] = 0.2   
     # Pose 2
     poses[2, 1:13, 2] = -0.0   
-    poses[2, 13:16, 2] = 0.0   
+    poses[2, 13:16, 2] = 0.4   
     # Pose 3
     poses[3, 1:13, 2] = 0.2   
-    poses[3, 13:16, 2] = 0.0   
+    poses[3, 13:16, 2] = 0.5   
     # Pose 4
     poses[4, 1:13, 2] = 0.4   
-    poses[4, 13:16, 2] = 0.0   
+    poses[4, 13:16, 2] = 0.6   
     return poses
 
 def generate_mano_poses(rot2xyz_model, custom_poses, device='cpu'):
@@ -128,8 +128,8 @@ def plot_mano_2d_projection(joints_2d, vertices_3d, faces, K, R, T, dissim_score
         for p_idx, c_idx in BONE_CONNECTIONS.numpy():
             ax_skeleton.plot([j_2d[p_idx, 0], j_2d[c_idx, 0]],
                              [j_2d[p_idx, 1], j_2d[c_idx, 1]],
-                             c="#1C526A", linewidth=2.0)
-        ax_skeleton.scatter(j_2d[:, 0], j_2d[:, 1], c="#20DA80", s=25, zorder=10)
+                             c="#1A51D3", linewidth=2.0)
+        ax_skeleton.scatter(j_2d[:, 0], j_2d[:, 1], c="#0EEC3A", s=15, zorder=10)
         
         # 锁定相机视角域 (像素范围)
         ax_skeleton.set_xlim([0, img_w])
