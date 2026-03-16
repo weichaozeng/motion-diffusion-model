@@ -224,9 +224,9 @@ if __name__ == "__main__":
     # angle_z = np.radians(45)  # 滚转 (Roll)  - 控制相机歪头
 
     # 旋转
-    angle_x = np.radians(45)  # 俯仰 (Pitch) - 控制相机上下抬低头
+    angle_x = np.radians(90)  # 俯仰 (Pitch) - 控制相机上下抬低头
     angle_y = np.radians(45)   # 偏航 (Yaw)   - 控制相机左右转头
-    angle_z = np.radians(90)  # 滚转 (Roll)  - 控制相机歪头
+    angle_z = np.radians(0)  # 滚转 (Roll)  - 控制相机歪头
     
     # 1. 绕 X 轴旋转矩阵 (Pitch)
     cx, sx = math.cos(angle_x), math.sin(angle_x)
