@@ -197,18 +197,38 @@ if __name__ == "__main__":
                       [0.0, 1000.0, 500.0],
                       [0.0, 0.0, 1.0]], dtype=torch.float32)
     
-    # 【旋转相机】：绕 Y 轴旋转相机视角 (例如 np.radians(45) 就是倾斜 45 度看)
-    # 如果全为 0，则是正对着手掌背部或掌心观察。
-    angle_x = np.radians(45)  # 俯仰
-    angle_y = np.radians(0)  # 左右转头 <--- 修改这个值看不同视角
-    angle_z = np.radians(45)  # 偏航
+    # 【万向节旋转相机】：支持 X, Y, Z 三轴混合旋转
+    # 注意：MANO 默认的朝向可能因不同的数据集处理而异，你可以多试几个 90 度的倍数
+    angle_x = np.radians(45)  # 俯仰 (Pitch) - 控制相机上下抬低头
+    angle_y = np.radians(0)   # 偏航 (Yaw)   - 控制相机左右转头
+    angle_z = np.radians(45)  # 滚转 (Roll)  - 控制相机歪头
     
-    cos_y, sin_y = math.cos(angle_y), math.sin(angle_y)
-    R = torch.tensor([
-        [cos_y,  0, sin_y],
-        [0,      1,     0],
-        [-sin_y, 0, cos_y]
+    # 1. 绕 X 轴旋转矩阵 (Pitch)
+    cx, sx = math.cos(angle_x), math.sin(angle_x)
+    Rx = torch.tensor([
+        [1,  0,   0],
+        [0, cx, -sx],
+        [0, sx,  cx]
     ], dtype=torch.float32)
+    
+    # 2. 绕 Y 轴旋转矩阵 (Yaw)
+    cy, sy = math.cos(angle_y), math.sin(angle_y)
+    Ry = torch.tensor([
+        [ cy, 0, sy],
+        [  0, 1,  0],
+        [-sy, 0, cy]
+    ], dtype=torch.float32)
+    
+    # 3. 绕 Z 轴旋转矩阵 (Roll)
+    cz, sz = math.cos(angle_z), math.sin(angle_z)
+    Rz = torch.tensor([
+        [cz, -sz, 0],
+        [sz,  cz, 0],
+        [ 0,   0, 1]
+    ], dtype=torch.float32)
+    
+    # 综合旋转矩阵：将三个方向的旋转叠加 (矩阵乘法)
+    R = Rz @ Ry @ Rx
     
     # 【平移相机】：把手推离相机 0.5 米远 (如果 Z 太小手会爆出屏幕)
     T = torch.tensor([0.0, 0.0, 0.5], dtype=torch.float32)
