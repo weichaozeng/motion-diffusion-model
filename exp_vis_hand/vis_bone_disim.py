@@ -36,19 +36,19 @@ def define_manual_poses():
     F = 5 
     poses = torch.zeros((F, 16, 3)) 
     # Pose 0
-    poses[0, 1:13, 2] = -0.4   
+    poses[0, 1:13, 2] = -0.6   
     poses[0, 13:16, 0] = 0.0   
     # Pose 1
-    poses[1, 1:13, 2] = -0.2   
+    poses[1, 1:13, 2] = -0.4   
     poses[1, 13:16, 0] = 0.2   
     # Pose 2
-    poses[2, 1:13, 2] = -0.0   
+    poses[2, 1:13, 2] = -0.2   
     poses[2, 13:16, 0] = 0.4   
     # Pose 3
     poses[3, 1:13, 2] = 0.2   
     poses[3, 13:16, 0] = 0.5   
     # Pose 4
-    poses[4, 1:13, 2] = 0.4   
+    poses[4, 1:13, 2] = 0.8   
     poses[4, 13:16, 0] = 0.6   
     return poses
 
