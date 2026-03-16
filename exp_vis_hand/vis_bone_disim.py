@@ -86,23 +86,23 @@ def project_points(points_3d, K, R, T):
     pts_2d = pts_img[..., :2] / z
     return pts_2d, pts_cam[..., 2] # 返回 2D 坐标和相机空间深度
 
-# # =======================================================
-# # 修改：完全基于 2D 投影平面的区分度计算
-# # =======================================================
-# def calculate_dissim_2d(kps_2d):
-#     F_frames = kps_2d.shape[0]
-#     box_scales = torch.ones((F_frames, 1, 1)) 
+# =======================================================
+# 修改：完全基于 2D 投影平面的区分度计算
+# =======================================================
+def calculate_dissim_2d(kps_2d):
+    F_frames = kps_2d.shape[0]
+    box_scales = torch.ones((F_frames, 1, 1)) 
     
-#     # 这里的 rel_vecs 现在是 2D 图像上的像素向量 (X, Y)
-#     rel_vecs = (kps_2d[:, child_idx, :] - kps_2d[:, parent_idx, :]) / box_scales.clamp(min=1e-6)
-#     bone_vecs_norm = F.normalize(rel_vecs, p=2, dim=2) 
+    # 这里的 rel_vecs 现在是 2D 图像上的像素向量 (X, Y)
+    rel_vecs = (kps_2d[:, child_idx, :] - kps_2d[:, parent_idx, :]) / box_scales.clamp(min=1e-6)
+    bone_vecs_norm = F.normalize(rel_vecs, p=2, dim=2) 
     
-#     anchor_vecs_norm = bone_vecs_norm[0:1] 
-#     cos_sim = torch.sum(anchor_vecs_norm * bone_vecs_norm, dim=2) 
-#     bone_dissim = 1.0 - (cos_sim + 1.0) / 2.0 
-#     pose_dissim = torch.mean(bone_dissim, dim=1) 
+    anchor_vecs_norm = bone_vecs_norm[0:1] 
+    cos_sim = torch.sum(anchor_vecs_norm * bone_vecs_norm, dim=2) 
+    bone_dissim = 1.0 - (cos_sim + 1.0) / 2.0 
+    pose_dissim = torch.mean(bone_dissim, dim=1) 
     
-#     return pose_dissim, bone_dissim
+    return pose_dissim, bone_dissim
 
 # # =======================================================
 # # 极客级 2D 渲染器 (Painter's Algorithm)
