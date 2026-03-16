@@ -218,8 +218,14 @@ if __name__ == "__main__":
     
     # 【万向节旋转相机】：支持 X, Y, Z 三轴混合旋转
     # 注意：MANO 默认的朝向可能因不同的数据集处理而异，你可以多试几个 90 度的倍数
+    # # 握拳
+    # angle_x = np.radians(45)  # 俯仰 (Pitch) - 控制相机上下抬低头
+    # angle_y = np.radians(0)   # 偏航 (Yaw)   - 控制相机左右转头
+    # angle_z = np.radians(45)  # 滚转 (Roll)  - 控制相机歪头
+
+    # 旋转
     angle_x = np.radians(45)  # 俯仰 (Pitch) - 控制相机上下抬低头
-    angle_y = np.radians(0)   # 偏航 (Yaw)   - 控制相机左右转头
+    angle_y = np.radians(45)   # 偏航 (Yaw)   - 控制相机左右转头
     angle_z = np.radians(45)  # 滚转 (Roll)  - 控制相机歪头
     
     # 1. 绕 X 轴旋转矩阵 (Pitch)
