@@ -47,7 +47,7 @@ def generate_mano_poses(rot2xyz_model, num_poses=5, device='cpu'):
     # 模拟握拳过程
     for i in range(F):
         # 最大弯曲约 1.5 弧度（接近 90 度）
-        bend_angle = i * (1.5 / (F - 1)) 
+        bend_angle = - i * (1.5 / (F - 1)) 
         
         # 【关键修改】：改变旋转轴
         # MANO 中，四指（食指、中指、无名指、小指）的屈伸通常在 Y 轴 (1) 或 Z 轴 (2)
