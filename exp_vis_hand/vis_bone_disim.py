@@ -109,14 +109,14 @@ def plot_mano_poses(joints_tensor, vertices_tensor, faces, dissim_scores, save_p
         # triangles 传入拓扑结构，edgecolor='none' 去掉网格黑边让皮肤更平滑
         ax.plot_trisurf(verts[:, 0], verts[:, 1], verts[:, 2], 
                         triangles=faces, 
-                        color='lightblue', alpha=0.4, edgecolor='none', zorder=1)
+                        color='lightblue', alpha=0.4, edgecolor='0.8', zorder=1)
         
-        # 叠加内部骨架连接线
-        for bone_idx, (p_idx, c_idx) in enumerate(BONE_CONNECTIONS.numpy()):
-            ax.plot([pose[p_idx, 0], pose[c_idx, 0]],
-                    [pose[p_idx, 1], pose[c_idx, 1]],
-                    [pose[p_idx, 2], pose[c_idx, 2]],
-                    c='red', linewidth=1.0, zorder=5) # 线条加粗
+        # # 叠加内部骨架连接线
+        # for bone_idx, (p_idx, c_idx) in enumerate(BONE_CONNECTIONS.numpy()):
+        #     ax.plot([pose[p_idx, 0], pose[c_idx, 0]],
+        #             [pose[p_idx, 1], pose[c_idx, 1]],
+        #             [pose[p_idx, 2], pose[c_idx, 2]],
+        #             c='red', linewidth=1.0, zorder=5) # 线条加粗
             
         # 绘制关节球
         ax.scatter(pose[:, 0], pose[:, 1], pose[:, 2], c='darkred', s=6, zorder=10)
