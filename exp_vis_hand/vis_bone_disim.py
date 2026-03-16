@@ -32,42 +32,42 @@ def get_mano_faces(model_path='/home/zvc/Project/VHand/_DATA/data/mano/MANO_RIGH
         mano_model = pickle.load(mano_file, encoding='latin1')
     return mano_model['f']
 
-# #握拳
-# def define_manual_poses():
-#     F = 5 
-#     poses = torch.zeros((F, 16, 3)) 
-#     # Pose 0
-#     poses[0, 1:13, 2] = -0.6   
-#     poses[0, 13:16, 0] = 0.0   
-#     # Pose 1
-#     poses[1, 1:13, 2] = -0.4   
-#     poses[1, 13:16, 0] = 0.2   
-#     # Pose 2
-#     poses[2, 1:13, 2] = -0.2   
-#     poses[2, 13:16, 0] = 0.4   
-#     # Pose 3
-#     poses[3, 1:13, 2] = 0.2   
-#     poses[3, 13:16, 0] = 0.5   
-#     # Pose 4
-#     poses[4, 1:13, 2] = 0.8   
-#     poses[4, 13:16, 0] = 0.6   
-#     return poses
-
-# 旋转
+#握拳
 def define_manual_poses():
     F = 5 
     poses = torch.zeros((F, 16, 3)) 
     # Pose 0
-    poses[0, 0, 1] = -1.5   
+    poses[0, 1:13, 2] = -0.6   
+    poses[0, 13:16, 0] = 0.0   
     # Pose 1
-    poses[1, 0, 1] = -0.7   
+    poses[1, 1:13, 2] = -0.4   
+    poses[1, 13:16, 0] = 0.2   
     # Pose 2
-    poses[2, 0, 1] = 0.0   
+    poses[2, 1:13, 2] = -0.2   
+    poses[2, 13:16, 0] = 0.4   
     # Pose 3
-    poses[3, 0, 1] = 0.7   
+    poses[3, 1:13, 2] = 0.2   
+    poses[3, 13:16, 0] = 0.5   
     # Pose 4
-    poses[4, 0, 1] = 1.5   
+    poses[4, 1:13, 2] = 0.8   
+    poses[4, 13:16, 0] = 0.6   
     return poses
+
+# # 旋转
+# def define_manual_poses():
+#     F = 5 
+#     poses = torch.zeros((F, 16, 3)) 
+#     # Pose 0
+#     poses[0, 0, 1] = -1.5   
+#     # Pose 1
+#     poses[1, 0, 1] = -0.7   
+#     # Pose 2
+#     poses[2, 0, 1] = 0.0   
+#     # Pose 3
+#     poses[3, 0, 1] = 0.7   
+#     # Pose 4
+#     poses[4, 0, 1] = 1.5   
+#     return poses
 
 def generate_mano_poses(rot2xyz_model, custom_poses, device='cpu'):
     B = 1 
@@ -218,15 +218,15 @@ if __name__ == "__main__":
     
     # 【万向节旋转相机】：支持 X, Y, Z 三轴混合旋转
     # 注意：MANO 默认的朝向可能因不同的数据集处理而异，你可以多试几个 90 度的倍数
-    # # 握拳
-    # angle_x = np.radians(45)  # 俯仰 (Pitch) - 控制相机上下抬低头
-    # angle_y = np.radians(0)   # 偏航 (Yaw)   - 控制相机左右转头
-    # angle_z = np.radians(45)  # 滚转 (Roll)  - 控制相机歪头
-
-    # 旋转
-    angle_x = np.radians(90)  # 俯仰 (Pitch) - 控制相机上下抬低头
+    # 握拳
+    angle_x = np.radians(45)  # 俯仰 (Pitch) - 控制相机上下抬低头
     angle_y = np.radians(0)   # 偏航 (Yaw)   - 控制相机左右转头
-    angle_z = np.radians(0)  # 滚转 (Roll)  - 控制相机歪头
+    angle_z = np.radians(45)  # 滚转 (Roll)  - 控制相机歪头
+
+    # # 旋转
+    # angle_x = np.radians(90)  # 俯仰 (Pitch) - 控制相机上下抬低头
+    # angle_y = np.radians(0)   # 偏航 (Yaw)   - 控制相机左右转头
+    # angle_z = np.radians(0)  # 滚转 (Roll)  - 控制相机歪头
     
     # 1. 绕 X 轴旋转矩阵 (Pitch)
     cx, sx = math.cos(angle_x), math.sin(angle_x)
