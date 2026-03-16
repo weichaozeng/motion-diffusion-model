@@ -92,46 +92,93 @@ def calculate_dissim(kps):
     return pose_dissim, bone_dissim
 
 
-def plot_mano_poses(joints_tensor, vertices_tensor, faces, dissim_scores, save_path="mano_dissim.png"):
+def plot_mano_poses(joints_tensor, vertices_tensor, faces, dissim_scores, save_path="mano_dissim_separated.png"):
     F_frames = joints_tensor.shape[0]
-    fig = plt.figure(figsize=(5, 4 * F_frames))
+    
+    # 1. 【画布优化】调整画布比例，适应左右两个子图
+    fig = plt.figure(figsize=(10, 4.5 * F_frames)) 
     
     for i in range(F_frames):
-        ax = fig.add_subplot(F_frames, 1, i + 1, projection='3d')
         pose = joints_tensor[i].numpy()
         verts = vertices_tensor[i].numpy()
         
-        # ==========================================
-        # 核心升级：使用 faces 画出真实的 3D 曲面
-        # ==========================================
-        # triangles 传入拓扑结构，edgecolor='none' 去掉网格黑边让皮肤更平滑
-        ax.plot_trisurf(verts[:, 0], verts[:, 1], verts[:, 2], 
-                        triangles=faces, 
-                        color='lightblue', alpha=0.4, edgecolor='0.8', zorder=1)
+        # --- 创建左侧子图：专门用于绘制骨架 ---
+        ax_skeleton = fig.add_subplot(F_frames, 2, 2 * i + 1, projection='3d')
         
-        # # 叠加内部骨架连接线
-        # for bone_idx, (p_idx, c_idx) in enumerate(BONE_CONNECTIONS.numpy()):
-        #     ax.plot([pose[p_idx, 0], pose[c_idx, 0]],
-        #             [pose[p_idx, 1], pose[c_idx, 1]],
-        #             [pose[p_idx, 2], pose[c_idx, 2]],
-        #             c='red', linewidth=1.0, zorder=5) # 线条加粗
+        # 【特征高亮】在独立空间绘制骨架
+        for bone_idx, (p_idx, c_idx) in enumerate(BONE_CONNECTIONS.numpy()):
+            ax_skeleton.plot([pose[p_idx, 0], pose[c_idx, 0]],
+                             [pose[p_idx, 1], pose[c_idx, 1]],
+                             [pose[p_idx, 2], pose[c_idx, 2]],
+                             c="#1C526A", linewidth=1.5, zorder=5) # 鲜艳的红色线条
             
-        # 绘制关节球
-        # ax.scatter(pose[:, 0], pose[:, 1], pose[:, 2], c='darkred', s=6, zorder=10)
+        ax_skeleton.scatter(pose[:, 0], pose[:, 1], pose[:, 2], c="#20DA80", s=15, zorder=10)
         
-        # 统一视角和坐标系 (依据 MANO 数据尺度调整)
-        ax.set_xlim([-0.1, 0.1])
-        ax.set_ylim([-0.1, 0.1])
-        ax.set_zlim([-0.1, 0.1])
-        ax.view_init(elev=45, azim=-45) # 根据实际渲染结果微调你的观察视角
+        # 设置骨架空间的 Bounding Box
+        x_min_s, x_max_s = pose[:, 0].min(), pose[:, 0].max()
+        y_min_s, y_max_s = pose[:, 1].min(), pose[:, 1].max()
+        z_min_s, z_max_s = pose[:, 2].min(), pose[:, 2].max()
         
-        ax.set_axis_off() # 关闭坐标轴，让画面极其干净
+        max_range_s = np.array([x_max_s-x_min_s, y_max_s-y_min_s, z_max_s-z_min_s]).max() / 2.0
+        mid_x_s = (x_max_s+x_min_s) * 0.5
+        mid_y_s = (y_max_s+y_min_s) * 0.5
+        mid_z_s = (z_max_s+z_min_s) * 0.5
         
-        title_color = 'green' if i == 0 else 'red'
-        ax.set_title(f"Pose {i} | Dis_sim vs Initial: {dissim_scores[i]:.4f}", color=title_color, fontsize=14, pad=10)
+        ax_skeleton.set_xlim(mid_x_s - max_range_s, mid_x_s + max_range_s)
+        ax_skeleton.set_ylim(mid_y_s - max_range_s, mid_y_s + max_range_s)
+        ax_skeleton.set_zlim(mid_z_s - max_range_s, mid_z_s + max_range_s)
+        
+        ax_skeleton.set_box_aspect([1, 1, 1]) 
+        ax_skeleton.view_init(elev=-90, azim=-90) # 保持俯视
+        ax_skeleton.dist = 7.5 
+        ax_skeleton.set_axis_off() 
+        
+        # 左侧标题
+        title_color_s = '#2E8B57' if i == 0 else '#B22222'
+        ax_skeleton.set_title(f"Pose {i} | Skeleton", 
+                              color=title_color_s, fontsize=12, pad=-15, fontweight='bold')
+        
+        # --- 创建右侧子图：专门用于绘制模型 ---
+        ax_model = fig.add_subplot(F_frames, 2, 2 * i + 2, projection='3d')
+        
+        # 【材质优化】开启光影 (shade=True)，换用高级的莫兰迪蓝
+        ax_model.plot_trisurf(verts[:, 0], verts[:, 1], verts[:, 2], 
+                              triangles=faces, 
+                              color='#A0C4FF',  # 舒适的淡蓝色
+                              alpha=0.6,       # 增加不透明度，使模型更清晰
+                              edgecolor='none', # 去掉网格线
+                              shade=True,       # 开启光照
+                              zorder=1)
+        
+        # 设置模型空间的 Bounding Box
+        x_min_m, x_max_m = verts[:, 0].min(), verts[:, 0].max()
+        y_min_m, y_max_m = verts[:, 1].min(), verts[:, 1].max()
+        z_min_m, z_max_m = verts[:, 2].min(), verts[:, 2].max()
+        
+        max_range_m = np.array([x_max_m-x_min_m, y_max_m-y_min_m, z_max_m-z_min_m]).max() / 2.0
+        mid_x_m = (x_max_m+x_min_m) * 0.5
+        mid_y_m = (y_max_m+y_min_m) * 0.5
+        mid_z_m = (z_max_m+z_min_m) * 0.5
+        
+        ax_model.set_xlim(mid_x_m - max_range_m, mid_x_m + max_range_m)
+        ax_model.set_ylim(mid_y_m - max_range_m, mid_y_m + max_range_m)
+        ax_model.set_zlim(mid_z_m - max_range_m, mid_z_m + max_range_m)
+        
+        ax_model.set_box_aspect([1, 1, 1]) 
+        ax_model.view_init(elev=-90, azim=-90) # 保持俯视
+        ax_model.dist = 7.5 
+        ax_model.set_axis_off() 
+        
+        # 右侧标题，包含 Dis_sim 信息
+        title_color_m = '#2E8B57' if i == 0 else '#B22222'
+        ax_model.set_title(f"Pose {i} | Model | Dis_sim: {dissim_scores[i]:.4f}", 
+                           color=title_color_m, fontsize=12, pad=-15, fontweight='bold')
 
-    plt.tight_layout()
-    plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    # 【消除子图间距】让图片紧凑排列
+    plt.subplots_adjust(hspace=0.0, wspace=0.1) 
+    
+    # 保存透明背景的高清图片
+    plt.savefig(save_path, dpi=300, bbox_inches='tight', transparent=True)
     plt.show()
 
 if __name__ == "__main__":
