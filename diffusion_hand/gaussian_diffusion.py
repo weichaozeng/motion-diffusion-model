@@ -1156,8 +1156,8 @@ class GaussianDiffusion:
                 # GT 生成的 2D 坐标是绝对正确的，无需置信度过滤。
                 # 只要利用全局的时间序列 mask (去除 padding 和强制 inpaint 的帧) 即可。
                 combined_mask = mask.float()
-                print(f'norm_pred_uv: {norm_pred_uv[0, :, :, 0]}')
-                print(f'norm_target_uv: {norm_target_uv[0, :, :, 0]}')
+                # print(f'norm_pred_uv: {norm_pred_uv[0, :, :, 0]}')
+                # print(f'norm_target_uv: {norm_target_uv[0, :, :, 0]}')
                 
                 # 确保 mask 的形状能正确广播到 [B, 16, 2, T]
                 # 如果你的 mask 传进来是 [B, T]，需要做如下升维：
