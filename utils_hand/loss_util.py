@@ -2,6 +2,7 @@ from diffusion_hand.nn import mean_flat, sum_flat
 import torch
 import numpy as np
 import utils_hand.rotation_conversions as geometry
+import torch.nn.functional as F
 
 def angle_l2(angle1, angle2):
     a = angle1 - angle2
@@ -84,3 +85,10 @@ def masked_geodesic_loss(pred_rot6d, target_rot6d, mask, epsilon=1e-6):
     non_zero_elements = sum_flat(mask_squeeze.float()) * n_entries
     
     return loss_sum / (non_zero_elements + epsilon)
+
+
+def masked_smooth_l1(a, b, m):
+    loss = F.smooth_l1_loss(a, b, reduction='none', beta=0.1)
+    loss = (loss * m).sum()
+    non_zero_elements = m.sum() * (a.shape[1] * a.shape[2])
+    return loss / (non_zero_elements + 1e-8)

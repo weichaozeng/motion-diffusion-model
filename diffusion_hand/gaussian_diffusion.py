@@ -7,7 +7,7 @@ from copy import deepcopy
 
 from diffusion_hand.nn import mean_flat, sum_flat
 from diffusion_hand.losses import normal_kl, discretized_gaussian_log_likelihood
-from utils_hand.loss_util import masked_l2, masked_geodesic_loss
+from utils_hand.loss_util import masked_l2, masked_geodesic_loss, masked_smooth_l1
 
 
 def get_named_beta_schedule(schedule_name, num_diffusion_timesteps, scale_betas=1.):
@@ -1131,7 +1131,11 @@ class GaussianDiffusion:
                 # [修改点 2] 直接取 j_2d，它天生是 [B, 16, 2, T]，无需再做索引映射
                 target_uv = model_kwargs['j_2d']       
 
-                Z = out_xyz_cam[:, :, 2:3, :].clamp(min=1e-4)
+                Z_raw = out_xyz_cam[:, :, 2:3, :]
+                valid_depth_mask = (Z_raw > 0.1).float() # Z 必须大于 10cm
+                
+                Z = Z_raw.clamp(min=0.1)
+                # Z = out_xyz_cam[:, :, 2:3, :].clamp(min=1e-4)
                 X = out_xyz_cam[:, :, 0:1, :]
                 Y = out_xyz_cam[:, :, 1:2, :]
 
@@ -1154,8 +1158,11 @@ class GaussianDiffusion:
 
                 # [修改点 3] 移除 target_conf 逻辑
                 # GT 生成的 2D 坐标是绝对正确的，无需置信度过滤。
-                # 只要利用全局的时间序列 mask (去除 padding 和强制 inpaint 的帧) 即可。
-                combined_mask = mask.float()
+                # 只要利用全局的时间序列 mask (去除 padding 的帧) 即可。
+                t_threshold = 250 
+                t_mask = (t < t_threshold).float().view(B_dim, 1, 1, 1).to(device)
+
+                combined_mask = mask.float() * valid_depth_mask * t_mask
                 # print(f'norm_pred_uv: {norm_pred_uv[0, :, :, 0]}')
                 # print(f'norm_target_uv: {norm_target_uv[0, :, :, 0]}')
                 
@@ -1166,7 +1173,7 @@ class GaussianDiffusion:
                 elif combined_mask.dim() == 3:
                     combined_mask = combined_mask.unsqueeze(1)
                     
-                terms["reproj_2d_mse"] = self.masked_l2(norm_target_uv, norm_pred_uv, combined_mask)
+                terms["reproj_2d_mse"] = self.masked_smooth_l1(norm_target_uv, norm_pred_uv, combined_mask)
 
 
             # All
