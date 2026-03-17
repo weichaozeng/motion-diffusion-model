@@ -219,6 +219,7 @@ class GaussianDiffusion:
         # self.l2_loss = lambda a, b: (a - b) ** 2  # th.nn.MSELoss(reduction='none')  # must be None for handling mask later on.
         self.masked_l2 = masked_l2
         self.masked_geodesic_loss = masked_geodesic_loss
+        self.masked_smooth_l1 = masked_smooth_l1
 
     def q_mean_variance(self, x_start, t, model_kwargs=None):
         """
