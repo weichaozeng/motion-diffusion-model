@@ -305,14 +305,14 @@ class GigaHands(Dataset):
         mask[frame_indices - min_t] = True
 
         # --- [OLD] Linear Interplate ---
-        # full_trans = np.stack([
-        #     np.interp(target_times_clipped, frame_indices, cam_trans[:, i]) 
-        #     for i in range(cam_trans.shape[-1])
-        # ], axis=-1)
+        full_trans = np.stack([
+            np.interp(target_times_clipped, frame_indices, cam_trans[:, i]) 
+            for i in range(cam_trans.shape[-1])
+        ], axis=-1)
 
         # --- [NEW] Padding with Zero ---
-        full_trans = np.zeros((total_N, cam_trans.shape[-1]), dtype=np.float32)
-        full_trans[frame_indices - min_t] = cam_trans
+        # full_trans = np.zeros((total_N, cam_trans.shape[-1]), dtype=np.float32)
+        # full_trans[frame_indices - min_t] = cam_trans
 
         return full_trans.astype(np.float32), mask
 
@@ -341,22 +341,22 @@ class GigaHands(Dataset):
         mask[frame_indices - min_t] = True
 
         # --- [OLD] Slerp ---
-        # full_pose_rotvecs = []
-        # for j in range(J):
-        #     rots = R.from_matrix(full_pose_mat[:, j])
-        #     slerp = Slerp(frame_indices, rots)
-        #     full_pose_rotvecs.append(slerp(target_times).as_rotvec())
-        # full_pose = np.stack(full_pose_rotvecs, axis=1)
+        full_pose_rotvecs = []
+        for j in range(J):
+            rots = R.from_matrix(full_pose_mat[:, j])
+            slerp = Slerp(frame_indices, rots)
+            full_pose_rotvecs.append(slerp(target_times).as_rotvec())
+        full_pose = np.stack(full_pose_rotvecs, axis=1)
 
         # --- [NEW] Padding with Zero ---
-        valid_pose_rotvecs = []
-        for j in range(J):
-            rots = R.from_matrix(full_pose_mat[:, j]).as_rotvec()
-            valid_pose_rotvecs.append(rots)
-        valid_pose_rotvecs = np.stack(valid_pose_rotvecs, axis=1) # (N, 16, 3)
+        # valid_pose_rotvecs = []
+        # for j in range(J):
+        #     rots = R.from_matrix(full_pose_mat[:, j]).as_rotvec()
+        #     valid_pose_rotvecs.append(rots)
+        # valid_pose_rotvecs = np.stack(valid_pose_rotvecs, axis=1) # (N, 16, 3)
         
-        full_pose = np.zeros((total_N, J, 3), dtype=np.float32)
-        full_pose[frame_indices - min_t] = valid_pose_rotvecs
+        # full_pose = np.zeros((total_N, J, 3), dtype=np.float32)
+        # full_pose[frame_indices - min_t] = valid_pose_rotvecs
 
         return full_pose.astype(np.float32), mask
 
