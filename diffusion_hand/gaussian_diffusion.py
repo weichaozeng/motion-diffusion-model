@@ -1084,11 +1084,18 @@ class GaussianDiffusion:
                 y_ret = model_kwargs['y_ret']
                 y_ret_pose = y_ret[:, :-1, :, :]
                 y_ret_trans = y_ret[:, -1:, :3, :]
+
+                inpaint_mask = model_kwargs['inpaint_mask']
+                if inpaint_mask.dim() == 2:
+                    inpaint_mask = inpaint_mask.unsqueeze(1).unsqueeze(2)
+                elif inpaint_mask.dim() == 3:
+                    inpaint_mask = inpaint_mask.unsqueeze(1)
+                anchor_mask = mask.float() * inpaint_mask.float()
                 
                 if lambda_anchor_pose > 0.:
-                    terms["anchor_pose_geodesic"] = self.masked_geodesic_loss(y_ret_pose, out_pose, mask)
+                    terms["anchor_pose_geodesic"] = self.masked_geodesic_loss(y_ret_pose, out_pose, anchor_mask)
                 if lambda_anchor_trans > 0.:
-                    terms["anchor_trans_mse"] = self.masked_l2(y_ret_trans, out_trans, mask)
+                    terms["anchor_trans_mse"] = self.masked_l2(y_ret_trans, out_trans, anchor_mask)
 
             # Loss Layer Norm
             lambda_norm_pose = getattr(self, 'lambda_norm_pose', 0.0)

@@ -70,7 +70,7 @@ class Dataset(torch.utils.data.Dataset):
             x_data = json.load(f)
 
         # random for anno degradation or init prediction
-        if random.random() < 0.0: # or self.split != 'train':
+        if random.random() < 0.5: # or self.split != 'train':
             # frame length
             max_nframe = min(y_data['frame_indices'][-1], len(x_data["right"]["Th"])-1)
             min_nframe = max(0, y_data['frame_indices'][0])
@@ -364,7 +364,7 @@ class Dataset(torch.utils.data.Dataset):
                     return None, None
             # Frame Drop
             if random.random() < 0.5:  # 50% 概率触发丢帧
-                    num_drops = random.randint(1, 3)
+                    num_drops = random.randint(1, 2)
                     for _ in range(num_drops):
                         s, e = get_free_segment(min_len=5, max_len=15)
                         if s is not None:
@@ -372,7 +372,7 @@ class Dataset(torch.utils.data.Dataset):
             
             # Pose Jitter
             if random.random() < 0.5:
-                num_jitter = random.randint(1, 3) # 采样 1~3 个片段
+                num_jitter = random.randint(1, 2) # 采样 1~3 个片段
                 for _ in range(num_jitter):
                     s, e = get_free_segment(min_len=2, max_len=5)
                     if s is not None:

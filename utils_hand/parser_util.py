@@ -82,13 +82,13 @@ def add_diffusion_options(parser):
     group.add_argument("--lambda_vel_pose", default=1.0)
     group.add_argument("--lambda_vel_trans", default=1.0)
     group.add_argument("--lambda_vel_xyz", default=1.0)
-    group.add_argument("--lambda_acc_pose", default=1.0)
-    group.add_argument("--lambda_acc_trans", default=1.0)
-    group.add_argument("--lambda_acc_xyz", default=1.0)
+    group.add_argument("--lambda_acc_pose", default=0.1)
+    group.add_argument("--lambda_acc_trans", default=0.1)
+    group.add_argument("--lambda_acc_xyz", default=0.1)
     group.add_argument("--lambda_anchor_pose", default=0.0)
     group.add_argument("--lambda_anchor_trans", default=0.0)
     group.add_argument("--lambda_norm_pose", default=0.0)
-    group.add_argument("--lambda_reproj_2d", default=0.01)
+    group.add_argument("--lambda_reproj_2d", default=10.0)
 
 
 def add_training_options(parser):
