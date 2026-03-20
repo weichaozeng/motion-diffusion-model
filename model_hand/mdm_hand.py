@@ -124,7 +124,25 @@ class MDM_Hand(nn.Module):
         # output: [nframes+1, bs, d] -> [bs, njoints, nfeats, nframes]
         output = self.output_process(output)
 
+        # return output
+
+        # ------------------------
+        # Residual Trans
+        # ------------------------
+        # 提取网络预测的 trans (此时网络输出的是相对于 x_t 的纯残差)
+        res_trans = output[:, -1, :3, :]
+        
+        # 提取当前步的 noisy input (x_t) 的 trans
+        # x 的 shape 原本是 [bs, njoints, nfeats, nframes]
+        # 需要将其切片拿到 trans 部分
+        x_orig = x.view(nframes, bs, njoints, nfeats).permute(1, 2, 3, 0)
+        xt_trans = x_orig[:, -1, :3, :]
+        
+        # 直接用当前噪声状态加上网络预测的残差
+        output[:, -1, :3, :] = xt_trans + res_trans
         return output
+        # --------------------------
+
 
         # # -----------------------
         # # Residual Reconstruction
