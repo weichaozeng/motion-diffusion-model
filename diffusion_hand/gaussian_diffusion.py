@@ -611,7 +611,7 @@ class GaussianDiffusion:
         const_noise=False,
     ):
         if device is None:
-            device = next(model.parameters()).device
+            device = next(iter(model.parameters())).device
         assert isinstance(shape, (tuple, list))
 
         if noise is not None:
@@ -897,7 +897,7 @@ class GaussianDiffusion:
         cond_fn_with_grad=False,
     ):
         if device is None:
-            device = next(model.parameters()).device
+            device = next(iter(model.parameters())).device
         assert isinstance(shape, (tuple, list))
 
         if noise is not None:
