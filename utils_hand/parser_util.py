@@ -118,7 +118,7 @@ def add_training_options(parser):
                        help="Limit for the maximal number of frames. In HumanML3D and KIT this field is ignored.")
     group.add_argument("--resume_checkpoint", default="", type=str,
                        help="If not empty, will start from the specified checkpoint (path to model###.pt file).")
-    group.add_argument("--gen_guidance_param", default=2.5, type=float,
+    group.add_argument("--gen_guidance_param", default=1.0, type=float,
                        help="For classifier-free sampling - specifies the s parameter, as defined in the paper.")
     
     group.add_argument("--avg_model_beta", default=0.9999, type=float, help="Average model beta (for EMA).")

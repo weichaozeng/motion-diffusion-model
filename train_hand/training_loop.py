@@ -47,7 +47,7 @@ class TrainLoop:
         if self.args.use_ema:
             self.model_avg = copy.deepcopy(self.model)
         self.model_for_eval = self.model_avg if self.args.use_ema else self.model
-        if args.gen_guidance_param != 1:
+        if args.gen_guidance_param != 1.:
             self.model_for_eval = ClassifierFreeSampleModel(self.model_for_eval)   # wrapping model with the classifier-free sampler
         self.diffusion = diffusion
         self.cond_mask_prob = args.cond_mask_prob
