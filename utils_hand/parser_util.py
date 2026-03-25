@@ -74,30 +74,31 @@ def add_diffusion_options(parser):
         type=float, 
         help="The weight of noise/residual in RESIDUAL strategy. Lower values mean higher trust in y_pose."
     )
-    # loss
-    # === Core Target Matching ===
-    group.add_argument("--lambda_pose", default=10.0)
-    group.add_argument("--lambda_trans", default=5.0)
-    # === Residual Penalty ===
-    group.add_argument("--lambda_res_pose", default=0.1)
-    group.add_argument("--lambda_res_trans", default=0.1)
-    # === Coordinate Origin Lock ===
+# loss
+    # === Core Target Matching (核心驱动力：翻倍，逼迫网络去拟合真实的 3D GT) ===
+    group.add_argument("--lambda_pose", default=20.0)
+    group.add_argument("--lambda_trans", default=10.0)
+    
+    # === Residual Penalty (彻底关闭：释放残差预测能力，不要惩罚网络去修正动作) ===
+    group.add_argument("--lambda_res_pose", default=0.0)
+    group.add_argument("--lambda_res_trans", default=0.0)
+    
+    # === Coordinate Origin Lock (保持不变：死死锁住首帧世界原点) ===
     group.add_argument("--lambda_ff_pose", default=20.0)
     group.add_argument("--lambda_ff_trans", default=20.0)
     
-    # === Physics & Smoothness ===
+    # === Physics & Smoothness (保持不变：提供顺滑的物理先验) ===
     group.add_argument("--lambda_vel_pose", default=1.0)
     group.add_argument("--lambda_vel_trans", default=1.0)
-
     group.add_argument("--lambda_acc_pose", default=0.1)
     group.add_argument("--lambda_acc_trans", default=0.1)
 
-    # === Observation Anchoring ===
-    group.add_argument("--lambda_anchor_pose", default=0.0)
-    group.add_argument("--lambda_anchor_trans", default=0.0)
+    # === Observation Anchoring (微弱开启：在有效帧给一个很轻的牵引力，防止完全飘走) ===
+    group.add_argument("--lambda_anchor_pose", default=0.5)
+    group.add_argument("--lambda_anchor_trans", default=0.5)
 
-    # === 2D Pixel Alignment ===
-    group.add_argument("--lambda_reproj_2d", default=10.0)
+    # === 2D Pixel Alignment (大幅降权：等 3D Trans 降下去之后再发挥微调作用，防止前期搅局) ===
+    group.add_argument("--lambda_reproj_2d", default=1.0)
     
     # === Unused ===
     group.add_argument("--lambda_norm_pose", default=0.0)
@@ -106,6 +107,7 @@ def add_diffusion_options(parser):
     group.add_argument("--lambda_vel_xyz", default=0.0)
     group.add_argument("--lambda_acc_xyz", default=0.0)
 
+    
 def add_training_options(parser):
     group = parser.add_argument_group('training')
     group.add_argument("--save_dir", required=True, type=str,
