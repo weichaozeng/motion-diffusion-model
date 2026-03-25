@@ -117,6 +117,10 @@ def create_gaussian_diffusion(args):
         lambda_anchor_trans=args.lambda_anchor_trans,
         lambda_norm_pose=args.lambda_norm_pose,
         lambda_reproj_2d=args.lambda_reproj_2d,
+        lambda_res_pose=args.lambda_res_pose,
+        lambda_res_trans=args.lambda_res_trans,
+        lambda_ff_pose=args.lambda_ff_pose,
+        lambda_ff_trans=args.lambda_ff_trans,
     )
 
 

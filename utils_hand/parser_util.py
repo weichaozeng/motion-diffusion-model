@@ -75,21 +75,36 @@ def add_diffusion_options(parser):
         help="The weight of noise/residual in RESIDUAL strategy. Lower values mean higher trust in y_pose."
     )
     # loss
+    # === Core Target Matching ===
     group.add_argument("--lambda_pose", default=10.0)
-    group.add_argument("--lambda_trans", default=10.0)
-    group.add_argument("--lambda_xyz", default=10.0)
-    group.add_argument("--lambda_vert", default=10.0)
+    group.add_argument("--lambda_trans", default=5.0)
+    # === Residual Penalty ===
+    group.add_argument("--lambda_res_pose", default=0.1)
+    group.add_argument("--lambda_res_trans", default=0.1)
+    # === Coordinate Origin Lock ===
+    group.add_argument("--lambda_ff_pose", default=20.0)
+    group.add_argument("--lambda_ff_trans", default=20.0)
+    
+    # === Physics & Smoothness ===
     group.add_argument("--lambda_vel_pose", default=1.0)
     group.add_argument("--lambda_vel_trans", default=1.0)
-    group.add_argument("--lambda_vel_xyz", default=1.0)
-    group.add_argument("--lambda_acc_pose", default=0.0)
-    group.add_argument("--lambda_acc_trans", default=0.0)
-    group.add_argument("--lambda_acc_xyz", default=0.0)
-    group.add_argument("--lambda_anchor_pose", default=0.0)
-    group.add_argument("--lambda_anchor_trans", default=1.0)
-    group.add_argument("--lambda_norm_pose", default=0.0)
-    group.add_argument("--lambda_reproj_2d", default=100.0)
 
+    group.add_argument("--lambda_acc_pose", default=0.1)
+    group.add_argument("--lambda_acc_trans", default=0.1)
+
+    # === Observation Anchoring ===
+    group.add_argument("--lambda_anchor_pose", default=0.0)
+    group.add_argument("--lambda_anchor_trans", default=0.0)
+
+    # === 2D Pixel Alignment ===
+    group.add_argument("--lambda_reproj_2d", default=10.0)
+    
+    # === Unused ===
+    group.add_argument("--lambda_norm_pose", default=0.0)
+    group.add_argument("--lambda_xyz", default=0.0)
+    group.add_argument("--lambda_vert", default=0.0)
+    group.add_argument("--lambda_vel_xyz", default=0.0)
+    group.add_argument("--lambda_acc_xyz", default=0.0)
 
 def add_training_options(parser):
     group = parser.add_argument_group('training')

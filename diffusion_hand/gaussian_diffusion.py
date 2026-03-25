@@ -141,6 +141,10 @@ class GaussianDiffusion:
         lambda_anchor_trans=0.,
         lambda_norm_pose=0.,
         lambda_reproj_2d=0.,
+        lambda_res_pose=0.,
+        lambda_res_trans=0.,
+        lambda_ff_pose=0.,
+        lambda_ff_trans=0.,
         **kargs,
     ):
         self.model_mean_type = model_mean_type
@@ -164,6 +168,10 @@ class GaussianDiffusion:
         self.lambda_anchor_trans = lambda_anchor_trans
         self.lambda_norm_pose = lambda_norm_pose
         self.lambda_reproj_2d = lambda_reproj_2d
+        self.lambda_res_pose = lambda_res_pose
+        self.lambda_res_trans = lambda_res_trans
+        self.lambda_ff_pose = lambda_ff_pose
+        self.lambda_ff_trans = lambda_ff_trans
 
         # strategy
         self.strategy = strategy
@@ -1006,7 +1014,9 @@ class GaussianDiffusion:
         terms = {}
 
         if self.loss_type == LossType.MSE or self.loss_type == LossType.RESCALED_MSE:
-            model_output = model(x_t, self._scale_timesteps(t), model_kwargs)
+            model_output, pred_delta_trans, pred_delta_pose_6d = model(
+                x_t, self._scale_timesteps(t), model_kwargs, return_residuals=True
+            )
             target = x_start
             assert model_output.shape == target.shape
 
@@ -1022,6 +1032,33 @@ class GaussianDiffusion:
             lambda_trans = getattr(self, 'lambda_trans', 1.)
             terms["pose_geodesic"] = self.masked_geodesic_loss(target_pose, out_pose, mask)
             terms["trans_mse"] = self.masked_l2(target_trans, out_trans, mask)
+
+            # ==========================================
+            # [新增] Loss Layer: Residual Regularization
+            # ==========================================
+            lambda_res_pose = getattr(self, 'lambda_res_pose', 0.)
+            lambda_res_trans = getattr(self, 'lambda_res_trans', 0.)
+            
+            if lambda_res_pose > 0.:
+                zero_pose_delta = torch.zeros_like(pred_delta_pose_6d)
+                terms["res_pose_penalty"] = self.masked_l2(zero_pose_delta, pred_delta_pose_6d, mask)
+                
+            if lambda_res_trans > 0.:
+                zero_trans_delta = torch.zeros_like(pred_delta_trans)
+                terms["res_trans_penalty"] = self.masked_l2(zero_trans_delta, pred_delta_trans, mask)
+
+            # ==========================================
+            # [新增] Loss Layer: First Frame Anchoring
+            # ==========================================
+            lambda_ff_pose = getattr(self, 'lambda_ff_pose', 0.)
+            lambda_ff_trans = getattr(self, 'lambda_ff_trans', 0.)
+            
+            if lambda_ff_pose > 0. or lambda_ff_trans > 0.:
+                ff_mask = mask[..., 0:1] # 只取第一帧的 Mask
+                if lambda_ff_trans > 0.:
+                    terms["ff_trans_mse"] = self.masked_l2(target_trans[..., 0:1], out_trans[..., 0:1], ff_mask)
+                if lambda_ff_pose > 0.:
+                    terms["ff_pose_geodesic"] = self.masked_geodesic_loss(target_pose[:, 0:1, :, 0:1], out_pose[:, 0:1, :, 0:1], ff_mask)
 
             lambda_xyz = getattr(self, 'lambda_xyz', 0.)
             lambda_vert = getattr(self, 'lambda_vert', 0.)
@@ -1198,7 +1235,11 @@ class GaussianDiffusion:
                             (lambda_anchor_pose * terms.get("anchor_pose_geodesic", 0.)) + \
                             (lambda_anchor_trans * terms.get("anchor_trans_mse", 0.))+ \
                             (lambda_norm_pose * terms.get("norm_pose_geodesic", 0.))+ \
-                            (lambda_reproj_2d * terms.get("reproj_2d_mse", 0.))
+                            (lambda_reproj_2d * terms.get("reproj_2d_mse", 0.))+ \
+                            (lambda_res_pose * terms.get("res_pose_penalty", 0.)) + \
+                            (lambda_res_trans * terms.get("res_trans_penalty", 0.)) + \
+                            (lambda_ff_pose * terms.get("ff_pose_geodesic", 0.)) + \
+                            (lambda_ff_trans * terms.get("ff_trans_mse", 0.))
 
             terms["loss"] += terms.get('vb', 0.)
 
