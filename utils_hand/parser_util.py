@@ -98,7 +98,7 @@ def add_diffusion_options(parser):
     group.add_argument("--lambda_anchor_trans", default=0.5)
 
     # === 2D Pixel Alignment (大幅降权：等 3D Trans 降下去之后再发挥微调作用，防止前期搅局) ===
-    group.add_argument("--lambda_reproj_2d", default=1.0)
+    group.add_argument("--lambda_reproj_2d", default=0.0)
     
     # === Unused ===
     group.add_argument("--lambda_norm_pose", default=0.0)
@@ -107,7 +107,7 @@ def add_diffusion_options(parser):
     group.add_argument("--lambda_vel_xyz", default=0.0)
     group.add_argument("--lambda_acc_xyz", default=0.0)
 
-    
+
 def add_training_options(parser):
     group = parser.add_argument_group('training')
     group.add_argument("--save_dir", required=True, type=str,
