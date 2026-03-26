@@ -70,7 +70,7 @@ class Dataset(torch.utils.data.Dataset):
             x_data = json.load(f)
 
         # random for anno degradation or init prediction
-        if True: # random.random() < 0.5: # or self.split != 'train':
+        if False: # random.random() < 0.5: # or self.split != 'train':
             # frame length
             max_nframe = min(y_data['frame_indices'][-1], len(x_data["right"]["Th"])-1)
             min_nframe = max(0, y_data['frame_indices'][0])
@@ -378,7 +378,7 @@ class Dataset(torch.utils.data.Dataset):
                     if s is not None:
                         y_pose[s:e] += torch.randn_like(y_pose[s:e]) * 0.1
             # Hand Flip
-            if random.random() < 0.5:  # 40% 概率触发手腕翻转
+            if random.random() < 0.05:  # 40% 概率触发手腕翻转
                     num_flip = random.randint(1, 2)
                     for _ in range(num_flip):
                         s, e = get_free_segment(min_len=3, max_len=8)
@@ -403,14 +403,61 @@ class Dataset(torch.utils.data.Dataset):
             
             
 
-            mask_bool_pose = (inpaint_mask > 0).view(T_len, 1, 1)
-            y_pose = y_pose * mask_bool_pose
-            y_first_frame_root_pose_matrix = x_first_frame_root_pose_matrix.clone()
+            # ---------------------------------------------------------
+            # [CRITICAL FIX 1] 对被丢弃的帧进行平滑插值，构造连续的 y_ret
+            # ---------------------------------------------------------
+            valid_indices = torch.where(inpaint_mask > 0)[0].cpu().numpy()
+            all_indices = np.arange(T_len)
+            
+            # 只有在存在丢帧，且有有效帧可以作为参考的情况下才进行插值
+            if 0 < len(valid_indices) < T_len:
+                from scipy.spatial.transform import Rotation as R
+                from scipy.spatial.transform import Slerp
+                y_pose_np = y_pose.cpu().numpy()
+                interpolated_pose = np.zeros_like(y_pose_np)
+                
+                # 为了防止头部和尾部丢帧导致 Slerp 越界，我们在两端 padding 边界值 (Extrapolation)
+                padded_indices = valid_indices.copy()
+                for j in range(y_pose_np.shape[1]):
+                    valid_rotvecs = y_pose_np[valid_indices, j, :]
+                    
+                    # 边界补全
+                    pad_idx = padded_indices.copy()
+                    pad_rots = valid_rotvecs.copy()
+                    if pad_idx[0] > 0:
+                        pad_idx = np.insert(pad_idx, 0, 0)
+                        pad_rots = np.insert(pad_rots, 0, pad_rots[0], axis=0)
+                    if pad_idx[-1] < T_len - 1:
+                        pad_idx = np.append(pad_idx, T_len - 1)
+                        pad_rots = np.append(pad_rots, [pad_rots[-1]], axis=0)
+                    
+                    rots = R.from_rotvec(pad_rots)
+                    slerp = Slerp(pad_idx, rots)
+                    interpolated_pose[:, j, :] = slerp(all_indices).as_rotvec()
+                    
+                y_pose = torch.from_numpy(interpolated_pose).to(y_pose.device).float()
 
-            if pose_rep == "rotvec":
-                x_pose = x_pose
-                y_pose = y_pose
-            elif pose_rep == "rotmat":
+            # ---------------------------------------------------------
+            # 寻找绝对坐标系原点 (root_idx) 并对齐
+            # ---------------------------------------------------------
+            root_idx = valid_indices[0] if len(valid_indices) > 0 else 0
+
+            if self.align_pose_frontview:
+                x_first_frame_root_pose_matrix = geometry.axis_angle_to_matrix(x_pose[root_idx][0])
+                x_all_root_poses_matrix = geometry.axis_angle_to_matrix(x_pose[:, 0, :])
+                x_aligned_root_poses_matrix = torch.matmul(torch.transpose(x_first_frame_root_pose_matrix, 0, 1), x_all_root_poses_matrix)
+                x_pose[:, 0, :] = geometry.matrix_to_axis_angle(x_aligned_root_poses_matrix)
+                
+                y_first_frame_root_pose_matrix = geometry.axis_angle_to_matrix(y_pose[root_idx][0])
+                y_all_root_poses_matrix = geometry.axis_angle_to_matrix(y_pose[:, 0, :])
+                y_aligned_root_poses_matrix = torch.matmul(torch.transpose(y_first_frame_root_pose_matrix, 0, 1), y_all_root_poses_matrix)
+                y_pose[:, 0, :] = geometry.matrix_to_axis_angle(y_aligned_root_poses_matrix)
+            else:
+                x_first_frame_root_pose_matrix = torch.eye(3).float()
+                y_first_frame_root_pose_matrix = torch.eye(3).float()
+
+            # 格式转换
+            if pose_rep == "rotmat":
                 x_pose = geometry.axis_angle_to_matrix(x_pose).view(*x_pose.shape[:2], 9)
                 y_pose = geometry.axis_angle_to_matrix(y_pose).view(*y_pose.shape[:2], 9)
             elif pose_rep == "rotquat":
@@ -450,7 +497,7 @@ class Dataset(torch.utils.data.Dataset):
                             return start, end
                     return None, None
             # Local Jitte
-            if random.random() < 0.0:  # 60% 概率触发
+            if random.random() < 0.2:  # 60% 概率触发
                     num_jitter = random.randint(1, 3)
                     for _ in range(num_jitter):
                         s, e = get_free_segment_trans(min_len=2, max_len=8)
@@ -458,7 +505,7 @@ class Dataset(torch.utils.data.Dataset):
                             # 局部高频抖动，标准差 1cm (0.01米)
                             y_trans[s:e] += torch.randn_like(y_trans[s:e]) * 0.01
             # Depth Jump
-            if random.random() < 0.0:  # 40% 概率触发
+            if random.random() < 0.2:  # 40% 概率触发
                     num_jumps = random.randint(1, 2)
                     for _ in range(num_jumps):
                         s, e = get_free_segment_trans(min_len=5, max_len=15)
@@ -480,8 +527,14 @@ class Dataset(torch.utils.data.Dataset):
                                 
                             # d. 将符合相机光轴深度的偏移量加到局部的平移序列上
                             y_trans[s:e] += delta_aligned
-            mask_bool_trans = (inpaint_mask > 0).view(T_len, 1)
-            y_trans = y_trans * mask_bool_trans
+            # [CRITICAL FIX 2] 对缺失帧的平移进行线性插值
+            if 0 < len(valid_indices) < T_len:
+                from scipy.interpolate import interp1d
+                y_trans_np = y_trans.cpu().numpy()
+                valid_trans = y_trans_np[valid_indices]
+                f_trans = interp1d(valid_indices, valid_trans, axis=0, kind='linear', fill_value="extrapolate")
+                y_trans = torch.from_numpy(f_trans(all_indices)).to(y_trans.device).float()
+
             y_orig_root = x_orig_root.clone()
 
         else:
