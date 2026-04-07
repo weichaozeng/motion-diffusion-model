@@ -7,6 +7,7 @@ import random
 import numpy as np
 import pickle
 from model_hand.rotation2xyz import Rotation2xyz
+import yaml
 
 beta_dir = {
     '01': '/home/zvc/Data/DexYCB/calibration/mano_20200709_140042_subject-01_right',
@@ -38,6 +39,27 @@ def read_anno_from_dir(anno_dir):
     return np.array(all_pose_m), np.array(all_kp_2d), np.array(all_kp_3d)
 
 
+def read_cam(cam_path, n_Frames=1):
+    with open(cam_path, 'r') as f:
+        cam_data = yaml.load(f, Loader=yaml.FullLoader)
+    # intrinsics
+    intrs = np.zeros((3, 3))
+    intrs[0, 0] = cam_data['color']['fx']
+    intrs[1, 1] = cam_data['color']['fy']
+    intrs[0, 2] = cam_data['color']['ppx']
+    intrs[1, 2] = cam_data['color']['ppy']
+    intrs[2, 2] = 1.0
+    # rot & trans
+    extrinsics_matrix = np.array(cam_data['extrinsics']).reshape(3, 4)
+    rot = extrinsics_matrix[:, :3]
+    trans = extrinsics_matrix[:, 3]
+    # 
+    cameras = {
+        'K': np.repeat(intrs[None, ...], n_Frames, axis=0),
+        'R': np.repeat(rot[None, ...], n_Frames, axis=0),
+        'T': np.repeat(trans[None, ...], n_Frames, axis=0),
+    }
+    return cameras
 
 class DexYCB(Dataset):
     dataname = "dexycb"
@@ -68,13 +90,19 @@ class DexYCB(Dataset):
             beta = Path(beta_dir[beta_name]) / 'mano.yml'
             # cam
             cam_path = cam_root / 'intrinsics' / f'{cam}_640x480.yml'
-
-            for track in os.listdir(data_path / out / 'results' / 'track'):
-                self.seqs_y.append(data_path / out / 'results' / 'track' / track)
-                self.seqs_kp3d.append(all_kp_3d)
-                self.seqs_mano.append(all)
-                self.seqs_cam.append(cam)
-                self.seqs_video.append(video_path)
+            cam = read_cam(cam_path)
+            
+            if len(os.listdir(data_path / out / 'results' / 'track')) > 1:
+                print(f"Warning: multiple tracks found in {data_path / out / 'results' / 'track'}, skip.")
+                continue
+            self.seqs_y.append(data_path / out / 'results' / 'track' / 'track_001.pkl')
+            self.seqs_kp3d.append(all_kp_3d)
+            self.seqs_mano.append({
+                'beta': beta,
+                'pose_m': all_pose_m,
+            })
+            self.seqs_cam.append(cam)
+            self.seqs_video.append(video_path)
                 
     
         
