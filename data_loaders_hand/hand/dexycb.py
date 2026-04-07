@@ -92,10 +92,30 @@ class DexYCB(Dataset):
             cam_path = cam_root / 'intrinsics' / f'{cam}_640x480.yml'
             cam = read_cam(cam_path)
             
-            if len(os.listdir(data_path / out / 'results' / 'track')) > 1:
-                print(f"Warning: multiple tracks found in {data_path / out / 'results' / 'track'}, skip.")
+            track_dir = data_path / out / 'results' / 'track'
+            track_files = list(track_dir.glob('*.pkl'))
+            num_tracks = len(track_files)
+
+            if num_tracks > 2:
+                print(f"Warning: {num_tracks} tracks found in {track_dir}, skip.")
                 continue
-            self.seqs_y.append(data_path / out / 'results' / 'track' / 'track_001.pkl')
+            elif num_tracks == 0:
+                print(f"Warning: no tracks found in {track_dir}, skip.")
+                continue
+            elif num_tracks == 2:
+                target_track = None
+                for track_file in track_files:
+                    with open(track_file, 'rb') as f:
+                        temp_data = pickle.load(f)
+                    if "handedness" in temp_data and temp_data["handedness"][0] != 0:
+                        target_track = track_file
+                        break
+                if target_track is None:
+                    print(f"Warning: 2 tracks found but no right hand in {track_dir}, skip.")
+                    continue
+            else:
+                target_track = track_files[0]
+            self.seqs_y.append(target_track)
             self.seqs_kp3d.append(all_kp_3d)
             self.seqs_mano.append({
                 'beta': beta,
@@ -103,8 +123,6 @@ class DexYCB(Dataset):
             })
             self.seqs_cam.append(cam)
             self.seqs_video.append(video_path)
-                
-    
         
         _all_indices = list(range(len(self.seqs_y)))
         random.seed(42)
