@@ -1,4 +1,4 @@
-from .dataset import Dataset
+from dataset import Dataset
 from pathlib import Path
 import torch
 import os
@@ -96,4 +96,3 @@ class DexYCB(Dataset):
 
 if __name__ == "__main__":
     dataset = DexYCB()
-    
