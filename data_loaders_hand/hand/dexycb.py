@@ -63,7 +63,7 @@ class DexYCB(Dataset):
             # video
             video_path = rgb_root / out
             # anno
-            all_pose_m, all_pose_y, all_kp_2d, all_kp_3d = read_anno_from_dir(anno_root / out)
+            all_pose_m, all_kp_2d, all_kp_3d = read_anno_from_dir(anno_root / out)
             # beta
             beta = Path(beta_dir[beta_name]) / 'mano.yml'
             # cam
