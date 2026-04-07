@@ -25,20 +25,17 @@ def read_anno_from_dir(anno_dir):
     dir_path = Path(anno_dir)
     npz_files = sorted(dir_path.glob("*.npz"))
     all_pose_m = []
-    all_pose_y = []
     all_kp_2d = []
     all_kp_3d = []
     for file_path in npz_files:
         with np.load(file_path) as data:
             pose_m = data['pose_m']  
-            pose_y = data['pose_y']
-            kp_2d = data['kp_2d']   
-            kp_3d = data['kp_3d']   
+            kp_2d = data['joint_2d']   
+            kp_3d = data['joint_3d']   
             all_pose_m.append(pose_m)
-            all_pose_y.append(pose_y)
             all_kp_2d.append(kp_2d)
             all_kp_3d.append(kp_3d)
-    return np.array(all_pose_m), np.array(all_pose_y), np.array(all_kp_2d), np.array(all_kp_3d)
+    return np.array(all_pose_m), np.array(all_kp_2d), np.array(all_kp_3d)
 
 
 
