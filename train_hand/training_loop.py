@@ -205,7 +205,7 @@ class TrainLoop:
                 self.cond_modifiers(self.cond_mask_prob, batch) 
 
                 # self.run_step(batch['x_pose'], batch)
-                self.run_step(batch['x_ret'], batch)
+                self.run_step(batch['x_res'], batch)
                 if self.total_step() % self.log_interval == 0:
                     for k,v in logger.get_current().dumpkvs().items():
                         if k == 'loss':
@@ -257,15 +257,15 @@ class TrainLoop:
                 avg_param.data.mul_(self.args.avg_model_beta).add_(
                     param.data, alpha=1 - self.args.avg_model_beta)
 
-    def forward_backward(self, x_ret, batch):
+    def forward_backward(self, x_res, batch):
         self.mp_trainer.zero_grad()
-        for i in range(0, x_ret.shape[0], self.microbatch):
+        for i in range(0, x_res.shape[0], self.microbatch):
             # Eliminates the microbatch feature
             assert i == 0
             assert self.microbatch == self.batch_size
-            micro = x_ret
+            micro = x_res
             micro_cond = batch
-            last_batch = (i + self.microbatch) >= x_ret.shape[0]
+            last_batch = (i + self.microbatch) >= x_res.shape[0]
             t, weights = self.schedule_sampler.sample(micro.shape[0], dist_util.dev())
 
             compute_losses = functools.partial(

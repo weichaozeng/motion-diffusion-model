@@ -1017,7 +1017,8 @@ class GaussianDiffusion:
             model_output, pred_delta_trans, pred_delta_pose_6d = model(
                 x_t, self._scale_timesteps(t), model_kwargs, return_residuals=True
             )
-            target = x_start
+            # target = x_start
+            target = model_kwargs['x_ret']
             assert model_output.shape == target.shape
 
             # pose: [B, J, 6, T]

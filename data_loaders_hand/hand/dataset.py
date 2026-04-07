@@ -274,6 +274,23 @@ class Dataset(torch.utils.data.Dataset):
         y_padded_tr[:, :3] = y_trans
         y_ret = torch.cat((y_pose, y_padded_tr[:, None]), 1)
 
+        # residual
+        delta_trans = x_trans - y_trans
+        if self.pose_rep == "rot6d":
+            mat_x = geometry.rotation_6d_to_matrix(x_pose)
+            mat_y = geometry.rotation_6d_to_matrix(y_pose)
+            mat_delta = torch.matmul(mat_y.transpose(-1, -2), mat_x)
+            delta_pose = geometry.matrix_to_rotation_6d(mat_delta)
+            
+            identity_6d = torch.tensor([1.0, 0.0, 0.0, 0.0, 1.0, 0.0], dtype=delta_pose.dtype, device=delta_pose.device)
+            delta_pose = delta_pose - identity_6d.view(1, 1, 6)
+        else:
+            raise NotImplementedError("Residual mode currently only implemented for rot6d.")
+        # --- 组装残差变量 x_res ---
+        x_padded_res_tr = torch.zeros((delta_pose.shape[0], delta_pose.shape[2]), dtype=delta_pose.dtype)
+        x_padded_res_tr[:, :3] = delta_trans
+        x_res = torch.cat((delta_pose, x_padded_res_tr[:, None]), 1)
+
         # 4. permute        
         x_pose = x_pose.permute(1, 2, 0).contiguous()     # J, 6, T
         x_trans = x_trans.permute(1, 0).contiguous()      # 3, T
@@ -281,6 +298,7 @@ class Dataset(torch.utils.data.Dataset):
         y_pose = y_pose.permute(1, 2, 0).contiguous()     # J, 6, T
         y_trans = y_trans.permute(1, 0).contiguous()      # 3, T
         y_ret = y_ret.permute(1, 2, 0).contiguous()       # J+1, 6, T
+        x_res = x_res.permute(1, 2, 0).contiguous()       # J+1, 6, T
         inpaint_mask = torch.from_numpy(inpaint_mask)
 
         # extra. pose 2d
@@ -291,6 +309,8 @@ class Dataset(torch.utils.data.Dataset):
         # 5, return
         data_dict = {
             'inpaint_mask': inpaint_mask.float(),
+            # res
+            'x_res': x_res.float(),
             # x
             'x_ret': x_ret.float(),
             'x_pose': x_pose.float(),
@@ -556,6 +576,23 @@ class Dataset(torch.utils.data.Dataset):
         y_padded_tr[:, :3] = y_trans
         y_ret = torch.cat((y_pose, y_padded_tr[:, None]), 1)
 
+        # residual
+        delta_trans = x_trans - y_trans
+        if self.pose_rep == "rot6d":
+            mat_x = geometry.rotation_6d_to_matrix(x_pose)
+            mat_y = geometry.rotation_6d_to_matrix(y_pose)
+            mat_delta = torch.matmul(mat_y.transpose(-1, -2), mat_x)
+            delta_pose = geometry.matrix_to_rotation_6d(mat_delta)
+            
+            identity_6d = torch.tensor([1.0, 0.0, 0.0, 0.0, 1.0, 0.0], dtype=delta_pose.dtype, device=delta_pose.device)
+            delta_pose = delta_pose - identity_6d.view(1, 1, 6)
+        else:
+            raise NotImplementedError("Residual mode currently only implemented for rot6d.")
+        # --- 组装残差变量 x_res ---
+        x_padded_res_tr = torch.zeros((delta_pose.shape[0], delta_pose.shape[2]), dtype=delta_pose.dtype)
+        x_padded_res_tr[:, :3] = delta_trans
+        x_res = torch.cat((delta_pose, x_padded_res_tr[:, None]), 1)
+
         # 4. permute        
         x_pose = x_pose.permute(1, 2, 0).contiguous()     # J, 6, T
         x_trans = x_trans.permute(1, 0).contiguous()      # 3, T
@@ -563,6 +600,7 @@ class Dataset(torch.utils.data.Dataset):
         y_pose = y_pose.permute(1, 2, 0).contiguous()     # J, 6, T
         y_trans = y_trans.permute(1, 0).contiguous()      # 3, T
         y_ret = y_ret.permute(1, 2, 0).contiguous()       # J+1, 6, T
+        x_res = x_res.permute(1, 2, 0).contiguous()       # J+1, 6, T
         inpaint_mask = to_torch(inpaint_mask)
 
         # extra. pose 2d
@@ -573,6 +611,8 @@ class Dataset(torch.utils.data.Dataset):
         # 5, return
         data_dict = {
             'inpaint_mask': inpaint_mask.float(),
+            # res
+            'x_res': x_res.float(),
             # x
             'x_ret': x_ret.float(),
             'x_pose': x_pose.float(),
