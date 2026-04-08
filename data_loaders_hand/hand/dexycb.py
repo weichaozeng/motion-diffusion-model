@@ -38,6 +38,12 @@ def read_anno_from_dir(anno_dir):
             all_kp_3d.append(kp_3d)
     return np.array(all_pose_m), np.array(all_kp_2d), np.array(all_kp_3d)
 
+def read_beta(beta_path):
+    with open(beta_path, 'r') as f:
+        beta_data = yaml.load(f, Loader=yaml.FullLoader)
+    beta = np.array(beta_data['betas'])
+    return beta
+
 
 def read_cam(cam_path, n_Frames=1):
     with open(cam_path, 'r') as f:
@@ -87,7 +93,8 @@ class DexYCB(Dataset):
             # anno
             all_pose_m, all_kp_2d, all_kp_3d = read_anno_from_dir(anno_root / out)
             # beta
-            beta = Path(beta_dir[beta_name]) / 'mano.yml'
+            beta_path = Path(beta_dir[beta_name]) / 'mano.yml'
+            beta = read_beta(beta_path)
             # cam
             cam_path = cam_root / 'intrinsics' / f'{cam}_640x480.yml'
             cam = read_cam(cam_path)
@@ -133,6 +140,17 @@ class DexYCB(Dataset):
         self._train = _all_indices[val_size:]
 
         self.rot2xyz = Rotation2xyz(device='cpu')
+
+    def _load_cam(self, ind):
+        return self.seqs_cam[ind]
+    
+    def _load_rotvec_x(self, ind, frame_ix, x_data, is_right, flip_left=True):
+        if is_right:
+            full_poses = x_data['pose_m'][:, 0, :48]
+            beta = x_data['beta']
+        else:
+            raise NotImplementedError()
+
 
 
 

@@ -66,8 +66,13 @@ class Dataset(torch.utils.data.Dataset):
         
         # anno
         seq_mano = self.seqs_mano[data_index]
-        with open(seq_mano, 'r') as f:
-            x_data = json.load(f)
+        if isinstance(seq_mano, dict):
+            x_data = seq_mano
+        elif isinstance(seq_mano, str) and seq_mano.endswith('.json'):
+            with open(seq_mano, 'r') as f:
+                x_data = json.load(f)
+        else:
+            raise ValueError("Invalid seq_mano format.")
 
         # random for anno degradation or init prediction
         if False: # random.random() < 0.5: # or self.split != 'train':
