@@ -29,8 +29,8 @@ def add_base_options(parser):
 
 def add_data_options(parser):
     group = parser.add_argument_group('dataset')
-    group.add_argument("--dataset", default='gigahands', choices=['gigahands'], type=str, help="Dataset name (choose from list).")
-    group.add_argument("--data_dir", default="/home/zvc/Project/motion-diffusion-model/dataset/gigahands", type=str, help="If empty, will use defaults according to the specified dataset.")
+    group.add_argument("--dataset", default='dexycb', choices=['gigahands', 'dexycb'], type=str, help="Dataset name (choose from list).")
+    # group.add_argument("--data_dir", default="/home/zvc/Project/motion-diffusion-model/dataset/gigahands", type=str, help="If empty, will use defaults according to the specified dataset.")
 
 
 def add_model_options(parser):

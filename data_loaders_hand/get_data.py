@@ -43,6 +43,9 @@ def get_dataset_class(name):
     if name == "gigahands":
         from .hand.gigahands import GigaHands
         return GigaHands
+    elif name == "dexycb":
+        from .hand.dexycb import DexYCB
+        return DexYCB
     else:
         raise ValueError(f'Unsupported dataset name [{name}]')
     

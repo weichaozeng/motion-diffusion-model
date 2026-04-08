@@ -137,7 +137,7 @@ class GigaHands(Dataset):
     def _load_cam(self, ind):
         return self.seqs_cam[ind]
 
-    def _load_rotvec_x(self, ind, frame_ix, x_data, is_right, flip_left=True):
+    def _load_rotvec_x(self, ind, frame_ix, x_data, cam, is_right, flip_left=True):
         if is_right:
             full_poses = torch.tensor(x_data["right"]["poses"], dtype=torch.float32)
             Rh = torch.tensor(x_data["right"]["Rh"], dtype=torch.float32)
@@ -154,7 +154,7 @@ class GigaHands(Dataset):
         return poses, beta.squeeze(0)        
     
     
-    def _load_translation_x(self, ind, frame_ix, x_data, is_right, flip_left=True):
+    def _load_translation_x(self, ind, frame_ix, x_data, cam, is_right, flip_left=True):
         if is_right:
             Th = torch.tensor(x_data["right"]["Th"], dtype=torch.float32)
         else:

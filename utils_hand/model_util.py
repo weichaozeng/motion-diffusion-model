@@ -15,7 +15,7 @@ def create_model_and_diffusion(args):
 def get_model_args(args):
 
     # SMPL defaults
-    if args.dataset == 'gigahands':
+    if args.dataset == 'gigahands' or args.dataset == 'dexycb':
         data_rep = 'rot6d'
         njoints = 16 + 1
         nfeats = 6

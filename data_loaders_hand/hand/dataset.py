@@ -195,7 +195,7 @@ class Dataset(torch.utils.data.Dataset):
             raise ValueError("This representation is not possible.")
         else:
             # x
-            x_pose, x_beta = self._load_rotvec_x(ind, frame_ix, x_data, is_right)
+            x_pose, x_beta = self._load_rotvec_x(ind, frame_ix, x_data, cam, is_right)
             x_pose = to_torch(x_pose)
             x_raw_root_rotmat = geometry.axis_angle_to_matrix(x_pose[:, 0, :])
             if not self.glob:
@@ -242,7 +242,7 @@ class Dataset(torch.utils.data.Dataset):
             # x
             if getattr(self, "_load_translation_x") is None:
                 raise ValueError("Can't extract translations x.")
-            x_trans = to_torch(self._load_translation_x(ind, frame_ix, x_data, is_right))
+            x_trans = to_torch(self._load_translation_x(ind, frame_ix, x_data, cam, is_right))
             # x_wrist = x_trans + Rot_J0
             rot_J0_x = torch.matmul(x_raw_root_rotmat, J0_offset.unsqueeze(-1)).squeeze(-1)
             x_wrist_world = x_trans + rot_J0_x
@@ -355,7 +355,7 @@ class Dataset(torch.utils.data.Dataset):
             raise ValueError("This representation is not possible.")
         else:
             # x
-            x_pose, x_beta = self._load_rotvec_x(ind, frame_ix, x_data, is_right)
+            x_pose, x_beta = self._load_rotvec_x(ind, frame_ix, x_data, cam, is_right)
             x_pose = to_torch(x_pose)
             x_raw_root_rotmat = geometry.axis_angle_to_matrix(x_pose[:, 0, :])
             if not self.glob:
@@ -498,7 +498,7 @@ class Dataset(torch.utils.data.Dataset):
             # x
             if getattr(self, "_load_translation_x") is None:
                 raise ValueError("Can't extract translations x.")
-            x_trans = to_torch(self._load_translation_x(ind, frame_ix, x_data, is_right))
+            x_trans = to_torch(self._load_translation_x(ind, frame_ix, x_data, cam, is_right))
             # x_wrist = x_trans + Rot_J0
             rot_J0_x = torch.matmul(x_raw_root_rotmat, J0_offset.unsqueeze(-1)).squeeze(-1)
             x_wrist_world = x_trans + rot_J0_x
