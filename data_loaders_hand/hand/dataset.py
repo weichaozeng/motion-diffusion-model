@@ -114,7 +114,10 @@ class Dataset(torch.utils.data.Dataset):
         
         else:
             # frame length
-            max_nframe = len(x_data["right"]["Th"])-1
+            if isinstance(seq_mano, dict):
+                max_nframe = len(x_data['pose_m'])-1
+            elif isinstance(seq_mano, str) and seq_mano.endswith('.json'):
+                max_nframe = len(x_data["right"]["Th"])-1
             min_nframe = 0
             nframes = max_nframe - min_nframe + 1
             # handedness
