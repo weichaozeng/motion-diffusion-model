@@ -1,4 +1,4 @@
-from dataset import Dataset
+from .dataset import Dataset
 from pathlib import Path
 import torch
 import os
