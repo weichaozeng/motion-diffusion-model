@@ -186,13 +186,14 @@ class DexYCB(Dataset):
 
         root_pose_cam = poses_subset[:, :3]      # shape: (num_frames, 3)
         pca_coeffs = poses_subset[:, 3:48]   # shape: (num_frames, 45)
+        device = pca_coeffs.device
 
         cam_R = to_torch(cam['R'][0]).float().to(device)
         R_root_cam = geometry.axis_angle_to_matrix(root_pose_cam)
         R_root_world = torch.matmul(cam_R.t(), R_root_cam) 
         root_pose_world = geometry.matrix_to_axis_angle(R_root_world)
 
-        device = pca_coeffs.device
+        
         pca_basis = self.pca_basis.to(device)
         mean_pose = self.mean_pose.to(device)
 
