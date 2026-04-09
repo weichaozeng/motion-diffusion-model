@@ -262,10 +262,10 @@ class Dataset(torch.utils.data.Dataset):
                 raise ValueError("Can't extract translations y.")
             y_trans_cam, _= self._load_translation_y(ind, frame_ix, y_data, cam)
             # modify
-            rot_J0_y = torch.matmul(y_root_rotmat_cam, J0_offset.unsqueeze(-1)).squeeze(-1)
-            y_wrist_cam = y_trans_cam + rot_J0_y
+            # rot_J0_y = torch.matmul(y_root_rotmat_cam, J0_offset.unsqueeze(-1)).squeeze(-1)
+            # y_wrist_cam = y_trans_cam + rot_J0_y
             #
-            #y_wrist_cam = y_trans_cam + J0_offset
+            y_wrist_cam = y_trans_cam + J0_offset
             y_wrist_world = torch.matmul(R_c2w.unsqueeze(0), y_wrist_cam.unsqueeze(-1)).squeeze(-1) + C_world.unsqueeze(0)
             y_orig_root = to_torch(y_wrist_world[0]).clone()
             y_trans = to_torch(y_wrist_world - y_wrist_world[0])
