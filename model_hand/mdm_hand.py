@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from model_hand.rotation2xyz import Rotation2xyz
 from utils_hand.misc import WeightedSum
-import utils_hand.rotation_conversions as geometry
+
 
 class MDM_Hand(nn.Module):
     def __init__(self, njoints, nfeats, translation, pose_rep, glob, glob_rot,
@@ -72,7 +72,7 @@ class MDM_Hand(nn.Module):
         return [p for name, p in self.named_parameters()]
     
 
-    def forward(self, x, timesteps, batch, return_residuals=False):
+    def forward(self, x, timesteps, batch):
         """
         x: [batch_size, njoints, nfeats, max_frames], denoted x_t in the paper
         timesteps: [batch_size] (int)
@@ -81,9 +81,6 @@ class MDM_Hand(nn.Module):
         device = x.device
         
         import utils_hand.rotation_conversions as geometry
-
-        # 1. 拷贝 Base (y_ret) 
-        base_y = batch['y_ret'].clone().detach()
 
         # x: [bs, njoints, nfeats, nframes] -> [nframes, bs, njoints*nfeats]
         x = x.permute(3, 0, 1, 2).contiguous().view(nframes, bs, njoints * nfeats) 
@@ -114,48 +111,50 @@ class MDM_Hand(nn.Module):
         # ====================================================
         # 提取网络输出的“纯残差”
         # ====================================================
-        raw_output = self.output_process(output)
+        res_output = self.output_process(output)
+
+        return res_output
         
-        # 保存一份残差用于后续可能的返回，避免 inplace 修改破坏计算图
-        pred_delta_trans = raw_output[:, -1:, :3, :].clone()
-        pred_delta_pose_6d = raw_output[:, :-1, :, :].clone()
+        # # 保存一份残差用于后续可能的返回，避免 inplace 修改破坏计算图
+        # pred_delta_trans = raw_output[:, -1:, :3, :].clone()
+        # pred_delta_pose_6d = raw_output[:, :-1, :, :].clone()
 
-        # ====================================================
-        # [逻辑 1] 计算 Translation 最终坐标 (线性加法)
-        # ====================================================
-        final_trans = pred_delta_trans + base_y[:, -1:, :3, :]
+        # # ====================================================
+        # # [逻辑 1] 计算 Translation 最终坐标 (线性加法)
+        # # ====================================================
+        # final_trans = pred_delta_trans + base_y[:, -1:, :3, :]
 
-        # ====================================================
-        # [逻辑 2] 计算 Pose 最终坐标 (旋转矩阵乘法)
-        # ====================================================
-        # 调整维度至最后: [bs, J, 6, T] -> [bs, J, T, 6]
-        delta_pose_6d_perm = pred_delta_pose_6d.permute(0, 1, 3, 2).contiguous()
-        base_pose_6d_perm = base_y[:, :-1, :, :].permute(0, 1, 3, 2).contiguous()
+        # # ====================================================
+        # # [逻辑 2] 计算 Pose 最终坐标 (旋转矩阵乘法)
+        # # ====================================================
+        # # 调整维度至最后: [bs, J, 6, T] -> [bs, J, T, 6]
+        # delta_pose_6d_perm = pred_delta_pose_6d.permute(0, 1, 3, 2).contiguous()
+        # base_pose_6d_perm = base_y[:, :-1, :, :].permute(0, 1, 3, 2).contiguous()
 
-        # 加上 Identity 偏置，防止全 0 初始化导致 6D->矩阵 时报错
-        identity_6d = torch.tensor([1., 0., 0., 0., 1., 0.], device=device, dtype=raw_output.dtype)
-        delta_pose_6d_perm = delta_pose_6d_perm + identity_6d.view(1, 1, 1, 6)
+        # # 加上 Identity 偏置，防止全 0 初始化导致 6D->矩阵 时报错
+        # identity_6d = torch.tensor([1., 0., 0., 0., 1., 0.], device=device, dtype=raw_output.dtype)
+        # delta_pose_6d_perm = delta_pose_6d_perm + identity_6d.view(1, 1, 1, 6)
 
-        # 转换为矩阵相乘: R_final = R_base @ R_delta
-        R_delta = geometry.rotation_6d_to_matrix(delta_pose_6d_perm)
-        R_base = geometry.rotation_6d_to_matrix(base_pose_6d_perm)
-        R_final = torch.matmul(R_base, R_delta)
+        # # 转换为矩阵相乘: R_final = R_base @ R_delta
+        # R_delta = geometry.rotation_6d_to_matrix(delta_pose_6d_perm)
+        # R_base = geometry.rotation_6d_to_matrix(base_pose_6d_perm)
+        # R_final = torch.matmul(R_base, R_delta)
 
-        # 转回 6D 并调整回序列维度: [bs, J, T, 6] -> [bs, J, 6, T]
-        final_pose_6d = geometry.matrix_to_rotation_6d(R_final).permute(0, 1, 3, 2).contiguous()
+        # # 转回 6D 并调整回序列维度: [bs, J, T, 6] -> [bs, J, 6, T]
+        # final_pose_6d = geometry.matrix_to_rotation_6d(R_final).permute(0, 1, 3, 2).contiguous()
 
-        # ====================================================
-        # 组合最终输出
-        # ====================================================
-        final_output = raw_output.clone()
-        final_output[:, -1:, :3, :] = final_trans
-        final_output[:, :-1, :, :] = final_pose_6d
+        # # ====================================================
+        # # 组合最终输出
+        # # ====================================================
+        # final_output = raw_output.clone()
+        # final_output[:, -1:, :3, :] = final_trans
+        # final_output[:, :-1, :, :] = final_pose_6d
 
-        # 动态返回判断：训练时要残差，推理时只要结果
-        if return_residuals:
-            return final_output, pred_delta_trans, pred_delta_pose_6d
-        else:
-            return final_output
+        # # 动态返回判断：训练时要残差，推理时只要结果
+        # if return_residuals:
+        #     return final_output, pred_delta_trans, pred_delta_pose_6d
+        # else:
+        #     return final_output
 
 
     # def forward(self, x, timesteps, batch):

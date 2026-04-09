@@ -4,7 +4,7 @@ import enum
 import torch
 import torch as th
 from copy import deepcopy
-
+import utils_hand.rotation_conversions as geometry
 from diffusion_hand.nn import mean_flat, sum_flat
 from diffusion_hand.losses import normal_kl, discretized_gaussian_log_likelihood
 from utils_hand.loss_util import masked_l2, masked_geodesic_loss, masked_smooth_l1
@@ -1014,19 +1014,38 @@ class GaussianDiffusion:
         terms = {}
 
         if self.loss_type == LossType.MSE or self.loss_type == LossType.RESCALED_MSE:
-            model_output, pred_delta_trans, pred_delta_pose_6d = model(
-                x_t, self._scale_timesteps(t), model_kwargs, return_residuals=True
+            res_output = model(
+                x_t, self._scale_timesteps(t), model_kwargs,
             )
+            pred_delta_trans = res_output[:, -1:, :3, :].clone()
+            pred_delta_pose_6d = res_output[:, :-1, :, :].clone()
+            base_y = model_kwargs['y_ret'].clone().detach()
+            final_trans = pred_delta_trans + base_y[:, -1:, :3, :]
+            delta_pose_6d_perm = pred_delta_pose_6d.permute(0, 1, 3, 2).contiguous()
+            base_pose_6d_perm = base_y[:, :-1, :, :].permute(0, 1, 3, 2).contiguous()
+            identity_6d = torch.tensor([1., 0., 0., 0., 1., 0.], device=device, dtype=res_output.dtype)
+            delta_pose_6d_perm = delta_pose_6d_perm + identity_6d.view(1, 1, 1, 6)
+            R_delta = geometry.rotation_6d_to_matrix(delta_pose_6d_perm)
+            R_base = geometry.rotation_6d_to_matrix(base_pose_6d_perm)
+            R_final = torch.matmul(R_base, R_delta)
+            # 转回 6D 并调整回序列维度: [bs, J, T, 6] -> [bs, J, 6, T]
+            final_pose_6d = geometry.matrix_to_rotation_6d(R_final).permute(0, 1, 3, 2).contiguous()
+            final_output = res_output.clone()
+            final_output[:, -1:, :3, :] = final_trans
+            final_output[:, :-1, :, :] = final_pose_6d
+
+
+
             # target = x_start
             target = model_kwargs['x_ret']
-            assert model_output.shape == target.shape
+            assert final_output.shape == target.shape
 
             # pose: [B, J, 6, T]
             target_pose = target[:, :-1, ...] 
-            out_pose = model_output[:, :-1, ...]
+            out_pose = final_output[:, :-1, ...]
             # Trans: [B, 1. 3. T]
             target_trans = target[:, -1:, :3, :] 
-            out_trans = model_output[:, -1:, :3, :]
+            out_trans = final_output[:, -1:, :3, :]
 
             # Loss Layer 1
             lambda_pose = getattr(self, 'lambda_pose', 1.)
@@ -1066,7 +1085,7 @@ class GaussianDiffusion:
             target_xyz, out_xyz = None, None
             if lambda_xyz > 0. or lambda_vert > 0.:
                 target_xyz, target_verts = get_xyz(target, return_verts=True)
-                out_xyz, out_verts = get_xyz(model_output, return_verts=True)
+                out_xyz, out_verts = get_xyz(final_output, return_verts=True)
                 if lambda_xyz > 0.:
                     terms["xyz_mse"] = self.masked_l2(target_xyz, out_xyz, mask)
                 if lambda_vert > 0.:
@@ -1154,7 +1173,7 @@ class GaussianDiffusion:
                 ff_rotmat = model_kwargs.get('x_ff_root_orient_rotmat', None)
                 root_trans = model_kwargs.get('x_root_trans', None)
                 
-                out_xyz_world = get_xyz(model_output, return_verts=False, 
+                out_xyz_world = get_xyz(final_output, return_verts=False, 
                                         ff_rotmat=ff_rotmat, root_translation=root_trans.unsqueeze(1))
                 B_dim, J_dim, _, T_dim = out_xyz_world.shape
                 device = out_xyz_world.device
