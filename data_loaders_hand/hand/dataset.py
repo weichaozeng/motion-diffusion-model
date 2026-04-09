@@ -68,7 +68,7 @@ class Dataset(torch.utils.data.Dataset):
         seq_mano = self.seqs_mano[data_index]
         if isinstance(seq_mano, dict):
             x_data = seq_mano
-        elif isinstance(seq_mano, Path) and seq_mano.endswith('.json'):
+        elif isinstance(seq_mano, Path):
             with open(seq_mano, 'r') as f:
                 x_data = json.load(f)
         else:
@@ -116,7 +116,7 @@ class Dataset(torch.utils.data.Dataset):
             # frame length
             if isinstance(seq_mano, dict):
                 max_nframe = len(x_data['pose_m'])-1
-            elif isinstance(seq_mano, str) and seq_mano.endswith('.json'):
+            elif isinstance(seq_mano, Path):
                 max_nframe = len(x_data["right"]["Th"])-1
             min_nframe = 0
             nframes = max_nframe - min_nframe + 1
