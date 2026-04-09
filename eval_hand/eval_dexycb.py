@@ -31,12 +31,28 @@ class DexYCBEvaluator(Dataset):
                     B = batch['x_res'].shape[0]
                     batch['scale'] = torch.tensor(scale, dtype=torch.float32).to(dist_util.dev()).repeat(B)
 
-                sample = self.sample_fn(
+                res_sample = self.sample_fn(
                     self.model,
                     batch['x_res'].shape,
                     model_kwargs=batch,
                     progress=False
                 )
+                pred_delta_trans = res_sample[:, -1:, :3, :].clone()
+                pred_delta_pose_6d = res_sample[:, :-1, :, :].clone()
+                base_y = batch['y_ret'].clone().detach()
+                final_trans = pred_delta_trans + base_y[:, -1:, :3, :]
+                delta_pose_6d_perm = pred_delta_pose_6d.permute(0, 1, 3, 2).contiguous()
+                base_pose_6d_perm = base_y[:, :-1, :, :].permute(0, 1, 3, 2).contiguous()
+                identity_6d = torch.tensor([1., 0., 0., 0., 1., 0.], device=base_y.device, dtype=base_y.dtype)
+                delta_pose_6d_perm = delta_pose_6d_perm + identity_6d.view(1, 1, 1, 6)
+                R_delta = geometry.rotation_6d_to_matrix(delta_pose_6d_perm)
+                R_base = geometry.rotation_6d_to_matrix(base_pose_6d_perm)
+                R_final = torch.matmul(R_base, R_delta)
+                # 转回 6D 并调整回序列维度: [bs, J, T, 6] -> [bs, J, 6, T]
+                final_pose_6d = geometry.matrix_to_rotation_6d(R_final).permute(0, 1, 3, 2).contiguous()
+                sample = res_sample.clone()
+                sample[:, -1:, :3, :] = final_trans
+                sample[:, :-1, :, :] = final_pose_6d
 
                 for bs_i in range(batch['x_res'].shape[0]):
                     # print(f'gt_root_trans: {batch["x_root_trans"][bs_i]}, y_root_trans: {batch["y_root_trans"][bs_i]}, dist: {batch["x_root_trans"][bs_i] - batch["y_root_trans"][bs_i]}')
