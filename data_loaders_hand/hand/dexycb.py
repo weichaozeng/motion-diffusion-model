@@ -106,7 +106,7 @@ class DexYCB(Dataset):
         rgb_root = Path("/home/zvc/Data/DexYCB/s0_train_rgb")   
         cam_root = Path("/home/zvc/Data/DexYCB/calibration") 
 
-        outs = sorted(os.listdir(anno_root))
+        outs = sorted(os.listdir(anno_root))[:50]
 
         for out in outs:
             beta_name = out.split('_')[0].split('-')[-1]
@@ -158,7 +158,7 @@ class DexYCB(Dataset):
         random.seed(42)
         random.shuffle(_all_indices)
 
-        val_size = 128
+        val_size = 30
         self._val = _all_indices[:val_size]
         self._train = _all_indices[val_size:]
 
