@@ -114,7 +114,10 @@ class Renderer(object):
             K = cameras['K'][nv].copy()
             R = cameras['R'][nv]
             T = cameras['T'][nv]
-            dist = cameras['dist'][nv]
+            if 'dist' in cameras.keys():
+                dist = cameras['dist'][nv]
+            else:
+                dist = None
 
             if use_white:
                 img = np.zeros_like(img_, dtype=np.uint8) + 255
