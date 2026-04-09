@@ -27,7 +27,7 @@ def render_video(verts, xyzs, out_dir, rgb_video_paths, rgb_frame_indices, cams,
     with open(model_path, 'rb') as mano_file:
         mano_model = pickle.load(mano_file, encoding='latin1')
     faces = mano_model['f']
-    renderer = Renderer(height=720, width=1280, faces=None, extra_mesh=[])
+    renderer = Renderer(height=480, width=640, faces=None, extra_mesh=[])
 
 
     for i in range(len(verts)):
