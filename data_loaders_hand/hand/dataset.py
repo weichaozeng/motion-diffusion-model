@@ -244,8 +244,8 @@ class Dataset(torch.utils.data.Dataset):
         
         # 2. trans
         if self.translation:
-            # J0_offset = torch.tensor([0.0957, 0.0064, 0.0062], device=x_pose.device, dtype=x_pose.dtype)
-            J0_offset = torch.tensor([0.0, 0.0, 0.0], device=x_pose.device, dtype=x_pose.dtype)
+            J0_offset = torch.tensor([0.0957, 0.0064, 0.0062], device=x_pose.device, dtype=x_pose.dtype)
+            # J0_offset = torch.tensor([0.0, 0.0, 0.0], device=x_pose.device, dtype=x_pose.dtype)
             # x
             if getattr(self, "_load_translation_x") is None:
                 raise ValueError("Can't extract translations x.")
