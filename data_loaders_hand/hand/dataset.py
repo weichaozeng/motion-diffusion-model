@@ -75,7 +75,7 @@ class Dataset(torch.utils.data.Dataset):
             raise ValueError("Invalid seq_mano format.")
 
         # random for anno degradation or init prediction
-        if False: # random.random() < 0.5: # or self.split != 'train':
+        if True: # random.random() < 0.5: # or self.split != 'train':
             # frame length
             max_nframe = min(y_data['frame_indices'][-1], len(x_data["right"]["Th"])-1)
             min_nframe = max(0, y_data['frame_indices'][0])
