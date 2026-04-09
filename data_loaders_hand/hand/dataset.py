@@ -219,6 +219,7 @@ class Dataset(torch.utils.data.Dataset):
             if not self.glob:
                 y_pose = y_pose[:, 1:, :]
             y_pose = to_torch(y_pose)
+            y_root_rotmat_cam = geometry.axis_angle_to_matrix(y_pose[:, 0, :])
             if self.align_pose_frontview:
                 y_first_frame_root_pose_matrix = geometry.axis_angle_to_matrix(y_pose[0][0])
                 y_all_root_poses_matrix = geometry.axis_angle_to_matrix(y_pose[:, 0, :])
@@ -260,7 +261,11 @@ class Dataset(torch.utils.data.Dataset):
             if getattr(self, "_load_translation_y") is None:
                 raise ValueError("Can't extract translations y.")
             y_trans_cam, _= self._load_translation_y(ind, frame_ix, y_data, cam)
-            y_wrist_cam = y_trans_cam + J0_offset
+            # modify
+            rot_J0_y = torch.matmul(y_root_rotmat_cam, J0_offset.unsqueeze(-1)).squeeze(-1)
+            y_wrist_cam = y_trans_cam + rot_J0_y
+            #
+            #y_wrist_cam = y_trans_cam + J0_offset
             y_wrist_world = torch.matmul(R_c2w.unsqueeze(0), y_wrist_cam.unsqueeze(-1)).squeeze(-1) + C_world.unsqueeze(0)
             y_orig_root = to_torch(y_wrist_world[0]).clone()
             y_trans = to_torch(y_wrist_world - y_wrist_world[0])
