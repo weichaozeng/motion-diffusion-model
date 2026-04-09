@@ -4,7 +4,7 @@ import numpy as np
 from torch.utils.data import Dataset, DataLoader
 from utils_hand import dist_util
 
-class GigaHandsEvaluator(Dataset):
+class DexYCBEvaluator(Dataset):
     def __init__(self, args, model, diffusion, dataloader, num_samples_limit=None, scale=1.):
         self.args = args
         self.dataloader = dataloader
@@ -17,8 +17,6 @@ class GigaHandsEvaluator(Dataset):
 
         self.generated_data = []
         self.model.eval()
-
-
 
         with torch.no_grad():
             for i, batch in tqdm(enumerate(dataloader), desc="Generating Eval Samples"):

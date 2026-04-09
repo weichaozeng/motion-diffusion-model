@@ -27,7 +27,7 @@ from utils_hand.model_util import load_model
 from utils_hand.sampler_util import ClassifierFreeSampleModel
 from utils_hand import dist_util
 
-from eval_hand import eval_gigahands
+from eval_hand import eval_gigahands, eval_dexycb
 
 from visualize_hand import vis_gigahands
 
@@ -315,10 +315,12 @@ class TrainLoop:
         if not self.args.eval_during_training:
             return
         start_eval = time.time()
-        assert self.dataset == 'gigahands'
+        if self.dataset == 'gigahands':
+            eval_dataset = eval_gigahands.GigaHandsEvaluator(self.args, self.model_for_eval, self.diffusion, self.val_data, scale=self.args.gen_guidance_param)
+        elif self.dataset == 'dexycb':
+            eval_dataset = eval_dexycb.DexYCBEvaluator(self.args, self.model_for_eval, self.diffusion, self.val_data, scale=self.args.gen_guidance_param)
 
-        eval_dataset = eval_gigahands.GigaHandsEvaluator(self.args, self.model_for_eval, self.diffusion, self.val_data, scale=self.args.gen_guidance_param)
-
+            
         eval_loader = DataLoader(eval_dataset, batch_size=self.args.eval_batch_size, shuffle=False)
 
         total_pa_mpjpe = []
