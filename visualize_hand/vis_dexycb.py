@@ -65,7 +65,7 @@ def render_video(verts, xyzs, out_dir, rgb_video_paths, rgb_frame_indices, cams,
             rgb_img = cv2.imread(img_file_path)
             rgb_img = cv2.cvtColor(rgb_img, cv2.COLOR_BGR2RGB)
             # mesh video
-            bg_img = np.zeros((720, 1280, 3))
+            bg_img = np.zeros((480, 640, 3))
             render_data = {
                 0: {
                     'vertices': vertices[idx],
