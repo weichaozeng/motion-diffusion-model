@@ -1023,7 +1023,7 @@ class GaussianDiffusion:
             final_trans = pred_delta_trans + base_y[:, -1:, :3, :]
             delta_pose_6d_perm = pred_delta_pose_6d.permute(0, 1, 3, 2).contiguous()
             base_pose_6d_perm = base_y[:, :-1, :, :].permute(0, 1, 3, 2).contiguous()
-            identity_6d = torch.tensor([1., 0., 0., 0., 1., 0.], device=device, dtype=res_output.dtype)
+            identity_6d = torch.tensor([1., 0., 0., 0., 1., 0.], device=res_output.device, dtype=res_output.dtype)
             delta_pose_6d_perm = delta_pose_6d_perm + identity_6d.view(1, 1, 1, 6)
             R_delta = geometry.rotation_6d_to_matrix(delta_pose_6d_perm)
             R_base = geometry.rotation_6d_to_matrix(base_pose_6d_perm)
