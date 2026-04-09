@@ -159,6 +159,8 @@ class Dataset(torch.utils.data.Dataset):
             'suffix_mask': suffix_mask, 
             'is_right': is_right, 
             'cam': cam, 
+            # res
+            'x_res': data_dict['x_res'],
             # x
             'x_ret': data_dict['x_ret'],
             'x_pose': data_dict['x_pose'], 
