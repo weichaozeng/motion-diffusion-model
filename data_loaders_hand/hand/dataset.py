@@ -68,7 +68,7 @@ class Dataset(torch.utils.data.Dataset):
         seq_mano = self.seqs_mano[data_index]
         if isinstance(seq_mano, dict):
             x_data = seq_mano
-        elif isinstance(seq_mano, str) and seq_mano.endswith('.json'):
+        elif isinstance(seq_mano, Path) and seq_mano.endswith('.json'):
             with open(seq_mano, 'r') as f:
                 x_data = json.load(f)
         else:
