@@ -61,7 +61,7 @@ def render_video(verts, xyzs, out_dir, rgb_video_paths, rgb_frame_indices, cams,
 
         for idx in range(start_idx, end_idx+1):
             frame_id = frame_indices[idx].item()
-            img_file_path = os.path.join(video_path, image_files[frame_id])
+            img_file_path = os.path.join(video_path, 'rgb', image_files[frame_id])
             rgb_img = cv2.imread(img_file_path)
             rgb_img = cv2.cvtColor(rgb_img, cv2.COLOR_BGR2RGB)
             # mesh video
