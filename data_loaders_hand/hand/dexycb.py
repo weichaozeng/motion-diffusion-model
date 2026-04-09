@@ -198,7 +198,7 @@ class DexYCB(Dataset):
         mean_pose = self.mean_pose.to(device)
 
         # joint_angles = PCA_coeffs @ PCA_basis + Mean_pose
-        joint_pose = torch.matmul(pca_coeffs, pca_basis) + mean_pose # shape: (num_frames, 45)
+        joint_pose = torch.matmul(pca_coeffs, pca_basis) #+ mean_pose # shape: (num_frames, 45)
 
         full_axis_angle = torch.cat([root_pose_world, joint_pose], dim=1)  # shape: (num_frames, 48)
         poses = full_axis_angle.reshape(-1, 16, 3)  # shape: (num_frames, 16, 3)
