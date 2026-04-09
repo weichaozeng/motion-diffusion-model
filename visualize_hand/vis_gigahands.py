@@ -41,8 +41,8 @@ def render_video(verts, xyzs, out_dir, rgb_video_paths, rgb_frame_indices, cams,
                 'K': cams['K'][i].numpy(),
                 'R': cams['R'][i].numpy(),
                 'T': cams['T'][i].numpy(),
-                "dist": cams['dist'][i].numpy(),
-                'P': cams['P'][i].numpy(),
+                # "dist": cams['dist'][i].numpy(),
+                # 'P': cams['P'][i].numpy(),
         }
         video_name = os.path.basename(video_path).split('.')[0]
         os.makedirs(out_dir, exist_ok=True)
