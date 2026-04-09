@@ -29,7 +29,7 @@ from utils_hand import dist_util
 
 from eval_hand import eval_gigahands, eval_dexycb
 
-from visualize_hand import vis_gigahands
+from visualize_hand import vis_gigahands, vis_dexycb
 
 # For ImageNet experiments, this was a good default value.
 # We found that the lg_loss_scale quickly climbed to
@@ -374,7 +374,10 @@ class TrainLoop:
                     return_vertices=True,
                 )
                 y_video_dir = os.path.join(vis_out_dir, 'ori_video')
-                vis_gigahands.render_video(y_verts, y_xyz, y_video_dir, rgb_video_paths, rgb_frame_indices, gt_cam, suffix_masks)
+                if  self.dataset == 'gigahands':
+                    vis_gigahands.render_video(y_verts, y_xyz, y_video_dir, rgb_video_paths, rgb_frame_indices, gt_cam, suffix_masks)
+                elif self.dataset == 'dexycb':    
+                    vis_dexycb.render_video(y_verts, y_xyz, y_video_dir, rgb_video_paths, rgb_frame_indices, gt_cam, suffix_masks)
 
                 self.train_platform.report_media(
                     title='Eval_Visualization', 
@@ -394,7 +397,11 @@ class TrainLoop:
                     return_vertices=True,
                 )
                 gt_video_dir = os.path.join(vis_out_dir, 'gt_video')
-                vis_gigahands.render_video(gt_verts, gt_xyz, gt_video_dir, rgb_video_paths, rgb_frame_indices, gt_cam, suffix_masks)
+                if self.dataset == 'gigahands':
+                    vis_gigahands.render_video(gt_verts, gt_xyz, gt_video_dir, rgb_video_paths, rgb_frame_indices, gt_cam, suffix_masks)
+                elif self.dataset == 'dexycb':
+                    vis_dexycb.render_video(gt_verts, gt_xyz, gt_video_dir, rgb_video_paths, rgb_frame_indices, gt_cam, suffix_masks)
+
 
                 self.train_platform.report_media(
                     title='Eval_Visualization', 
@@ -414,7 +421,10 @@ class TrainLoop:
                     return_vertices=True, 
                 )
                 pred_video_dir = os.path.join(vis_out_dir, 'pred_video')
-                vis_gigahands.render_video(pred_verts, pred_xyz, pred_video_dir, rgb_video_paths, rgb_frame_indices, gt_cam, suffix_masks)
+                if self.dataset == 'gigahands':
+                    vis_gigahands.render_video(pred_verts, pred_xyz, pred_video_dir, rgb_video_paths, rgb_frame_indices, gt_cam, suffix_masks)
+                elif self.dataset == 'dexycb':
+                    vis_dexycb.render_video(pred_verts, pred_xyz, pred_video_dir, rgb_video_paths, rgb_frame_indices, gt_cam, suffix_masks) 
 
                 self.train_platform.report_media(
                     title='Eval_Visualization', 
