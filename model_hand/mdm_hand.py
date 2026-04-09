@@ -83,7 +83,7 @@ class MDM_Hand(nn.Module):
         import utils_hand.rotation_conversions as geometry
 
         # 1. 拷贝 Base (y_ret) 
-        base_y = batch['y_ret'].clone()
+        base_y = batch['y_ret'].clone().detach()
 
         # x: [bs, njoints, nfeats, nframes] -> [nframes, bs, njoints*nfeats]
         x = x.permute(3, 0, 1, 2).contiguous().view(nframes, bs, njoints * nfeats) 
