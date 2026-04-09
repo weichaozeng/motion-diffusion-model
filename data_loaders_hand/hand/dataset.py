@@ -186,7 +186,6 @@ class Dataset(torch.utils.data.Dataset):
     def _load_x_y(self, ind, frame_ix, is_right, y_data, x_data, cam):
         pose_rep = self.pose_rep
         assert pose_rep != "xyz"
-
         # 0. cam
         R_w2c = to_torch(cam['R'][0]) # [3, 3]
         R_w2c = R_w2c[:3, :3]
@@ -244,8 +243,10 @@ class Dataset(torch.utils.data.Dataset):
         
         # 2. trans
         if self.translation:
-            J0_offset = torch.tensor([0.0957, 0.0064, 0.0062], device=x_pose.device, dtype=x_pose.dtype)
-            # J0_offset = torch.tensor([0.0, 0.0, 0.0], device=x_pose.device, dtype=x_pose.dtype)
+            if self.dataname == "gigahands":
+                J0_offset = torch.tensor([0.0957, 0.0064, 0.0062], device=x_pose.device, dtype=x_pose.dtype)
+            elif self.dataname == "dexycb":
+                J0_offset = torch.tensor([0.0, 0.0, 0.0], device=x_pose.device, dtype=x_pose.dtype)
             # x
             if getattr(self, "_load_translation_x") is None:
                 raise ValueError("Can't extract translations x.")
