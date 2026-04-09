@@ -3,7 +3,7 @@ from tqdm import tqdm
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
 from utils_hand import dist_util
-
+import utils_hand.rotation_conversions as geometry
 class DexYCBEvaluator(Dataset):
     def __init__(self, args, model, diffusion, dataloader, num_samples_limit=None, scale=1.):
         self.args = args
