@@ -158,7 +158,7 @@ class DexYCB(Dataset):
         random.seed(42)
         random.shuffle(_all_indices)
 
-        val_size = 30
+        val_size = 128
         self._val = _all_indices[:val_size]
         self._train = _all_indices[val_size:]
 
