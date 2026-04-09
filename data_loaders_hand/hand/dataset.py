@@ -77,7 +77,11 @@ class Dataset(torch.utils.data.Dataset):
         # random for anno degradation or init prediction
         if True: # random.random() < 0.5: # or self.split != 'train':
             # frame length
-            max_nframe = min(y_data['frame_indices'][-1], len(x_data["right"]["Th"])-1)
+            if isinstance(seq_mano, dict):
+                x_len = len(x_data['pose_m'])
+            elif isinstance(seq_mano, Path):
+                x_len = len(x_data["right"]["Th"])
+            max_nframe = min(y_data['frame_indices'][-1], x_len-1)
             min_nframe = max(0, y_data['frame_indices'][0])
             nframes = max_nframe - min_nframe + 1
             # handedness
