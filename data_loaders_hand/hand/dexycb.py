@@ -214,11 +214,11 @@ class DexYCB(Dataset):
             raise NotImplementedError
         if not is_right and flip_left:
             raise NotImplementedError
-        cam_R = to_torch(cam['R'][0]).float().to(Th_cam.device)
-        cam_T = to_torch(cam['T'][0]).float().to(Th_cam.device)
+        # cam_R = to_torch(cam['R'][0]).float().to(Th_cam.device)
+        # cam_T = to_torch(cam['T'][0]).float().to(Th_cam.device)
         
-        Th_world = torch.matmul(Th_cam - cam_T, cam_R)
-        return Th_world
+        # Th_world = torch.matmul(Th_cam - cam_T, cam_R)
+        return Th_cam
 
 
     def _load_rotvec_y(self, ind, frame_ix, y_data, cam):

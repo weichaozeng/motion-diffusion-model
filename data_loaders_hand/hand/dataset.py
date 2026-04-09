@@ -218,7 +218,6 @@ class Dataset(torch.utils.data.Dataset):
             if not self.glob:
                 y_pose = y_pose[:, 1:, :]
             y_pose = to_torch(y_pose)
-            y_root_rotmat_cam = geometry.axis_angle_to_matrix(y_pose[:, 0, :])
             if self.align_pose_frontview:
                 y_first_frame_root_pose_matrix = geometry.axis_angle_to_matrix(y_pose[0][0])
                 y_all_root_poses_matrix = geometry.axis_angle_to_matrix(y_pose[:, 0, :])
@@ -243,17 +242,20 @@ class Dataset(torch.utils.data.Dataset):
         
         # 2. trans
         if self.translation:
-            if self.dataname == "gigahands":
-                J0_offset = torch.tensor([0.0957, 0.0064, 0.0062], device=x_pose.device, dtype=x_pose.dtype)
-            elif self.dataname == "dexycb":
-                J0_offset = torch.tensor([0.0, 0.0, 0.0], device=x_pose.device, dtype=x_pose.dtype)
+            J0_offset = torch.tensor([0.0957, 0.0064, 0.0062], device=x_pose.device, dtype=x_pose.dtype)
             # x
             if getattr(self, "_load_translation_x") is None:
                 raise ValueError("Can't extract translations x.")
             x_trans = to_torch(self._load_translation_x(ind, frame_ix, x_data, cam, is_right))
             # x_wrist = x_trans + Rot_J0
-            rot_J0_x = torch.matmul(x_raw_root_rotmat, J0_offset.unsqueeze(-1)).squeeze(-1)
-            x_wrist_world = x_trans + rot_J0_x
+            if self.dataname == 'gigahands':
+                rot_J0_x = torch.matmul(x_raw_root_rotmat, J0_offset.unsqueeze(-1)).squeeze(-1)
+                x_wrist_world = x_trans + rot_J0_x
+            elif self.dataname == 'dexycb':
+                x_wrist_cam = x_trans + J0_offset
+                x_wrist_world = torch.matmul(R_c2w.unsqueeze(0), x_wrist_cam.unsqueeze(-1)).squeeze(-1) + C_world.unsqueeze(0)
+            else:                
+                raise ValueError("Unknown dataname.")
             x_orig_root = x_wrist_world[0].clone()
             x_trans = x_wrist_world - x_wrist_world[0]
             if self.align_pose_frontview:
