@@ -63,8 +63,6 @@ class DexYCBEvaluator(Dataset):
                             'K': batch['cam']['K'][bs_i],
                             'R': batch['cam']['R'][bs_i],
                             'T': batch['cam']['T'][bs_i],
-                            "dist": batch['cam']['dist'][bs_i],
-                            'P': batch['cam']['P'][bs_i],
                         },
                         # misc
                         'video_path': batch['video_path'][bs_i],
@@ -79,8 +77,6 @@ class DexYCBEvaluator(Dataset):
                             'K': virtual_K.unsqueeze(0), 
                             'R': torch.eye(3).unsqueeze(0), 
                             'T': torch.zeros(3).unsqueeze(0),
-                            'dist': torch.zeros(5).unsqueeze(0),
-                            'P': torch.zeros(3, 4).unsqueeze(0),
                         },
                         # corr
                         'R_c2w': batch['R_c2w'][bs_i],  # [3, 3]
