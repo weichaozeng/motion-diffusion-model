@@ -77,12 +77,10 @@ class Dataset(torch.utils.data.Dataset):
         # random for anno degradation or init prediction
         if True: # random.random() < 0.5: # or self.split != 'train':
             # frame length
-            if isinstance(seq_mano, dict):
-                x_len = len(x_data['pose_m'])
-            elif isinstance(seq_mano, Path):
-                x_len = len(x_data["right"]["Th"])
-            max_nframe = min(y_data['frame_indices'][-1], x_len-1)
-            min_nframe = max(0, y_data['frame_indices'][0])
+            first_valid_x, last_valid_x, x_len, is_valid_seq = self._get_valid_x_bounds(seq_mano, x_data)
+
+            max_nframe = min(y_data['frame_indices'][-1], x_len-1, last_valid_x)
+            min_nframe = max(0, y_data['frame_indices'][0], first_valid_x)
             nframes = max_nframe - min_nframe + 1
             # handedness
             is_right = y_data["handedness"][0]
@@ -716,3 +714,39 @@ class Dataset(torch.utils.data.Dataset):
         print(f"\n[2D 投影 Pixel] (画面尺寸范围)")
         print(f"   全局均值: {j2d_mean:.1f}, 全局标准差: {j2d_std:.1f}")
         print("="*50 + "\n")
+
+    def _get_valid_x_bounds(self, seq_mano, x_data):
+        """
+        找出 Ground Truth 数据中，剔除全零帧后的有效帧起始和结束索引。
+        """
+        import numpy as np
+
+        # 1. 统一提取用于判断的数据
+        if isinstance(seq_mano, dict):
+            # DexYCB: 取 pose_m，形状通常为 (N, 1, 51) 或 (N, 51)
+            data = x_data['pose_m']
+        elif isinstance(seq_mano, Path):
+            # GigaHands: 取 Th 或 poses 均可，形状为 (N, 3) 或 (N, 16, 3)
+            data = x_data["right"]["Th"]
+        else:
+            raise ValueError("Unknown seq_mano type")
+
+        # 2. 转换为 2D 矩阵 (N, features)，并计算每一帧的绝对值之和
+        data_2d = np.asarray(data).reshape(len(data), -1)
+        
+        # 3. 如果一帧的所有数值加起来都极小，判定为无效全零帧
+        valid_mask = np.abs(data_2d).sum(axis=-1) > 1e-5
+        
+        # 4. 获取所有 True 的索引
+        valid_indices = np.where(valid_mask)[0]
+        
+        total_len = len(data)
+        
+        # 极端情况防御：如果整个序列全是 0
+        if len(valid_indices) == 0:
+            return 0, 0, total_len, False 
+
+        first_valid_idx = int(valid_indices[0])
+        last_valid_idx = int(valid_indices[-1])
+        
+        return first_valid_idx, last_valid_idx, total_len, True
