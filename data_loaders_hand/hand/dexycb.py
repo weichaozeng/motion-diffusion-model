@@ -106,7 +106,7 @@ class DexYCB(Dataset):
         rgb_root = Path("/home/zvc/Data/DexYCB/s0_train_rgb")   
         cam_root = Path("/home/zvc/Data/DexYCB/calibration") 
 
-        outs = sorted(os.listdir(anno_root))[:300]
+        outs = sorted(os.listdir(anno_root))
 
         for out in outs:
             beta_name = out.split('_')[0].split('-')[-1]
