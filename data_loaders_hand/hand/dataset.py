@@ -81,6 +81,13 @@ class Dataset(torch.utils.data.Dataset):
 
             max_nframe = min(y_data['frame_indices'][-1], x_len-1, last_valid_x)
             min_nframe = max(0, y_data['frame_indices'][0], first_valid_x)
+
+            if min_nframe > max_nframe or not is_valid_seq:
+                # print(f"Warning: Sequence {data_index} has no valid overlap, resampling...")
+                # 从当前 split 中重新随机抽取一条有效数据并返回
+                new_idx = random.choice(self._train) if self.split == 'train' else random.choice(self._val)
+                return self._get_item_data_index(new_idx)
+
             nframes = max_nframe - min_nframe + 1
             # handedness
             is_right = y_data["handedness"][0]
