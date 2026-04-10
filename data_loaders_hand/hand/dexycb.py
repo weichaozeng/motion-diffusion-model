@@ -102,65 +102,90 @@ class DexYCB(Dataset):
         self.seqs_video = []
         
         data_path = Path("/home/zvc/Project/VHand/test_dataset/DexYCB/vhand/hamer_out")
-        anno_root = Path("/home/zvc/Data/DexYCB/s0_train") 
-        rgb_root = Path("/home/zvc/Data/DexYCB/s0_train_rgb")   
         cam_root = Path("/home/zvc/Data/DexYCB/calibration") 
 
-        outs = sorted(os.listdir(anno_root))
+        # 1. 定义 train 和 val 的路径映射
+        splits = {
+            "train": {
+                "anno": Path("/home/zvc/Data/DexYCB/s0_train"),
+                "rgb": Path("/home/zvc/Data/DexYCB/s0_train_rgb")
+            },
+            "val": {
+                "anno": Path("/home/zvc/Data/DexYCB/s0_val"),
+                "rgb": Path("/home/zvc/Data/DexYCB/s0_val_rgb")
+            }
+        }
 
-        for out in outs:
-            beta_name = out.split('_')[0].split('-')[-1]
-            cam = out.split('_')[-1]
-            # video
-            video_path = rgb_root / out
-            # anno
-            all_pose_m, all_kp_2d, all_kp_3d = read_anno_from_dir(anno_root / out)
-            # beta
-            beta_path = Path(beta_dir[beta_name]) / 'mano.yml'
-            beta = read_beta(beta_path)
-            # cam
-            cam_path = cam_root / 'intrinsics' / f'{cam}_640x480.yml'
-            cam = read_cam(cam_path)
+        self._train = []
+        self._val = []
+
+        # 2. 遍历两个 split
+        for split_name, paths in splits.items():
+            anno_root = paths["anno"]
+            rgb_root = paths["rgb"]
             
-            track_dir = data_path / out / 'results' / 'track'
-            track_files = list(track_dir.glob('*.pkl'))
-            num_tracks = len(track_files)
+            outs = sorted(os.listdir(anno_root))
 
-            if num_tracks > 2:
-                print(f"Warning: {num_tracks} tracks found in {track_dir}, skip.")
-                continue
-            elif num_tracks == 0:
-                print(f"Warning: no tracks found in {track_dir}, skip.")
-                continue
-            elif num_tracks == 2:
-                target_track = None
-                for track_file in track_files:
-                    with open(track_file, 'rb') as f:
-                        temp_data = pickle.load(f)
-                    if "handedness" in temp_data and temp_data["handedness"][0] != 0:
-                        target_track = track_file
-                        break
-                if target_track is None:
-                    print(f"Warning: 2 tracks found but no right hand in {track_dir}, skip.")
+            for out in outs:
+                beta_name = out.split('_')[0].split('-')[-1]
+                # 稍微改了个变量名 cam_name 防止与下面读取出来的 cam 字典重名冲突
+                cam_name = out.split('_')[-1]
+                
+                # video
+                video_path = rgb_root / out
+                # anno
+                all_pose_m, all_kp_2d, all_kp_3d = read_anno_from_dir(anno_root / out)
+                # beta
+                beta_path = Path(beta_dir[beta_name]) / 'mano.yml'
+                beta = read_beta(beta_path)
+                # cam
+                cam_path = cam_root / 'intrinsics' / f'{cam_name}_640x480.yml'
+                cam = read_cam(cam_path)
+                
+                track_dir = data_path / out / 'results' / 'track'
+                track_files = list(track_dir.glob('*.pkl'))
+                num_tracks = len(track_files)
+
+                if num_tracks > 2:
+                    print(f"Warning: {num_tracks} tracks found in {track_dir}, skip.")
                     continue
-            else:
-                target_track = track_files[0]
-            self.seqs_y.append(target_track)
-            self.seqs_kp3d.append(all_kp_3d)
-            self.seqs_mano.append({
-                'beta': beta,
-                'pose_m': all_pose_m,
-            })
-            self.seqs_cam.append(cam)
-            self.seqs_video.append(video_path)
-        
-        _all_indices = list(range(len(self.seqs_y)))
-        random.seed(42)
-        random.shuffle(_all_indices)
+                elif num_tracks == 0:
+                    print(f"Warning: no tracks found in {track_dir}, skip.")
+                    continue
+                elif num_tracks == 2:
+                    target_track = None
+                    for track_file in track_files:
+                        with open(track_file, 'rb') as f:
+                            temp_data = pickle.load(f)
+                        if "handedness" in temp_data and temp_data["handedness"][0] != 0:
+                            target_track = track_file
+                            break
+                    if target_track is None:
+                        print(f"Warning: 2 tracks found but no right hand in {track_dir}, skip.")
+                        continue
+                else:
+                    target_track = track_files[0]
+                
+                # 3. 将合法数据追加到全局列表
+                self.seqs_y.append(target_track)
+                self.seqs_kp3d.append(all_kp_3d)
+                self.seqs_mano.append({
+                    'beta': beta,
+                    'pose_m': all_pose_m,
+                })
+                self.seqs_cam.append(cam)
+                self.seqs_video.append(video_path)
+                
+                # 4. 记录当前数据的索引，根据文件夹来源分别归入 _train 或 _val
+                current_idx = len(self.seqs_y) - 1
+                if split_name == "train":
+                    self._train.append(current_idx)
+                else:
+                    self._val.append(current_idx)
 
-        val_size = 128
-        self._val = _all_indices[:val_size]
-        self._train = _all_indices[val_size:]
+
+        random.seed(42)
+        random.shuffle(self._train)
 
         self.rot2xyz = Rotation2xyz(device='cpu')
 
