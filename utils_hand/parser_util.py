@@ -76,26 +76,26 @@ def add_diffusion_options(parser):
     )
 # loss
     # === Core Target Matching (核心驱动力：翻倍，逼迫网络去拟合真实的 3D GT) ===
-    group.add_argument("--lambda_pose", default=1.0)
-    group.add_argument("--lambda_trans", default=1.0)
+    group.add_argument("--lambda_pose", default=0.1)
+    group.add_argument("--lambda_trans", default=0.1)
     
     # === Residual Penalty (彻底关闭：释放残差预测能力，不要惩罚网络去修正动作) ===
-    group.add_argument("--lambda_res_pose", default=100.0)
-    group.add_argument("--lambda_res_trans", default=100.0)
+    group.add_argument("--lambda_res_pose", default=10000.0)
+    group.add_argument("--lambda_res_trans", default=10000.0)
     
     # === Coordinate Origin Lock (保持不变：死死锁住首帧世界原点) ===
-    group.add_argument("--lambda_ff_pose", default=20.0)
-    group.add_argument("--lambda_ff_trans", default=20.0)
+    group.add_argument("--lambda_ff_pose", default=10000.0)
+    group.add_argument("--lambda_ff_trans", default=10000.0)
     
     # === Physics & Smoothness (保持不变：提供顺滑的物理先验) ===
-    group.add_argument("--lambda_vel_pose", default=1.0)
-    group.add_argument("--lambda_vel_trans", default=1.0)
-    group.add_argument("--lambda_acc_pose", default=0.1)
-    group.add_argument("--lambda_acc_trans", default=0.1)
+    group.add_argument("--lambda_vel_pose", default=100.0)
+    group.add_argument("--lambda_vel_trans", default=100.0)
+    group.add_argument("--lambda_acc_pose", default=1.0)
+    group.add_argument("--lambda_acc_trans", default=1.0)
 
     # === Observation Anchoring (微弱开启：在有效帧给一个很轻的牵引力，防止完全飘走) ===
-    group.add_argument("--lambda_anchor_pose", default=0.5)
-    group.add_argument("--lambda_anchor_trans", default=0.5)
+    group.add_argument("--lambda_anchor_pose", default=1000.0)
+    group.add_argument("--lambda_anchor_trans", default=1000.0)
 
     # === 2D Pixel Alignment (大幅降权：等 3D Trans 降下去之后再发挥微调作用，防止前期搅局) ===
     group.add_argument("--lambda_reproj_2d", default=0.0)
