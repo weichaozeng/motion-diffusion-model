@@ -29,7 +29,7 @@ def add_base_options(parser):
 
 def add_data_options(parser):
     group = parser.add_argument_group('dataset')
-    group.add_argument("--dataset", default='dexycb', choices=['gigahands', 'dexycb'], type=str, help="Dataset name (choose from list).")
+    group.add_argument("--dataset", default='gigahands', choices=['gigahands', 'dexycb'], type=str, help="Dataset name (choose from list).")
     # group.add_argument("--data_dir", default="/home/zvc/Project/motion-diffusion-model/dataset/gigahands", type=str, help="If empty, will use defaults according to the specified dataset.")
 
 
@@ -80,8 +80,8 @@ def add_diffusion_options(parser):
     group.add_argument("--lambda_trans", default=10.0)
     
     # === Residual Penalty (彻底关闭：释放残差预测能力，不要惩罚网络去修正动作) ===
-    group.add_argument("--lambda_res_pose", default=1000.0)
-    group.add_argument("--lambda_res_trans", default=1000.0)
+    group.add_argument("--lambda_res_pose", default=10.0)
+    group.add_argument("--lambda_res_trans", default=10.0)
     
     # === Coordinate Origin Lock (保持不变：死死锁住首帧世界原点) ===
     group.add_argument("--lambda_ff_pose", default=1000.0)
