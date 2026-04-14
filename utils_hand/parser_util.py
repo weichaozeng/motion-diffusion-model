@@ -76,20 +76,20 @@ def add_diffusion_options(parser):
     )
 # loss
     # === Core Target Matching (核心驱动力：翻倍，逼迫网络去拟合真实的 3D GT) ===
-    group.add_argument("--lambda_pose", default=10.0)
-    group.add_argument("--lambda_trans", default=10.0)
+    group.add_argument("--lambda_pose", default=1.0)
+    group.add_argument("--lambda_trans", default=1.0)
     
     # === Residual Penalty (彻底关闭：释放残差预测能力，不要惩罚网络去修正动作) ===
-    group.add_argument("--lambda_res_pose", default=10.0)
-    group.add_argument("--lambda_res_trans", default=10.0)
+    group.add_argument("--lambda_res_pose", default=0.0)
+    group.add_argument("--lambda_res_trans", default=0.0)
     
     # === Coordinate Origin Lock (保持不变：死死锁住首帧世界原点) ===
-    group.add_argument("--lambda_ff_pose", default=1000.0)
-    group.add_argument("--lambda_ff_trans", default=1000.0)
+    group.add_argument("--lambda_ff_pose", default=0.0)
+    group.add_argument("--lambda_ff_trans", default=0.0)
     
     # === Physics & Smoothness (保持不变：提供顺滑的物理先验) ===
-    group.add_argument("--lambda_vel_pose", default=1000.0)
-    group.add_argument("--lambda_vel_trans", default=1000.0)
+    group.add_argument("--lambda_vel_pose", default=0.0)
+    group.add_argument("--lambda_vel_trans", default=0.0)
     group.add_argument("--lambda_acc_pose", default=0.0)
     group.add_argument("--lambda_acc_trans", default=0.0)
 
