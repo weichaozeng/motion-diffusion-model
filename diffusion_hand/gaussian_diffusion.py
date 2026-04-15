@@ -489,7 +489,7 @@ class GaussianDiffusion:
         out["mean"], _, _ = self.q_posterior_mean_variance(x_start=out["pred_xstart"], x_t=x, t=t, model_kwargs=model_kwargs)
         return out
     
-    def p_sample(self, model, x,t , clip_denoised=True, denoised_fn=None, cond_fn=None, model_kwargs=None, const_noise=False):
+    def p_sample(self, model, x,t , clip_denoised=False, denoised_fn=None, cond_fn=None, model_kwargs=None, const_noise=False):
         """
         Sample x_{t-1} from the model at the given timestep.
         """
@@ -520,7 +520,7 @@ class GaussianDiffusion:
             "pred_xstart": out["pred_xstart"],
         }
     
-    def p_sample_with_grad(self, model, x,t , clip_denoised=True, denoised_fn=None, cond_fn=None, model_kwargs=None, const_noise=False):
+    def p_sample_with_grad(self, model, x,t , clip_denoised=False, denoised_fn=None, cond_fn=None, model_kwargs=None, const_noise=False):
         with th.enable_grad():
             x = x.detach().requires_grad_()
             out = self.p_mean_variance(model, x, t, clip_denoised=clip_denoised, denoised_fn=denoised_fn, model_kwargs=model_kwargs)
@@ -549,7 +549,7 @@ class GaussianDiffusion:
         model,
         shape,
         noise=None,
-        clip_denoised=True,
+        clip_denoised=False,
         denoised_fn=None,
         cond_fn=None,
         model_kwargs=None,
@@ -598,7 +598,7 @@ class GaussianDiffusion:
         model,
         shape,
         noise=None,
-        clip_denoised=True,
+        clip_denoised=False,
         denoised_fn=None,
         cond_fn=None,
         model_kwargs=None,
@@ -661,7 +661,7 @@ class GaussianDiffusion:
         model,
         x,
         t,
-        clip_denoised=True,
+        clip_denoised=False,
         denoised_fn=None,
         cond_fn=None,
         model_kwargs=None,
@@ -727,7 +727,7 @@ class GaussianDiffusion:
         model,
         x,
         t,
-        clip_denoised=True,
+        clip_denoised=False,
         denoised_fn=None,
         cond_fn=None,
         model_kwargs=None,
@@ -802,7 +802,7 @@ class GaussianDiffusion:
         model,
         x,
         t,
-        clip_denoised=True,
+        clip_denoised=False,
         denoised_fn=None,
         model_kwargs=None,
         eta=0.0,
@@ -845,7 +845,7 @@ class GaussianDiffusion:
         model,
         shape,
         noise=None,
-        clip_denoised=True,
+        clip_denoised=False,
         denoised_fn=None,
         cond_fn=None,
         model_kwargs=None,
@@ -884,7 +884,7 @@ class GaussianDiffusion:
         model,
         shape,
         noise=None,
-        clip_denoised=True,
+        clip_denoised=False,
         denoised_fn=None,
         cond_fn=None,
         model_kwargs=None,
@@ -943,7 +943,7 @@ class GaussianDiffusion:
     # TODO: plms_sample
 
     def _vb_terms_bpd(
-        self, model, x_start, x_t, t, clip_denoised=True, model_kwargs=None
+        self, model, x_start, x_t, t, clip_denoised=False, model_kwargs=None
     ):
         true_mean, _, true_log_variance_clipped = self.q_posterior_mean_variance(
             x_start=x_start, x_t=x_t, t=t, model_kwargs=model_kwargs
