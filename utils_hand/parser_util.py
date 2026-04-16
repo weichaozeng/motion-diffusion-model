@@ -38,7 +38,7 @@ def add_model_options(parser):
     group.add_argument("--arch", default='trans_enc',
                        choices=['trans_enc', 'trans_dec', 'gru'], type=str,
                        help="Architecture types as reported in the paper.")
-    group.add_argument("--layers", default=16, type=int,
+    group.add_argument("--layers", default=8, type=int,
                        help="Number of layers.")
     group.add_argument("--latent_dim", default=512, type=int,
                        help="Transformer/GRU width.")
@@ -88,7 +88,7 @@ def add_diffusion_options(parser):
     group.add_argument("--lambda_ff_trans", default=10.0)
     
     # === Physics & Smoothness (保持不变：提供顺滑的物理先验) ===
-    group.add_argument("--lambda_vel_pose", default=10.0)
+    group.add_argument("--lambda_vel_pose", default=100.0)
     group.add_argument("--lambda_vel_trans", default=10.0)
     group.add_argument("--lambda_acc_pose", default=10.0)
     group.add_argument("--lambda_acc_trans", default=10.0)
@@ -98,13 +98,13 @@ def add_diffusion_options(parser):
     group.add_argument("--lambda_anchor_trans", default=10.0)
 
     # === 2D Pixel Alignment (大幅降权：等 3D Trans 降下去之后再发挥微调作用，防止前期搅局) ===
-    group.add_argument("--lambda_reproj_2d", default=0.0)
+    group.add_argument("--lambda_reproj_2d", default=10.0)
     
     # === Unused ===
     group.add_argument("--lambda_norm_pose", default=0.0)
     group.add_argument("--lambda_xyz", default=0.0)
     group.add_argument("--lambda_vert", default=0.0)
-    group.add_argument("--lambda_vel_xyz", default=0.0)
+    group.add_argument("--lambda_vel_xyz", default=100.0)
     group.add_argument("--lambda_acc_xyz", default=0.0)
 
 
