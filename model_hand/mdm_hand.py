@@ -409,8 +409,8 @@ class OutputProcess(nn.Module):
         # [修改点] 零初始化 (Zero-initialization)
         # 保证网络在未训练时，输出的纯残差严格为 0
         # ==========================================
-        nn.init.constant_(self.poseFinal.weight, 0.0)
-        nn.init.constant_(self.poseFinal.bias, 0.0)
+        # nn.init.constant_(self.poseFinal.weight, 0.0)
+        # nn.init.constant_(self.poseFinal.bias, 0.0)
 
         if self.data_rep == 'rot_vel':
             self.velFinal = nn.Linear(self.latent_dim, self.input_feats)
