@@ -1084,8 +1084,8 @@ class GaussianDiffusion:
             lambda_vert = getattr(self, 'lambda_vert', 0.)
             # target_xyz, out_xyz = None, None
             target_xyz, target_verts = get_xyz(target, return_verts=True)
+            out_xyz, out_verts = get_xyz(final_output, return_verts=True)
             if lambda_xyz > 0. or lambda_vert > 0.:
-                out_xyz, out_verts = get_xyz(final_output, return_verts=True)
                 if lambda_xyz > 0.:
                     terms["xyz_mse"] = self.masked_l2(target_xyz, out_xyz, mask)
                 if lambda_vert > 0.:
