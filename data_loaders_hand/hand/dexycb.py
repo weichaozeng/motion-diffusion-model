@@ -334,8 +334,8 @@ class DexYCB(Dataset):
         u = bx + tx_local * (b * s / 2.0) 
         v = by + ty_local * (b * s / 2.0)
 
-        x_real = (u - cx_real) * z_real / fx_real
-        y_real = (v - cy_real) * z_real / fy_real
+        x_real = (u - cx_real) * z_real / f_real  #fx_real
+        y_real = (v - cy_real) * z_real / f_real  #fy_real
 
         y_trans_cam_real = torch.stack([x_real, y_real, z_real], dim=-1)
 
